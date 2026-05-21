@@ -382,7 +382,7 @@ export default function FacultyDashboard() {
                     <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-blue-500" />
                         Today's Schedule
-                        <Badge variant="secondary" className="ml-1 text-xs font-normal">{TODAY_DAY}</Badge>
+                        <Badge variant="secondary" className="ml-1 text-xs font-normal">{todayDay}</Badge>
                     </h2>
 
                     {todaySlots.length === 0 ? (
