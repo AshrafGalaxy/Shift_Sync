@@ -87,6 +87,7 @@ CREATE TABLE faculty_settings (
     institution_id  UUID REFERENCES institutions(id) ON DELETE CASCADE NOT NULL,
     profile_id      UUID REFERENCES profiles(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
+    faculty_csv_id  TEXT,                          -- stores the CSV faculty ID for workload linking
     max_load_hrs    INTEGER NOT NULL DEFAULT 20,
     max_continuous_hrs INTEGER NOT NULL DEFAULT 3,
     shift_hours     JSONB NOT NULL DEFAULT '[8,9,10,11,12,13,14,15]'::jsonb,

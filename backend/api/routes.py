@@ -81,10 +81,11 @@ async def find_substitute(time_index: int, day: str, payload: GenerationPayload)
 
     # Filter 2: Free-slot validation
     for f in valid_shift_faculty:
+        total_load = sum(getattr(w, "hours", 0) for w in f.workload)
         available_subs.append({
             "faculty_id": f.id,
             "name": f.name,
-            "current_load": f.total_target_load,
+            "current_load": total_load,
             "status": "Available & On Shift",
         })
 
