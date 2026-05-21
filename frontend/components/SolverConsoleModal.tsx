@@ -20,9 +20,10 @@ interface SolverConsoleModalProps {
     onRoutingRequest?: (tab: string) => void;
     onSuccess?: () => void;
     onLogsComplete?: (logs: string[], score: number) => void;
+    onLiveLog?: (line: string) => void;
 }
 
-export default function SolverConsoleModal({ isOpen, onClose, payload, onRoutingRequest, onSuccess, onLogsComplete }: SolverConsoleModalProps) {
+export default function SolverConsoleModal({ isOpen, onClose, payload, onRoutingRequest, onSuccess, onLogsComplete, onLiveLog }: SolverConsoleModalProps) {
     const [step, setStep] = useState<"idle" | "solving" | "success" | "warning" | "failed">("idle");
     const [logs, setLogs] = useState<string[]>([]);
     const [score, setScore] = useState<number | null>(null);
@@ -90,8 +91,9 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
         for (let i = 0; i < incomingLogs.length; i++) {
             await new Promise(r => setTimeout(r, baseDelay + Math.random() * 50));
             setLogs(prev => [...prev, incomingLogs[i]]);
+            if (onLiveLog) onLiveLog(incomingLogs[i]); // ← stream to dashboard card
         }
-        await new Promise(r => setTimeout(r, 600)); // Final pause so user sees last line
+        await new Promise(r => setTimeout(r, 600));
     };
 
     const handleDownloadLogs = () => {

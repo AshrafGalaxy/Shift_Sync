@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, FileText, CheckCircle2, Clock, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download, Settings, UploadCloud, FlaskConical, BookOpen, ChevronRight, BarChart3, AlertCircle } from "lucide-react";
@@ -34,6 +34,9 @@ export default function DashboardOverview() {
     const [lastRunLogs, setLastRunLogs] = useState<string[]>([]);
     const [lastRunScore, setLastRunScore] = useState<number | null>(null);
     const [showAllLogs, setShowAllLogs] = useState(false);
+    const [liveLogs, setLiveLogs] = useState<string[]>([]);
+    const [isLiveStreaming, setIsLiveStreaming] = useState(false);
+    const liveLogsEndRef = useRef<HTMLDivElement | null>(null);
 
     const [stats, setStats] = useState([
         { name: "Total Faculty", value: 0 as number | string, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
@@ -427,6 +430,8 @@ export default function DashboardOverview() {
             toast.error("Generation Halted", { description: "You have critical unresolved constraints. Please fix them in the Readiness Dashboard first." });
             return;
         }
+        setLiveLogs([]);
+        setIsLiveStreaming(true);
         setIsSolverModalOpen(true);
     };
 
@@ -607,6 +612,64 @@ export default function DashboardOverview() {
                                     </span>
                                     <span className="text-blue-500 dark:text-blue-400 font-medium">Pinned slots stay fixed on shuffle</span>
                                 </div>
+
+                                {/* ── Inline Live / Last Log Panel ────────────────────────── */}
+                                {(isLiveStreaming || lastRunLogs.length > 0) && (
+                                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                                        {/* panel header */}
+                                        <div className="flex items-center justify-between px-3.5 py-2 bg-slate-900 border-b border-slate-800">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex gap-1">
+                                                    <div className="w-2 h-2 rounded-full bg-red-500/70" />
+                                                    <div className="w-2 h-2 rounded-full bg-amber-500/70" />
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-500/70" />
+                                                </div>
+                                                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+                                                    {isLiveStreaming ? "Live Engine Feed" : "Last Engine Trace"}
+                                                </span>
+                                                {isLiveStreaming && (
+                                                    <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-mono">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                                        SOLVING
+                                                    </span>
+                                                )}
+                                                {!isLiveStreaming && lastRunScore !== null && (
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                                        lastRunScore >= 90 ? 'bg-emerald-900/50 text-emerald-400' :
+                                                        lastRunScore >= 70 ? 'bg-amber-900/50 text-amber-400' :
+                                                        'bg-red-900/50 text-red-400'
+                                                    }`}>Score {lastRunScore}/100</span>
+                                                )}
+                                            </div>
+                                            {!isLiveStreaming && (
+                                                <span className="text-[10px] text-slate-600 font-mono">{lastGenerationDate}</span>
+                                            )}
+                                        </div>
+
+                                        {/* log lines */}
+                                        <div className="p-3 font-mono text-[11px] text-slate-400 space-y-0.5 max-h-36 overflow-y-auto custom-scrollbar">
+                                            {(isLiveStreaming ? liveLogs : (showAllLogs ? lastRunLogs : lastRunLogs.slice(-5))).map((line, i) => (
+                                                <div key={i} className={`leading-relaxed ${
+                                                    line.includes('[ERROR]') || line.includes('FATAL') ? 'text-red-400' :
+                                                    line.includes('[SUCCESS]') || line.includes('OPTIMAL') ? 'text-emerald-400' :
+                                                    line.includes('[STEP') ? 'text-violet-400 font-semibold' :
+                                                    'text-slate-400'
+                                                }`}>{line}</div>
+                                            ))}
+                                            <div ref={liveLogsEndRef} />
+                                        </div>
+
+                                        {/* show-all toggle (only for last run, not live) */}
+                                        {!isLiveStreaming && lastRunLogs.length > 5 && (
+                                            <button
+                                                onClick={() => setShowAllLogs(p => !p)}
+                                                className="w-full py-1.5 text-[10px] font-mono text-slate-600 hover:text-slate-400 hover:bg-slate-900/60 transition-colors border-t border-slate-800"
+                                            >
+                                                {showAllLogs ? '▲ Collapse' : `▼ Show all ${lastRunLogs.length} lines`}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </motion.div>
                         ) : (
                             <motion.div
@@ -657,48 +720,6 @@ export default function DashboardOverview() {
                     </AnimatePresence>
                 </CardContent>
 
-                {/* Last Engine Trace — persists after modal closes */}
-                {lastRunLogs.length > 0 && (
-                    <div className="mx-6 mb-5 rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
-                        {/* Trace header */}
-                        <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800">
-                            <div className="flex items-center gap-2">
-                                <div className="flex gap-1">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
-                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
-                                </div>
-                                <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">Last Engine Trace</span>
-                                {lastRunScore !== null && (
-                                    <span className={`ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                                        lastRunScore >= 90 ? 'bg-emerald-900/50 text-emerald-400' :
-                                        lastRunScore >= 70 ? 'bg-amber-900/50 text-amber-400' :
-                                        'bg-red-900/50 text-red-400'
-                                    }`}>Score {lastRunScore}/100</span>
-                                )}
-                            </div>
-                            <span className="text-[10px] text-slate-600 font-mono">{lastGenerationDate}</span>
-                        </div>
-                        {/* Trace lines */}
-                        <div className="px-4 py-3 font-mono text-xs space-y-1 text-slate-400">
-                            {(showAllLogs ? lastRunLogs : lastRunLogs.slice(-5)).map((line, i) => (
-                                <div key={i} className={`
-                                    ${line.includes('[STEP') ? 'text-violet-400 font-semibold' : ''}
-                                    ${line.includes('OPTIMAL') || line.includes('FEASIBLE') ? 'text-emerald-400 font-semibold' : ''}
-                                    ${line.includes('[ERROR]') || line.includes('INFEASIBLE') ? 'text-red-400' : ''}
-                                `}>{line}</div>
-                            ))}
-                        </div>
-                        {lastRunLogs.length > 5 && (
-                            <button
-                                onClick={() => setShowAllLogs(!showAllLogs)}
-                                className="w-full text-center text-[11px] text-slate-500 hover:text-slate-300 font-mono py-2 border-t border-slate-800 transition-colors"
-                            >
-                                {showAllLogs ? '▲ collapse' : `▼ show all ${lastRunLogs.length} lines`}
-                            </button>
-                        )}
-                    </div>
-                )}
             </Card>
 
             {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
@@ -927,7 +948,7 @@ export default function DashboardOverview() {
 
             <SolverConsoleModal 
                 isOpen={isSolverModalOpen} 
-                onClose={() => { setIsSolverModalOpen(false); fetchDashboardStats(); }} 
+                onClose={() => { setIsSolverModalOpen(false); setIsLiveStreaming(false); fetchDashboardStats(); }} 
                 payload={currentPayload} 
                 onRoutingRequest={(tab) => {
                     setIsSolverModalOpen(false);
@@ -945,10 +966,16 @@ export default function DashboardOverview() {
                         router.push("/dashboard/manage");
                     }
                 }}
+                onLiveLog={(line) => {
+                    setLiveLogs(prev => [...prev, line]);
+                    // Auto-scroll inline panel
+                    setTimeout(() => liveLogsEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+                }}
                 onLogsComplete={(logs, score) => {
                     setLastRunLogs(logs);
                     setLastRunScore(score);
                     setShowAllLogs(false);
+                    setIsLiveStreaming(false); // switch panel from live → last trace
                     setLastGenerationDate(new Date().toLocaleString());
                 }}
                 onSuccess={() => { fetchDashboardStats(); router.push('/dashboard/timetable'); }}
