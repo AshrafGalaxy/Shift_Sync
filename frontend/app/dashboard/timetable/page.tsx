@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 
 import { useState, useEffect, useRef } from "react";
@@ -42,6 +42,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     const [lunchSlot, setLunchSlot] = useState<any>(13);
     const [overflowCount, setOverflowCount] = useState<number>(0);
     const [overflowBannerDismissed, setOverflowBannerDismissed] = useState(false);
+    const [showRoomUtil, setShowRoomUtil] = useState(false);
     const gridRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
 
@@ -176,7 +177,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         return time === lunchSlot;
     };
 
-    // ── Export: Pixel-perfect Excel matching timetable card layout ───────────────────────
+    // â”€â”€ Export: Pixel-perfect Excel matching timetable card layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const exportToExcel = () => {
         if (!slots || slots.length === 0) {
             toast.warning("Nothing to export", { description: "Generate a timetable first." });
@@ -189,13 +190,13 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         const ws: any = {};
         const merges: any[] = [];
 
-        // ── Column widths ──────────────────────────────────────────────────
+        // â”€â”€ Column widths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         ws["!cols"] = [
             { wch: 10 },                           // Day column
             ...activeTimes.map(() => ({ wch: 30 })) // Time columns
         ];
 
-        // ── Helper: format one slot card into multi-line cell text ────────
+        // â”€â”€ Helper: format one slot card into multi-line cell text â”€â”€â”€â”€â”€â”€â”€â”€
         const formatCard = (s: any): string => {
             const parts = s.subject.split('_');
             const code = parts.length > 1 ? parts[0] : "";
@@ -211,7 +212,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
             return lines.join('\n');
         };
 
-        // ── Header row (row 0) ─────────────────────────────────────────────
+        // â”€â”€ Header row (row 0) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const encodeCell = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
 
         ws[encodeCell(0, 0)] = { v: "Day \\ Time", t: "s" };
@@ -221,7 +222,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
 
         let rowIdx = 1; // current Excel row
 
-        // ── Body: one day block per active day ────────────────────────────
+        // â”€â”€ Body: one day block per active day â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         activeDays.forEach(day => {
             // Find max number of classes in any single time slot for this day
             const slotCounts = activeTimes.map(time => {
@@ -374,7 +375,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         }
     };
 
-    // Slot card renderer — reused for both grid and print
+    // Slot card renderer â€” reused for both grid and print
     const SlotCard = ({ slot }: { slot: any }) => {
         const isPinned = pinnedClasses.includes(`${slot.workload_id}|${slot.room}|${slot.day}|${slot.time}`);
         const subjectParts = slot.subject.split('_');
@@ -447,8 +448,35 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         return matchDiv && matchFac && matchSearch;
     });
 
+    // Room utilization: count occupied (day, time) pairs per room
+    const roomUtil = (() => {
+        const nonLunchTimes = times.filter(t => {
+            if (typeof lunchSlot === "object") return !Object.values(lunchSlot).includes(t);
+            return t !== lunchSlot;
+        });
+        const totalSlots = days.length * nonLunchTimes.length;
+        const roomMap: Record<string, number> = {};
+        slots.forEach((s: any) => {
+            if (s.room && s.room !== "TBD") {
+                const key = `${s.room}|${s.day}|${s.time_slot}`;
+                roomMap[s.room] = roomMap[s.room] || 0;
+            }
+        });
+        // Unique (room, day, timeslot) pairs
+        const uniqueMap: Record<string, Set<string>> = {};
+        slots.forEach((s: any) => {
+            if (!s.room || s.room === "TBD") return;
+            if (!uniqueMap[s.room]) uniqueMap[s.room] = new Set();
+            uniqueMap[s.room].add(`${s.day}|${s.time_slot}`);
+        });
+        return Object.entries(uniqueMap)
+            .map(([room, set]) => ({ room, used: set.size, total: totalSlots, pct: Math.round((set.size / totalSlots) * 100) }))
+            .sort((a, b) => b.pct - a.pct);
+    })();
+
     return (
         <div className="space-y-4 h-[calc(100vh-6rem)] flex flex-col pt-2 animate-in fade-in duration-500 print:h-auto print:space-y-2">
+
             <style>{`
                 @media print {
                     @page { size: landscape; margin: 8mm; }
@@ -476,7 +504,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                         {activeFilter === "All Divisions"
                             ? "Viewing all divisions. Use the filter to isolate a single division's schedule."
-                            : `Filtered to: ${activeFilter} — each slot shows exactly one class.`}
+                            : `Filtered to: ${activeFilter} â€” each slot shows exactly one class.`}
                     </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -572,7 +600,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                     <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
                     <div className="flex-1">
                         <span className="font-semibold">{overflowCount} class slot{overflowCount !== 1 ? 's' : ''} have no matching room</span>
-                        <span className="font-normal ml-1 text-amber-700 dark:text-amber-300">— marked <span className="font-semibold">⚠ TBD</span> in the grid. Add a matching room in Data Manager and regenerate.</span>
+                        <span className="font-normal ml-1 text-amber-700 dark:text-amber-300">â€” marked <span className="font-semibold">âš  TBD</span> in the grid. Add a matching room in Data Manager and regenerate.</span>
                     </div>
                     <button
                         onClick={() => setOverflowBannerDismissed(true)}
@@ -584,7 +612,39 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                 </div>
             )}
 
-            {/* Grid Container — min-h-0 prevents flex child from overflowing parent height */}
+            {/* Room Utilization Strip */}
+            {roomUtil.length > 0 && slots.length > 0 && (
+                <div className="shrink-0 print:hidden">
+                    <button
+                        onClick={() => setShowRoomUtil(v => !v)}
+                        className="text-[11px] font-semibold text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center gap-1.5 mb-1.5 transition-colors"
+                    >
+                        <span className={`transition-transform ${showRoomUtil ? "rotate-90" : ""}`}>â–¶</span>
+                        Room Utilization ({roomUtil.length} rooms)
+                    </button>
+                    {showRoomUtil && (
+                        <div className="flex flex-wrap gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm animate-in fade-in duration-200">
+                            {roomUtil.map(({ room, used, total, pct }) => (
+                                <div key={room} className="flex flex-col gap-1 min-w-[90px]">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-mono font-bold text-slate-700 dark:text-slate-300 truncate">{room}</span>
+                                        <span className={`text-[10px] font-bold ml-1 ${pct >= 80 ? "text-red-500" : pct >= 50 ? "text-amber-500" : "text-emerald-500"}`}>{pct}%</span>
+                                    </div>
+                                    <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-red-500" : pct >= 50 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                            style={{ width: `${pct}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-[9px] text-slate-400">{used}/{total} slots</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Grid Container â€” min-h-0 prevents flex child from overflowing parent height */}
             <div
                 ref={gridRef}
                 className={`flex-1 min-h-0 overflow-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm relative print:overflow-visible print:border-none print:shadow-none print:w-full ${isFullscreen ? 'p-4 rounded-none border-none' : ''}`}
@@ -605,12 +665,12 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                         </div>
                     </div>
                 ) : (
-                    // ── The actual timetable grid ──────────────────────────────────
+                    // â”€â”€ The actual timetable grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     <table className="w-full border-collapse table-fixed print:text-[8pt]">
                         <colgroup>
                             {/* Day column */}
                             <col style={{ width: "80px" }} />
-                            {/* Time slot columns — equal width */}
+                            {/* Time slot columns â€” equal width */}
                             {times.map(t => <col key={t} />)}
                         </colgroup>
 
@@ -667,7 +727,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
 
                                         if (activeFilter === "All Divisions" && activeSlots.length > 1) {
                                             // Multi-class cell (All Divisions view):
-                                            // Stack cards vertically, each full width — NO scroll, all visible
+                                            // Stack cards vertically, each full width â€” NO scroll, all visible
                                             return (
                                                 <td key={time} className="border-r border-slate-100 dark:border-slate-800/50 p-1.5 align-top">
                                                     <div className="flex flex-col gap-1.5">
@@ -708,3 +768,4 @@ export default function MasterTimetablePage() {
         </Suspense>
     );
 }
+
