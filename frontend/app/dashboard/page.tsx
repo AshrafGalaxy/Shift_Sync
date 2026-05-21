@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -168,9 +168,9 @@ export default function DashboardOverview() {
 
             // Fetch data for capacity heatmap density calculation
             const { data: inst } = await supabase.from("institutions").select("days_active, time_slots").eq("id", instId).single();
-            const { count: facultyCount } = await supabase.from("faculty_settings").select("*", { count: "exact", head: true });
+            const { count: facultyCount } = await supabase.from("faculty_settings").select("*", { count: "exact", head: true }).eq("institution_id", instId);
             const { data: rooms } = await supabase.from("rooms").select("id").eq("institution_id", instId);
-            const { data: workloads } = await supabase.from("workloads").select("weekly_hours");
+            const { data: workloads } = await supabase.from("workloads").select("weekly_hours").eq("institution_id", instId);
 
             const roomCount = rooms?.length || 0;
             const workloadsCount = workloads?.length || 0;
@@ -184,7 +184,7 @@ export default function DashboardOverview() {
             let densityBg = "bg-emerald-50 dark:bg-emerald-500/10";
             let densityAlert = "";
             if (densityRatio > 85) { densityColor = "text-amber-500"; densityBg = "bg-amber-50 dark:bg-amber-500/10"; }
-            if (densityRatio > 100) { densityColor = "text-red-500"; densityBg = "bg-red-50 dark:bg-red-500/10"; densityAlert = " ⚠️"; }
+            if (densityRatio > 100) { densityColor = "text-red-500"; densityBg = "bg-red-50 dark:bg-red-500/10"; densityAlert = " âš ï¸"; }
 
             // Get last generation metadata
             const { data: latestTs } = await supabase
@@ -439,7 +439,7 @@ export default function DashboardOverview() {
             toast.error("Cannot generate timetable", { description: "Your database is empty! Add at least 1 Room and 1 Faculty member to continue." });
             return;
         }
-        // Warn but do NOT block — ghost-room layer will handle overflows
+        // Warn but do NOT block â€” ghost-room layer will handle overflows
         if (readiness && !readiness.ready && readiness.critical?.length > 0) {
             toast.warning("Generating with issues detected", {
                 description: `${readiness.critical.length} critical constraint(s) found. Ghost-room fallback will handle unresolvable slots. Review after generation.`,
@@ -491,7 +491,7 @@ export default function DashboardOverview() {
                 </div>
             </div>
 
-            {/* ── Last-Generation Summary Strip ─────────────────────────── */}
+            {/* â”€â”€ Last-Generation Summary Strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             {lastGenSummary && (
                 <div className="flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                     {/* Status badge */}
@@ -500,7 +500,7 @@ export default function DashboardOverview() {
                         : lastGenSummary.status === 'success_with_overflow' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                         : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                     }`}>
-                        {lastGenSummary.status === 'success' ? '✓ Success' : lastGenSummary.status === 'success_with_overflow' ? '⚠ Overflow' : '✕ Failed'}
+                        {lastGenSummary.status === 'success' ? 'âœ“ Success' : lastGenSummary.status === 'success_with_overflow' ? 'âš  Overflow' : 'âœ• Failed'}
                     </span>
                     {/* Score mini-bar */}
                     {lastGenSummary.score != null && (
@@ -518,11 +518,11 @@ export default function DashboardOverview() {
                     )}
                     <span className="text-xs text-slate-500">{lastGenSummary.slots} slots scheduled</span>
                     <span className="text-xs text-slate-400 ml-auto">{lastGenSummary.date}</span>
-                    <button onClick={() => router.push('/dashboard/history')} className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 hover:underline shrink-0">View History →</button>
+                    <button onClick={() => router.push('/dashboard/history')} className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 hover:underline shrink-0">View History â†’</button>
                 </div>
             )}
 
-            {/* ── AI Solver Engine Card ───────────────────────────────────── */}
+            {/* â”€â”€ AI Solver Engine Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-violet-200 dark:hover:border-violet-800/40">
                 {/* Ambient glow */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-500/6 to-transparent blur-[80px] rounded-full pointer-events-none" />
@@ -595,7 +595,7 @@ export default function DashboardOverview() {
                                     </div>
                                 </div>
 
-                                {/* Issues list — wraps on mobile */}
+                                {/* Issues list â€” wraps on mobile */}
                                 {!readiness.ready && readiness.critical && readiness.critical.length > 0 && (
                                     <div className="mt-3 space-y-1.5">
                                         {readiness.critical.map((iss: any, i: number) => (
@@ -644,7 +644,7 @@ export default function DashboardOverview() {
                                 exit={{ opacity: 0, y: -6 }}
                                 className="space-y-3"
                             >
-                                {/* Premium centered CTA — not full-width */}
+                                {/* Premium centered CTA â€” not full-width */}
                                 <div className="flex justify-center py-1">
                                     <Button
                                         onClick={startGeneration}
@@ -665,18 +665,18 @@ export default function DashboardOverview() {
                                     </Button>
                                 </div>
 
-                                {/* Smart Suggestions — from readiness data */}
+                                {/* Smart Suggestions â€” from readiness data */}
                                 {readiness && readiness.warnings && readiness.warnings.length > 0 && (
                                     <div className="rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50/60 dark:bg-amber-900/10 overflow-hidden">
                                         <div className="flex items-center gap-1.5 px-3 py-2 border-b border-amber-200/60 dark:border-amber-800/30">
-                                            <span>💡</span>
+                                            <span>ðŸ’¡</span>
                                             <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">Smart Suggestions</p>
                                             <span className="ml-auto text-[10px] font-semibold text-amber-600 dark:text-amber-500 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded-full">{readiness.warnings.length}</span>
                                         </div>
                                         <div className="divide-y divide-amber-100 dark:divide-amber-800/20">
                                             {readiness.warnings.slice(0, 4).map((w: any, i: number) => (
                                                 <div key={i} className="flex items-start gap-2 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-                                                    <span className="shrink-0 mt-0.5 text-amber-500">›</span>
+                                                    <span className="shrink-0 mt-0.5 text-amber-500">â€º</span>
                                                     <span className="flex-1">{w.message ?? JSON.stringify(w)}</span>
                                                     {w.tab_hint && (
                                                         <button
@@ -706,7 +706,7 @@ export default function DashboardOverview() {
                                     <span className="text-blue-500 dark:text-blue-400 font-medium">Pinned slots stay fixed on shuffle</span>
                                 </div>
 
-                                {/* ── Inline Live / Last Log Panel ────────────────────────── */}
+                                {/* â”€â”€ Inline Live / Last Log Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                 {(isLiveStreaming || lastRunLogs.length > 0) && (
                                     <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
                                         {/* panel header */}
@@ -758,7 +758,7 @@ export default function DashboardOverview() {
                                                 onClick={() => setShowAllLogs(p => !p)}
                                                 className="w-full py-1.5 text-[10px] font-mono text-slate-600 hover:text-slate-400 hover:bg-slate-900/60 transition-colors border-t border-slate-800"
                                             >
-                                                {showAllLogs ? '▲ Collapse' : `▼ Show all ${lastRunLogs.length} lines`}
+                                                {showAllLogs ? 'â–² Collapse' : `â–¼ Show all ${lastRunLogs.length} lines`}
                                             </button>
                                         )}
 
@@ -827,7 +827,7 @@ export default function DashboardOverview() {
 
             </Card>
 
-            {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
+            {/* â”€â”€ KPI Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat) => {
                     const numVal = typeof stat.value === 'number' ? stat.value : parseFloat(String(stat.value));
@@ -886,7 +886,7 @@ export default function DashboardOverview() {
                 })}
             </div>
 
-            {/* Constraint Templates — Phase 31 */}
+            {/* Constraint Templates â€” Phase 31 */}
             {instId && (
                 <TemplateManager
                     institutionId={instId}
@@ -905,7 +905,7 @@ export default function DashboardOverview() {
                         </CardHeader>
                         <CardContent>
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                {/* ── Startup-grade tab navigation ─────────────────────────── */}
+                                {/* â”€â”€ Startup-grade tab navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                 <TabsList className="w-full h-auto p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-x-auto flex-nowrap whitespace-nowrap flex gap-0.5 mb-5">
                                     {[
                                         { value: "global", icon: <Settings className="w-3.5 h-3.5" />, label: "Global Settings", activeClass: "data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600" },
@@ -933,7 +933,7 @@ export default function DashboardOverview() {
                                     ))}
                                 </TabsList>
 
-                                {/* ── Form content areas — consistent min-height prevents layout jump ── */}
+                                {/* â”€â”€ Form content areas â€” consistent min-height prevents layout jump â”€â”€ */}
                                 <TabsContent value="global" className="mt-0">
                                     <div className="min-h-[420px]">
                                         <InstitutionForm onSuccess={() => { toast.success("Global constraints saved!"); fetchDashboardStats(); }} />
@@ -1026,7 +1026,7 @@ export default function DashboardOverview() {
 
             </div>
 
-            {/* Conflict Refiner Modal — Phase 34 */}
+            {/* Conflict Refiner Modal â€” Phase 34 */}
             <ConflictRefinerModal
                 open={!!conflictDiagnosis}
                 diagnosis={conflictDiagnosis}
@@ -1080,7 +1080,7 @@ export default function DashboardOverview() {
                     setLastRunLogs(logs);
                     setLastRunScore(score);
                     setShowAllLogs(false);
-                    setIsLiveStreaming(false); // switch panel from live → last trace
+                    setIsLiveStreaming(false); // switch panel from live â†’ last trace
                     setLastGenerationDate(new Date().toLocaleString());
                 }}
                 onSuccess={() => { fetchDashboardStats(); router.push('/dashboard/timetable'); }}
@@ -1088,3 +1088,4 @@ export default function DashboardOverview() {
         </div>
     );
 }
+
