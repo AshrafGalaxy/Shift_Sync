@@ -14,7 +14,7 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
     const [activeDays, setActiveDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri"]);
     const [startHour, setStartHour] = useState(8);
     const [endHour, setEndHour] = useState(16);
-    const [lunchSlot, setLunchSlot] = useState(13);
+    const [lunchMap, setLunchMap] = useState<Record<string, number>>({ "Mon": 13, "Tue": 13, "Wed": 13, "Thu": 13, "Fri": 13 });
     const [maxContinuous, setMaxContinuous] = useState<number | "">(2);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +33,16 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
                     setStartHour(Math.min(...data.time_slots));
                     setEndHour(Math.max(...data.time_slots) + 1); // +1 because end is boundary
                 }
-                setLunchSlot(data.lunch_slot);
+                
+                // Handle legacy integer vs new object map
+                if (typeof data.lunch_slot === 'number') {
+                    const newMap: Record<string, number> = {};
+                    data.days_active.forEach((d: string) => newMap[d] = data.lunch_slot);
+                    setLunchMap(newMap);
+                } else if (data.lunch_slot) {
+                    setLunchMap(data.lunch_slot);
+                }
+                
                 setMaxContinuous(data.max_continuous_lectures);
             }
         }
@@ -46,9 +55,15 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
     const toggleDay = (day: string) => {
         if (activeDays.includes(day)) {
             setActiveDays(activeDays.filter(d => d !== day));
+            // Optional: clean up lunchMap, but keeping it is harmless
         } else {
             setActiveDays([...activeDays, day]);
+            setLunchMap(prev => ({ ...prev, [day]: 13 })); // Default to 1PM
         }
+    };
+
+    const updateLunchForDay = (day: string, slot: number) => {
+        setLunchMap(prev => ({ ...prev, [day]: slot }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +85,7 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
                 name: name,
                 days_active: activeDays,
                 time_slots: slots,
-                lunch_slot: lunchSlot,
+                lunch_slot: lunchMap, // Now sending the dictionary!
                 max_continuous_lectures: maxContinuous === "" ? 2 : maxContinuous
             };
 
@@ -166,16 +181,26 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label>Global Lunch Slot Hour</Label>
-                    <select
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:focus:ring-slate-300"
-                        value={lunchSlot} onChange={e => setLunchSlot(parseInt(e.target.value))}
-                    >
-                        {[11, 12, 13, 14].map(h => <option key={h} value={h}>{h}:00</option>)}
-                    </select>
+                <div className="space-y-4 col-span-2 border border-slate-200 dark:border-slate-800 p-4 rounded-lg bg-white dark:bg-slate-950">
+                    <Label className="text-base font-semibold">Dynamic Daily Lunch Blocks</Label>
+                    <p className="text-xs text-slate-500 mb-2">Assign different lunch times for each active day to accommodate variable lab schedules or half-days.</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                        {activeDays.map(day => (
+                            <div key={day} className="space-y-1.5 p-2 bg-slate-50 dark:bg-slate-900 rounded-md border border-slate-100 dark:border-slate-800">
+                                <Label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{day}</Label>
+                                <select
+                                    className="flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1 text-xs ring-offset-white focus:outline-none focus:ring-2 focus:ring-slate-950 dark:border-slate-800 dark:bg-slate-950"
+                                    value={lunchMap[day] || 13} 
+                                    onChange={e => updateLunchForDay(day, parseInt(e.target.value))}
+                                >
+                                    {[11, 12, 13, 14, 15].map(h => <option key={h} value={h}>{h}:00 - {h+1}:00</option>)}
+                                </select>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-                <div className="space-y-2">
+
+                <div className="space-y-2 col-span-2 md:col-span-1">
                     <Label>Max Continuous Lectures (Fatigue Limit)</Label>
                     <Input required type="number" min="1" max="5" value={maxContinuous} onChange={e => setMaxContinuous(e.target.value ? parseInt(e.target.value) : "")} />
                 </div>

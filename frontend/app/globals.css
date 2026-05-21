@@ -124,3 +124,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* 
+ * Premium Thin Custom Scrollbar 
+ * Targeted for tight spaces like Timetable Cards and Sidebars
+ */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: oklch(0.8 0 0); /* subtle slate */
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.6 0 0); /* darker on hover */
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: oklch(0.4 0 0); /* darker slate for dark mode */
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0);
+}
+
+/* Premium Dashboard Loading Animation */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-gradient {
+  animation: gradient 3s ease infinite;
+}

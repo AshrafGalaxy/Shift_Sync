@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,7 +16,8 @@ import {
     X,
     LogOut,
     History,
-    BookOpen
+    BookOpen,
+    Database
 } from "lucide-react";
 
 import { createClient } from "@/utils/supabase/client";
@@ -31,6 +32,7 @@ const sidebarLinks = [
     { name: "Master Timetable", href: "/dashboard/timetable", icon: CalendarDays },
     { name: "Resource Heatmap", href: "/dashboard/resources", icon: Map },
     { name: "Generation History", href: "/dashboard/history", icon: History },
+    { name: "Data Manager", href: "/dashboard/manage", icon: Database },
     { name: "Documentation", href: "/dashboard/guide", icon: BookOpen },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
@@ -40,6 +42,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const pathname = usePathname();
     const router = useRouter();
     const supabase = createClient();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Fetch initial unread count + subscribe to new notifications in real-time
+    useEffect(() => {
+        let channel: ReturnType<typeof supabase.channel> | null = null;
+        (async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // Initial count
+            const { count } = await supabase
+                .from("notifications")
+                .select("*", { count: "exact", head: true })
+                .eq("recipient_id", user.id)
+                .eq("is_read", false);
+            setUnreadCount(count ?? 0);
+
+            // Real-time subscription
+            channel = supabase
+                .channel(`layout-notif:${user.id}`)
+                .on("postgres_changes", {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "notifications",
+                    filter: `recipient_id=eq.${user.id}`,
+                }, () => setUnreadCount((prev) => prev + 1))
+                .on("postgres_changes", {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "notifications",
+                    filter: `recipient_id=eq.${user.id}`,
+                }, () => {
+                    // Recount on any update (mark-as-read events)
+                    supabase
+                        .from("notifications")
+                        .select("*", { count: "exact", head: true })
+                        .eq("recipient_id", user.id)
+                        .eq("is_read", false)
+                        .then(({ count: c }) => setUnreadCount(c ?? 0));
+                })
+                .subscribe();
+        })();
+        return () => { if (channel) supabase.removeChannel(channel); };
+    }, [supabase]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -134,7 +180,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <ThemeToggle />
                         <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 dark:hover:text-slate-50">
                             <Bell className="w-5 h-5" />
-                            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-red-500 border-2 border-white dark:border-slate-950"></span>
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 border-2 border-white dark:border-slate-950 text-[10px] text-white font-bold flex items-center justify-center px-1">
+                                    {unreadCount > 9 ? "9+" : unreadCount}
+                                </span>
+                            )}
                         </Button>
                     </div>
                 </header>

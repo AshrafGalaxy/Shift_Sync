@@ -23,8 +23,7 @@ class CustomRule(BaseModel):
 class CollegeSettings(BaseModel):
     days_active: List[str] = Field(..., description="e.g. ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']")
     time_slots: List[int] = Field(..., description="Array of integer hours e.g. [8, 9, 10... 17]")
-    lunch_slot: int = Field(13, description="The integer hour designated for global lunch break")
-    max_continuous_lectures: int = Field(2, description="Penalty applied if a faculty teaches more than this consecutively")
+    lunch_slot: Dict[str, int] = Field(..., description="Map of day string to integer hour, e.g. {'Monday': 12, 'Tuesday': 13}")
     custom_rules: List[CustomRule] = Field(default_factory=list, description="Dynamic array of IF-THEN conditions")
 
 # --- Specialized Infrastructure Setup ---
@@ -48,6 +47,7 @@ class WorkloadItem(BaseModel):
     hours: int = Field(..., gt=0, description="Exact number of weekly hours required for this mapping")
     consecutive_hours: int = Field(1, description="How many hours MUST be mapped side-by-side without interruptions")
     required_tags: List[str] = Field(default_factory=list, description="Array of tags the assigned room MUST possess")
+    is_online: bool = Field(default=False, description="If true, bypasses physical room mapping")
 
 class BlockedSlot(BaseModel):
     day: str
@@ -59,6 +59,7 @@ class FacultyConfig(BaseModel):
     shift: List[int] = Field(..., description="Array of valid integer hours this faculty is allowed to work")
     blocked_slots: List[BlockedSlot] = Field(default_factory=list, description="Handling visiting/part-time absences")
     max_load_hrs: int = Field(..., gt=0, description="The absolute total maximum contracted hours")
+    max_continuous_hrs: int = Field(3, gt=0, description="Max continuous teaching hours before fatigue penalty")
     class_teacher_for: Optional[str] = Field(None, description="Division ID if this faculty is a class teacher")
     workload: List[WorkloadItem] = Field(default_factory=list)
 

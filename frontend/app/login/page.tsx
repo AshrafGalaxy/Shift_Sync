@@ -150,9 +150,15 @@ export default function LoginPage() {
                             </form>
                         </Tabs>
                     </CardContent>
-                    <CardFooter className="flex justify-center border-t border-slate-100 dark:border-slate-800/60 pt-6">
+                    <CardFooter className="flex flex-col items-center gap-3 border-t border-slate-100 dark:border-slate-800/60 pt-6">
                         <p className="text-sm text-slate-500 dark:text-slate-400">
                             Need help? Contact <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">IT Support</a>
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            New institution?{" "}
+                            <Link href="/register" className="text-teal-600 dark:text-teal-400 hover:underline font-medium">
+                                Register here
+                            </Link>
                         </p>
                     </CardFooter>
                 </Card>

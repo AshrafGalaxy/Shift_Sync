@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Filter, Download, Plus, ChevronLeft, ChevronRight, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, FileText, ChevronDown, Lock, Unlock } from "lucide-react";
+import { Filter, Download, Plus, ChevronLeft, ChevronRight, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, FileText, ChevronDown, Lock, Unlock, Send, AlertTriangle, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
@@ -33,6 +33,8 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     const [pinnedClasses, setPinnedClasses] = useState<string[]>([]);
     const [instId, setInstId] = useState<string | null>(null);
     const [lunchSlot, setLunchSlot] = useState<number>(13);
+    const [overflowCount, setOverflowCount] = useState<number>(0);
+    const [overflowBannerDismissed, setOverflowBannerDismissed] = useState(false);
     const gridRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
 
@@ -74,6 +76,23 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                 const storedPins = localStorage.getItem(`pinned_classes_${profile.institution_id}`);
                 if (storedPins) setPinnedClasses(JSON.parse(storedPins));
 
+                const cacheKey = `tt_cache_${profile.institution_id}${targetId ? '_' + targetId : ''}`;
+                const forceRefresh = localStorage.getItem('force_tt_refresh');
+                
+                if (!forceRefresh) {
+                    const cachedData = sessionStorage.getItem(cacheKey);
+                    if (cachedData) {
+                        const parsedCache = JSON.parse(cachedData);
+                        setSlots(parsedCache.slots);
+                        setAvailableFilters(parsedCache.filters);
+                        if (parsedCache.lunch) setLunchSlot(parsedCache.lunch);
+                        setIsLoading(false);
+                        return; // Skipped Supabase Query
+                    }
+                } else {
+                    localStorage.removeItem('force_tt_refresh');
+                }
+
                 let query = supabase
                     .from("generated_timetables")
                     .select("matrix_data")
@@ -93,7 +112,8 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
 
                 if (latestTimetable && latestTimetable.matrix_data && latestTimetable.matrix_data.schedule) {
                     // Map Python generic array back into our UI grid system
-                    const mappedSlots = latestTimetable.matrix_data.schedule.map((entry: any) => ({
+                    const schedule = latestTimetable.matrix_data.schedule ?? [];
+                    const mappedSlots = schedule.map((entry: any) => ({
                         workload_id: entry.workload_id,
                         day: entry.day, // e.g. "Mon"
                         time: entry.time_slot,
@@ -101,12 +121,25 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                         faculty: entry.faculty_name || entry.faculty_id,
                         room: entry.room,
                         targets: entry.targets || [],
-                        type: entry.type === "Tutorial" || entry.subject.includes("TUT") ? "tutorial" : (entry.type === "Practical" || entry.subject.includes("LAB") ? "lab" : "theory")
+                        type: entry.type === "Tutorial" || entry.subject.includes("TUT") ? "tutorial" : (entry.type === "Practical" || entry.subject.includes("LAB") ? "lab" : "theory"),
+                        needs_room_assignment: entry.needs_room_assignment ?? false
                     }));
                     setSlots(mappedSlots);
 
+                    const overflow = mappedSlots.filter((s: any) => s.needs_room_assignment).length;
+                    setOverflowCount(overflow);
+                    setOverflowBannerDismissed(false);
+
                     const uniqueTargets = Array.from(new Set(mappedSlots.flatMap((s: any) => s.targets)));
-                    setAvailableFilters(["All Divisions", ...uniqueTargets as string[]]);
+                    const filters = ["All Divisions", ...uniqueTargets as string[]];
+                    setAvailableFilters(filters);
+                    
+                    // Sync to Browser Cache
+                    sessionStorage.setItem(cacheKey, JSON.stringify({
+                        slots: mappedSlots,
+                        filters: filters,
+                        lunch: instData?.lunch_slot || lunchSlot
+                    }));
                 }
             } catch (err) {
                 console.warn("No timetable to display:", err);
@@ -225,6 +258,20 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         window.print();
     };
 
+    const pushToGoogleCalendar = async () => {
+        if (!slots || slots.length === 0) return alert("No timetable data to push.");
+        const confirmed = window.confirm(`Push ${slots.length} class slots to your Google Calendar as weekly recurring events?\n\nMake sure you have connected your Google account in Settings first.`);
+        if (!confirmed) return;
+        try {
+            const res = await fetch("/api/calendar/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Push failed");
+            alert(`✅ ${data.message}${data.failed > 0 ? `\n⚠️ ${data.failed} events failed.` : ""}`);
+        } catch (err: any) {
+            alert("Google Calendar push failed: " + err.message);
+        }
+    };
+
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
             gridRef.current?.requestFullscreen().catch(err => {
@@ -288,6 +335,10 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                                 <CalendarIcon className="w-4 h-4 mr-2" />
                                 Export to iCal (.ics)
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={pushToGoogleCalendar} className="cursor-pointer text-purple-600 focus:text-purple-600 focus:bg-purple-50 dark:focus:bg-purple-950/50">
+                                <Send className="w-4 h-4 mr-2" />
+                                Push to Google Calendar
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs">Printable</DropdownMenuLabel>
                             <DropdownMenuItem onClick={exportToPDF} className="cursor-pointer text-orange-600 focus:text-orange-600 focus:bg-orange-50 dark:focus:bg-orange-950/50">
@@ -305,6 +356,24 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                     )}
                 </div>
             </div>
+
+            {/* ── Overflow Banner ────────────────────────────────────────────── */}
+            {overflowCount > 0 && !overflowBannerDismissed && (
+                <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-200 text-sm print:hidden animate-in slide-in-from-top-2 duration-300">
+                    <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+                    <div className="flex-1">
+                        <span className="font-semibold">{overflowCount} class slot{overflowCount !== 1 ? 's' : ''} assigned to overflow</span>
+                        <span className="font-normal ml-1 text-amber-700 dark:text-amber-300">— no matching room was found for these workloads. They are marked <span className="font-semibold">⚠ Room TBD</span> in the grid. Assign a room manually or add a matching room in Data Manager and regenerate.</span>
+                    </div>
+                    <button
+                        onClick={() => setOverflowBannerDismissed(true)}
+                        className="p-1 rounded-md hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors shrink-0"
+                        title="Dismiss"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             {/* Grid Container */}
             <div ref={gridRef} className={`flex-1 overflow-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm relative print:overflow-visible print:border-none print:shadow-none print:w-full ${isFullscreen ? 'p-6 rounded-none border-none' : ''}`}>
@@ -352,7 +421,10 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                                     <div className="flex flex-1 relative">
                                         {TIMES.map((time) => {
                                             const activeSlots = slots.filter(s => s.day === day && s.time === time && (activeFilter === "All Divisions" || s.targets.includes(activeFilter)));
-                                            const isLunch = time === lunchSlot;
+                                            // Handle both static global lunch integers and new dynamic Maps
+                                            const isLunch = typeof lunchSlot === 'object' && lunchSlot !== null 
+                                                ? lunchSlot[day] === time 
+                                                : time === lunchSlot;
 
                                             if (isLunch) {
                                                 return (
@@ -368,12 +440,21 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                                                         <div className="h-full w-full flex flex-col gap-1.5 overflow-y-auto custom-scrollbar pr-1">
                                                             {activeSlots.map((slot, i) => {
                                                                 const isPinned = pinnedClasses.includes(`${slot.workload_id}|${slot.room}|${slot.day}|${slot.time}`);
+                                                                
+                                                                // String formatting: "DS2012_ML_Lab" -> Code: "DS2012", Name: "ML Lab"
+                                                                const subjectParts = slot.subject.split('_');
+                                                                const subjectCode = subjectParts.length > 1 ? subjectParts[0] : "";
+                                                                const subjectName = subjectParts.length > 1 ? subjectParts.slice(1).join(' ') : slot.subject;
+
                                                                 return (
-                                                                    <div key={i} className={`shrink-0 rounded-md p-2 flex flex-col justify-between border cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md relative group/card ${slot.type === 'tutorial'
-                                                                        ? (isPinned ? 'bg-purple-100/80 dark:bg-purple-500/30 border-purple-400' : 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 hover:border-purple-300 dark:hover:border-purple-500/40')
-                                                                        : slot.type === 'lab'
-                                                                            ? (isPinned ? 'bg-teal-100/80 dark:bg-teal-500/30 border-teal-400' : 'bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20 hover:border-teal-300 dark:hover:border-teal-500/40')
-                                                                            : (isPinned ? 'bg-blue-100/80 dark:bg-blue-500/30 border-blue-400' : 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 hover:border-blue-300 dark:hover:border-blue-500/40')
+                                                                    <div key={i} className={`shrink-0 rounded-md p-2 flex flex-col justify-between border cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md relative group/card ${
+                                                                        slot.needs_room_assignment
+                                                                            ? (isPinned ? 'bg-amber-100/80 dark:bg-amber-500/30 border-amber-400' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 hover:border-amber-300 dark:hover:border-amber-500/40')
+                                                                            : slot.type === 'tutorial'
+                                                                                ? (isPinned ? 'bg-purple-100/80 dark:bg-purple-500/30 border-purple-400' : 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 hover:border-purple-300 dark:hover:border-purple-500/40')
+                                                                                : slot.type === 'lab'
+                                                                                    ? (isPinned ? 'bg-teal-100/80 dark:bg-teal-500/30 border-teal-400' : 'bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20 hover:border-teal-300 dark:hover:border-teal-500/40')
+                                                                                    : (isPinned ? 'bg-blue-100/80 dark:bg-blue-500/30 border-blue-400' : 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 hover:border-blue-300 dark:hover:border-blue-500/40')
                                                                         }`}>
 
                                                                         <div
@@ -389,10 +470,23 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                                                                                 <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 border-none truncate max-w-[55px] ${slot.type === 'tutorial' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' : slot.type === 'lab' ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300' : 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300'}`}>
                                                                                     {slot.targets.join(", ")}
                                                                                 </Badge>
-                                                                                <span className={`text-[10px] font-medium truncate ${isPinned ? 'text-slate-800 dark:text-slate-200 flex-1 text-right mr-5' : 'text-slate-500 dark:text-slate-400'}`}>{slot.room}</span>
+                                                                                 <span className={`text-[10px] font-medium truncate ${
+                                                                        slot.needs_room_assignment
+                                                                            ? 'text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5'
+                                                                            : isPinned ? 'text-slate-800 dark:text-slate-200 flex-1 text-right mr-5' : 'text-slate-500 dark:text-slate-400'
+                                                                    }`}>
+                                                                        {slot.needs_room_assignment ? (
+                                                                            <><AlertTriangle className="w-3 h-3 inline mr-0.5" />Room TBD</>
+                                                                        ) : slot.room}
+                                                                    </span>
                                                                             </div>
-                                                                            <p className={`text-xs font-bold truncate ${slot.type === 'tutorial' ? 'text-purple-900 dark:text-purple-100' : slot.type === 'lab' ? 'text-teal-900 dark:text-teal-100' : 'text-blue-900 dark:text-blue-100'}`}>
-                                                                                {slot.subject}
+                                                                            {subjectCode && (
+                                                                                <p className={`text-[10px] tracking-wider uppercase opacity-80 mb-0.5 font-semibold ${slot.type === 'tutorial' ? 'text-purple-800 dark:text-purple-300' : slot.type === 'lab' ? 'text-teal-800 dark:text-teal-300' : 'text-blue-800 dark:text-blue-300'}`}>
+                                                                                    {subjectCode}
+                                                                                </p>
+                                                                            )}
+                                                                            <p className={`text-xs font-bold leading-tight ${slot.type === 'tutorial' ? 'text-purple-950 dark:text-purple-100' : slot.type === 'lab' ? 'text-teal-950 dark:text-teal-100' : 'text-blue-950 dark:text-blue-100'}`}>
+                                                                                {subjectName}
                                                                             </p>
                                                                         </div>
                                                                         <div className="mt-2 flex items-center gap-1">

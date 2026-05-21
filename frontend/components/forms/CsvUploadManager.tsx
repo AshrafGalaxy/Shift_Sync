@@ -9,14 +9,14 @@ import { createClient } from "@/utils/supabase/client";
 
 const TEMPLATES = {
     rooms: "room_id,type,capacity,tags\nD201,theory,80,Projector,Linux_Lab\nD202,lab,30,Mac_Lab",
-    faculty: "faculty_id,max_load_hrs,shift_start,shift_end,class_teacher_for\nF001,16,8,16,SY-CSDS-A\nF002,12,10,18,",
-    workloads: "faculty_id,subject_code,event_type,target_groups,weekly_hours,consecutive_hours,required_room_tags\nF001,DS2001_ML,Theory,SY-CSDS-A;B1,3,1,Projector\nF001,DS2001_ML_LAB,Practical,B1,2,2,Mac_Lab"
+    faculty: "faculty_id,max_load_hrs,max_continuous_hrs,shift_start,shift_end,class_teacher_for\nF001,16,3,8,16,SY-CSDS-A\nF002,12,2,10,18,",
+    workloads: "faculty_id,subject_code,event_type,target_groups,weekly_hours,consecutive_hours,is_online,required_room_tags\nF001,DS2001_ML,Theory,SY-CSDS-A;B1,3,1,false,Projector\nF001,DS2001_ML_LAB,Practical,B1,2,2,false,Mac_Lab"
 };
 
 const REQUIRED_HEADERS = {
     rooms: ["room_id", "type", "capacity", "tags"],
-    faculty: ["faculty_id", "max_load_hrs", "shift_start", "shift_end", "class_teacher_for"],
-    workloads: ["faculty_id", "subject_code", "event_type", "target_groups", "weekly_hours", "consecutive_hours", "required_room_tags"]
+    faculty: ["faculty_id", "max_load_hrs", "max_continuous_hrs", "shift_start", "shift_end", "class_teacher_for"],
+    workloads: ["faculty_id", "subject_code", "event_type", "target_groups", "weekly_hours", "consecutive_hours", "is_online", "required_room_tags"]
 };
 
 export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void }) {
@@ -105,6 +105,7 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
                 return {
                     profile_id: user.id,
                     max_load_hrs: parseInt(row.max_load_hrs) || 16,
+                    max_continuous_hrs: parseInt(row.max_continuous_hrs) || 3, // Default to safely burnout value
                     shift_hours: shiftArray,
                     class_teacher_for: row.class_teacher_for || null,
                     blocked_slots: [{ _csv_id: row.faculty_id }] // Inject mapping ID safely
@@ -129,7 +130,8 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
 
             const payloads = data.map(row => {
                 const fId = facultyMap[row.faculty_id];
-                if (!fId) throw new Error(`CSV references unknown faculty_id '${row.faculty_id}'. Did you forget to upload them?`);
+                const subj = String(row.subject_code || "").toLowerCase();
+                const autoOnline = subj.includes("dt") || subj.includes("course era") || subj.includes("course_era") || subj.includes("courseera") || subj.includes("mdm-dv");
 
                 return {
                     faculty_id: fId,
@@ -138,6 +140,7 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
                     target_groups: row.target_groups ? row.target_groups.split(";").map((t: string) => t.trim()) : [],
                     weekly_hours: parseInt(row.weekly_hours) || 1,
                     consecutive_hours: parseInt(row.consecutive_hours) || 1,
+                    is_online: String(row.is_online).toLowerCase() === 'true' || autoOnline,
                     required_tags: row.required_room_tags ? row.required_room_tags.split(";").map((t: string) => t.trim()) : []
                 };
             });

@@ -14,6 +14,19 @@ import {
 
 export function ThemeToggle() {
     const { setTheme } = useTheme();
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return (
+            <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900 dark:hover:text-slate-50">
+                <span className="sr-only">Toggle theme</span>
+            </Button>
+        );
+    }
 
     return (
         <DropdownMenu>

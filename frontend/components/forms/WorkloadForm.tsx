@@ -15,6 +15,7 @@ export default function WorkloadForm({ onSuccess }: { onSuccess: () => void }) {
     const [weeklyHours, setWeeklyHours] = useState("");
     const [consecutiveHours, setConsecutiveHours] = useState("1");
     const [requiredTags, setRequiredTags] = useState("");
+    const [isOnline, setIsOnline] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [existingFaculty, setExistingFaculty] = useState<any[]>([]);
@@ -63,7 +64,8 @@ export default function WorkloadForm({ onSuccess }: { onSuccess: () => void }) {
                 target_groups: targetsArray,
                 weekly_hours: parseInt(weeklyHours),
                 consecutive_hours: parseInt(consecutiveHours),
-                required_tags: tagsArray
+                required_tags: tagsArray,
+                is_online: isOnline
             });
 
             if (error) throw error;
@@ -134,6 +136,19 @@ export default function WorkloadForm({ onSuccess }: { onSuccess: () => void }) {
             <div className="space-y-2">
                 <Label>Target Groups / Divisions (Comma separated)</Label>
                 <Input required placeholder="SY-CSDS-A, B1" value={targetGroups} onChange={e => setTargetGroups(e.target.value)} />
+            </div>
+
+            <div className="flex items-center space-x-3 my-2 bg-white dark:bg-slate-950 p-4 rounded-lg border border-slate-200 dark:border-slate-800">
+                <input 
+                    type="checkbox" 
+                    id="isOnline" 
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-900" 
+                    checked={isOnline} 
+                    onChange={e => setIsOnline(e.target.checked)} 
+                />
+                <Label htmlFor="isOnline" className="text-sm font-medium cursor-pointer text-slate-800 dark:text-slate-200">
+                    Virtual / Online Class Bypass (Skips physical room allocation constraints)
+                </Label>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -1,0 +1,17 @@
+# ShiftSync — root .gitignore
+.env.db
+.env*.local
+node_modules/
+package.json
+package-lock.json
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/output.json
+backend/payload_debug.json
+backend/test_out.txt
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+*.pyc
+.DS_Store

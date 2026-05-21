@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Trash2, AlertTriangle, Loader2, CalendarDays, ExternalLink, Clock, History } from "lucide-react";
+import { Trash2, AlertTriangle, Loader2, CalendarDays, ExternalLink, Clock, History, TriangleAlert } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
@@ -128,9 +128,17 @@ export default function HistoryPage() {
                             {history.map((record, index) => (
                                 <div key={record.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                                     <div className="flex items-start sm:items-center gap-4 w-full">
-                                        <div className={`w-10 h-10 rounded-full border flex items-center justify-center shrink-0 mt-1 sm:mt-0 ${record.status === 'failed' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'}`}>
+                                        <div className={`w-10 h-10 rounded-full border flex items-center justify-center shrink-0 mt-1 sm:mt-0 ${
+                                            record.status === 'failed'
+                                                ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800'
+                                                : record.status === 'success_with_overflow'
+                                                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700'
+                                                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
+                                        }`}>
                                             {record.status === 'failed' ? (
                                                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                            ) : record.status === 'success_with_overflow' ? (
+                                                <TriangleAlert className="w-5 h-5 text-amber-500 dark:text-amber-400" />
                                             ) : (
                                                 <CalendarDays className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                             )}
@@ -141,6 +149,11 @@ export default function HistoryPage() {
                                                 {record.status === 'failed' && (
                                                     <span className="px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
                                                         Error
+                                                    </span>
+                                                )}
+                                                {record.status === 'success_with_overflow' && (
+                                                    <span className="px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 shrink-0 flex items-center gap-1">
+                                                        <TriangleAlert className="w-3 h-3" /> Overflow
                                                     </span>
                                                 )}
                                                 {record.is_active && record.status !== 'failed' && (
