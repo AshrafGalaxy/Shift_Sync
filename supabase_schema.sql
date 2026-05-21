@@ -216,13 +216,17 @@ ALTER TABLE constraint_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "inst_select" ON institutions FOR SELECT TO authenticated
     USING (id = public.get_institution_id());
 CREATE POLICY "inst_update" ON institutions FOR UPDATE TO authenticated
-    USING (id = public.get_institution_id());
+    USING (
+        id = public.get_institution_id()
+        OR public.get_institution_id() IS NULL  -- allow bootstrap: profile not yet linked
+    );
 CREATE POLICY "inst_insert" ON institutions FOR INSERT TO authenticated
     WITH CHECK (true);
 
--- profiles: own row only
+-- profiles: own row only (WITH CHECK ensures users can only write their own row)
 CREATE POLICY "profiles_self" ON profiles FOR ALL TO authenticated
-    USING (id = auth.uid());
+    USING (id = auth.uid())
+    WITH CHECK (id = auth.uid());
 
 -- faculty_settings
 CREATE POLICY "faculty_settings_tenant" ON faculty_settings FOR ALL TO authenticated
