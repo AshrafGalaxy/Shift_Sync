@@ -28,7 +28,7 @@ def _check_no_rooms(payload: GenerationPayload) -> List[Issue]:
             constraint="Room Configuration",
             entity="Institution",
             message="No rooms are configured. The solver has no physical space to assign any class.",
-            fix_hint="Add at least one room in Data Manager → Rooms.",
+            fix_hint="Add at least one room in Data Manager -> Rooms.",
             tab_hint="rooms",
         )]
     return []
@@ -153,7 +153,7 @@ def _check_tag_mismatches(payload: GenerationPayload) -> List[Issue]:
                 issues.append(Issue(
                     severity="warning",
                     constraint="Room Tag Match",
-                    entity=f"{f.name} → {w.subject}",
+                    entity=f"{f.name} -> {w.subject}",
                     message=(
                         f"'{w.subject}' requires tags {w.required_tags} but no single room satisfies all of them. "
                         f"This workload will fall back to overflow (ghost room)."

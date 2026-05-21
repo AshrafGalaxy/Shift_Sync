@@ -24,9 +24,9 @@ async def generate_timetable(payload: GenerationPayload) -> Dict[str, Any]:
        - If a workload has no matching physical room, it lands on GHOST_ROOM
          (TBD / Overflow) instead of causing INFEASIBLE.
     3. Return the JSON matrix.
-       - status == 'success'               → all classes have a real room
-       - status == 'success_with_overflow' → some classes need manual room assignment
-       - HTTP 422                          → genuinely infeasible (bad constraints)
+       - status == 'success'               -> all classes have a real room
+       - status == 'success_with_overflow' -> some classes need manual room assignment
+       - HTTP 422                          -> genuinely infeasible (bad constraints)
     """
 
     # ── Step 1: Pre-generation validation ────────────────────────────────────

@@ -57,7 +57,7 @@ def _payload(rooms, faculty):
 
 class TestGhostRoom:
     def test_ghost_room_injected_when_no_tag_match(self):
-        """Workload needing 'Linux_Lab' but no room has it → ghost room used."""
+        """Workload needing 'Linux_Lab' but no room has it -> ghost room used."""
         w = _workload(tags=["Linux_Lab"], hours=2)
         f = _faculty(workload=[w])
         payload = _payload(rooms=[_room()], faculty=[f])
@@ -66,7 +66,7 @@ class TestGhostRoom:
         assert rooms == [GHOST_ROOM_ID]
 
     def test_ghost_room_not_injected_when_tag_matches(self):
-        """Workload needing 'Lab' and a room has 'Lab' → no ghost room."""
+        """Workload needing 'Lab' and a room has 'Lab' -> no ghost room."""
         w = _workload(tags=["Lab"], hours=2)
         f = _faculty(workload=[w])
         payload = _payload(rooms=[_room(tags=["Lab"])], faculty=[f])
@@ -147,7 +147,7 @@ class TestValidator:
 
 class TestDiagnostics:
     def test_no_rooms_critical(self):
-        """Zero rooms → critical 'Room Configuration' issue."""
+        """Zero rooms -> critical 'Room Configuration' issue."""
         f = _faculty(workload=[_workload()])
         payload = _payload(rooms=[], faculty=[f])
         report = diagnose(payload)
@@ -155,7 +155,7 @@ class TestDiagnostics:
         assert "Room Configuration" in constraints
 
     def test_demand_exceeds_capacity_critical(self):
-        """Single room, 8 slots/day → max 40 hrs/week. Demand 50 hrs → critical."""
+        """Single room, 8 slots/day -> max 40 hrs/week. Demand 50 hrs -> critical."""
         workloads = [_workload(id=f"W{i}", hours=10, consec=1, targets=[f"DIV-{i}"]) for i in range(5)]
         f = _faculty(workload=workloads, max_load=100)
         payload = _payload(rooms=[_room()], faculty=[f])
@@ -164,7 +164,7 @@ class TestDiagnostics:
         assert "Workload Demand vs Capacity" in constraints
 
     def test_faculty_shift_too_short_critical(self):
-        """Faculty shift = [8,9] = 2 hrs/day × 5 days = 10 hrs, but workload = 15 hrs → critical."""
+        """Faculty shift = [8,9] = 2 hrs/day × 5 days = 10 hrs, but workload = 15 hrs -> critical."""
         w = _workload(hours=15, consec=1)
         f = _faculty(shift=[8, 9], workload=[w], max_load=20)
         payload = _payload(rooms=[_room()], faculty=[f])
@@ -173,7 +173,7 @@ class TestDiagnostics:
         assert "Faculty Shift vs Workload" in constraints
 
     def test_tag_mismatch_is_warning(self):
-        """No room satisfies tag → warning (not critical; ghost room handles it)."""
+        """No room satisfies tag -> warning (not critical; ghost room handles it)."""
         w = _workload(tags=["Quantum_Lab"])
         f = _faculty(workload=[w])
         payload = _payload(rooms=[_room()], faculty=[f])
@@ -182,7 +182,7 @@ class TestDiagnostics:
         assert "Room Tag Match" in constraints
 
     def test_healthy_payload_no_issues(self):
-        """Well-formed small payload → zero issues."""
+        """Well-formed small payload -> zero issues."""
         w = _workload(hours=2, consec=1)
         f = _faculty(workload=[w], max_load=10)
         payload = _payload(rooms=[_room()], faculty=[f])

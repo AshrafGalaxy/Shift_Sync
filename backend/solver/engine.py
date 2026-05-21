@@ -105,10 +105,10 @@ class TimetableEngine:
         self._log("\n[STEP 2/4] Applying hard constraints...")
 
         # Pre-build efficient lookup structures
-        # For each (f_id, r, d, s) → list of vars that are active at that slot
-        room_slot_vars: Dict[tuple, List] = defaultdict(list)    # (r, d, s) → vars
-        faculty_slot_vars: Dict[tuple, List] = defaultdict(list) # (f_id, d, s) → vars
-        group_slot_vars: Dict[tuple, List] = defaultdict(list)   # (tg, d, s) → vars
+        # For each (f_id, r, d, s) -> list of vars that are active at that slot
+        room_slot_vars: Dict[tuple, List] = defaultdict(list)    # (r, d, s) -> vars
+        faculty_slot_vars: Dict[tuple, List] = defaultdict(list) # (f_id, d, s) -> vars
+        group_slot_vars: Dict[tuple, List] = defaultdict(list)   # (tg, d, s) -> vars
 
         for (f_id, w_id, r, d, s), var in self.variables.items():
             f = self.faculty_map[f_id]
@@ -274,7 +274,7 @@ class TimetableEngine:
         STATUS_MAP = {cp_model.OPTIMAL: "OPTIMAL", cp_model.FEASIBLE: "FEASIBLE",
                       cp_model.INFEASIBLE: "INFEASIBLE", cp_model.UNKNOWN: "TIMEOUT"}
         status_name = STATUS_MAP.get(status, str(status))
-        self._log(f"  Solver done in {elapsed}s → {status_name}")
+        self._log(f"  Solver done in {elapsed}s -> {status_name}")
 
         if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
             for (f_id, w_id, r, d, s), var in self.variables.items():

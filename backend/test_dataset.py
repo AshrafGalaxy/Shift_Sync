@@ -136,7 +136,7 @@ print("\n⚠️  ISSUE CHECK:")
 for f in payload_dict["faculty"]:
     for w in f["workload"]:
         if w["consecutive_hours"] > w["hours"]:
-            print(f"  BUG: {w['id']} ({w['subject']}) - consecutive={w['consecutive_hours']} > hours={w['hours']} → IMPOSSIBLE!")
+            print(f"  BUG: {w['id']} ({w['subject']}) - consecutive={w['consecutive_hours']} > hours={w['hours']} -> IMPOSSIBLE!")
         if w["hours"] % w["consecutive_hours"] != 0:
             print(f"  WARN: {w['id']} ({w['subject']}) - hours={w['hours']} not divisible by consecutive={w['consecutive_hours']}")
 
