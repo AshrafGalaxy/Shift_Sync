@@ -16,6 +16,8 @@ import {
     Users,
     Shield,
     GraduationCap,
+    Database,
+    Cpu,
 } from "lucide-react";
 
 import { createClient } from "@/utils/supabase/client";
@@ -26,14 +28,14 @@ import { Badge } from "@/components/ui/badge";
 // ── Nav structure (role-gated) ──────────────────────────────────────────
 const ADMIN_LINKS = [
     { label: "GENERATE", section: true },
-    { name: "Overview",           href: "/dashboard",           icon: LayoutDashboard, roles: ["admin"] },
-    { name: "Master Timetable",   href: "/dashboard/timetable", icon: CalendarDays,    roles: ["admin", "faculty"] },
+    { name: "Overview",           href: "/dashboard",           icon: LayoutDashboard, roles: ["admin"],             kbd: "⌘1" },
+    { name: "Master Timetable",   href: "/dashboard/timetable", icon: CalendarDays,    roles: ["admin", "faculty"], kbd: "⌘2" },
     { label: "ANALYZE", section: true, roles: ["admin"] },
-    { name: "Resource Heatmap",   href: "/dashboard/resources", icon: Map,             roles: ["admin"] },
-    { name: "Generation History", href: "/dashboard/history",   icon: History,         roles: ["admin"] },
+    { name: "Resource Heatmap",   href: "/dashboard/resources", icon: Map,             roles: ["admin"],             kbd: "⌘3" },
+    { name: "Generation History", href: "/dashboard/history",   icon: History,         roles: ["admin"],             kbd: "⌘4" },
     { label: "MANAGE", section: true, roles: ["admin"] },
-    { name: "Data Manager",       href: "/dashboard/manage",    icon: Settings,        roles: ["admin"] },
-    { name: "Faculty",            href: "/dashboard/faculty",   icon: Users,           roles: ["admin", "faculty"] },
+    { name: "Data Manager",       href: "/dashboard/manage",    icon: Database,        roles: ["admin"],             kbd: "⌘5" },
+    { name: "Faculty",            href: "/dashboard/faculty",   icon: Users,           roles: ["admin", "faculty"], kbd: "⌘6" },
     { label: "SYSTEM", section: true },
     { name: "Documentation",      href: "/dashboard/guide",     icon: BookOpen,        roles: ["admin", "faculty"] },
     { name: "Settings",           href: "/dashboard/settings",  icon: Settings,        roles: ["admin", "faculty"] },
@@ -97,15 +99,18 @@ export function Sidebar({
                             className="fixed md:relative inset-y-0 left-0 z-40 w-64 flex flex-col bg-slate-950 border-r border-slate-800 overflow-hidden print:hidden"
                         >
                             {/* Logo header */}
-                            <div className="p-6 flex items-center justify-between border-b border-slate-800 shrink-0">
-                                <Link href={isFaculty ? "/dashboard/faculty" : "/dashboard"} className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
-                                        <CalendarDays className="w-4 h-4 text-white" />
+                            <div className="p-5 flex items-center justify-between border-b border-slate-800 shrink-0">
+                                <Link href={isFaculty ? "/dashboard/faculty" : "/dashboard"} className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shrink-0">
+                                        <Cpu className="w-4 h-4 text-white" />
                                     </div>
-                                    <span className="font-bold text-lg tracking-tight text-white">ShiftSync</span>
+                                    <div>
+                                        <span className="font-bold text-base tracking-tight text-white block leading-tight">ShiftSync</span>
+                                        <span className="text-[10px] text-slate-500 truncate max-w-[130px] block leading-tight">{institutionName}</span>
+                                    </div>
                                 </Link>
-                                <Button variant="ghost" size="icon" onClick={() => onToggle(false)} className="md:hidden">
-                                    <X className="w-5 h-5" />
+                                <Button variant="ghost" size="icon" onClick={() => onToggle(false)} className="md:hidden text-slate-500 hover:text-white h-7 w-7">
+                                    <X className="w-4 h-4" />
                                 </Button>
                             </div>
 
@@ -130,21 +135,27 @@ export function Sidebar({
                                         // Filter by role
                                         if (link.roles && !link.roles.includes(userRole)) return null;
 
-                                        const isActive = pathname === link.href;
+                                        // startsWith for exact root, exact-match for others
+                                        const isActive = link.href === "/dashboard"
+                                            ? pathname === "/dashboard"
+                                            : pathname.startsWith(link.href);
                                         const Icon = link.icon;
 
                                         return (
                                             <Link key={link.name} href={link.href}>
                                                 <motion.div
-                                                    whileHover={{ x: 3 }}
-                                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
+                                                    whileHover={{ x: 2 }}
+                                                    className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
                                                         isActive
-                                                            ? "bg-blue-500/15 border-l-2 border-l-blue-500 text-blue-400 font-semibold"
+                                                            ? "bg-violet-500/15 border-l-2 border-l-violet-500 text-violet-400 font-semibold"
                                                             : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
                                                     }`}
                                                 >
                                                     {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
-                                                    <span>{link.name}</span>
+                                                    <span className="flex-1">{link.name}</span>
+                                                    {link.kbd && (
+                                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-mono text-slate-600 shrink-0">{link.kbd}</span>
+                                                    )}
                                                 </motion.div>
                                             </Link>
                                         );
