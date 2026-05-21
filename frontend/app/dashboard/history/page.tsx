@@ -150,6 +150,9 @@ export default function HistoryPage() {
             {/* ── Solver Logs Modal ── */}
             <Dialog open={!!logsRecord} onOpenChange={(o) => !o && setLogsRecord(null)}>
                 <DialogContent className="max-w-3xl w-full h-[80vh] flex flex-col p-0 overflow-hidden bg-slate-950 border border-slate-800">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Solver Log Archive</DialogTitle>
+                    </DialogHeader>
                     {/* Header */}
                     <div className="flex items-center justify-between px-5 py-3.5 bg-slate-900 border-b border-slate-800 shrink-0">
                         <div className="flex items-center gap-3">
