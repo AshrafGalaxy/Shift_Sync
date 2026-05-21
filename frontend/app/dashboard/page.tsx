@@ -586,21 +586,24 @@ export default function DashboardOverview() {
                                 exit={{ opacity: 0, y: -6 }}
                                 className="space-y-3"
                             >
-                                {/* Compact single-row action bar */}
-                                <div className="flex gap-2">
+                                {/* Premium centered CTA — not full-width */}
+                                <div className="flex justify-center py-1">
                                     <Button
                                         onClick={startGeneration}
-                                        className={`flex-1 h-11 rounded-xl text-sm font-bold text-white shadow-lg transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] overflow-hidden relative ${
+                                        className={`relative h-11 px-8 rounded-full text-sm font-bold text-white shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] overflow-hidden ${
                                             isDbReady
-                                                ? "bg-violet-600 hover:bg-violet-700 shadow-violet-500/30 hover:shadow-violet-500/50"
+                                                ? "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-500/40 hover:shadow-violet-500/60 hover:shadow-xl"
                                                 : "bg-slate-400 dark:bg-slate-700 shadow-none cursor-not-allowed"
                                         }`}
                                     >
                                         {isDbReady && (
-                                            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer pointer-events-none" />
+                                            <>
+                                                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent animate-shimmer pointer-events-none" />
+                                                <span className="absolute inset-0 rounded-full ring-1 ring-white/20 pointer-events-none" />
+                                            </>
                                         )}
-                                        <Play className={`w-4 h-4 mr-2 shrink-0 relative z-10 ${isDbReady ? "fill-white/20" : "fill-white/10"}`} />
-                                        <span className="relative z-10">{isDbReady ? "Generate Timetable" : "Setup Required"}</span>
+                                        <Play className={`w-4 h-4 mr-2 shrink-0 relative z-10 ${isDbReady ? "fill-white/30" : "fill-white/10"}`} />
+                                        <span className="relative z-10 tracking-wide">{isDbReady ? "Generate Timetable" : "Setup Required"}</span>
                                     </Button>
                                 </div>
 
