@@ -4,64 +4,38 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 
 import { createClient } from "@/utils/supabase/client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Sidebar } from "@/components/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
 
-const breadcrumbMap: Record<string, Array<{ label: string; href?: string }>> = {
-    "/dashboard": [{ label: "Dashboard" }],
-    "/dashboard/timetable": [
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Master Timetable" },
-    ],
-    "/dashboard/resources": [
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Resource Heatmap" },
-    ],
-    "/dashboard/history": [
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Generation History" },
-    ],
-    "/dashboard/faculty": [
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Faculty" },
-    ],
-    "/dashboard/manage": [
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Data Manager" },
-    ],
-    "/dashboard/guide": [
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Documentation" },
-    ],
-    "/dashboard/settings": [
-        { label: "Dashboard", href: "/dashboard" },
-        { label: "Settings" },
-    ],
+const pageMetaMap: Record<string, { title: string; sub: string }> = {
+    "/dashboard":           { title: "Overview",            sub: "AI engine, data ingestion & system health" },
+    "/dashboard/timetable": { title: "Master Timetable",    sub: "View and export the generated schedule" },
+    "/dashboard/resources": { title: "Resource Heatmap",    sub: "Room and faculty utilisation analysis" },
+    "/dashboard/history":   { title: "Generation History",  sub: "All past timetable runs and results" },
+    "/dashboard/faculty":   { title: "Faculty",             sub: "Faculty profiles and workload overview" },
+    "/dashboard/manage":    { title: "Data Manager",        sub: "Bulk edit rooms, faculty and workloads" },
+    "/dashboard/guide":     { title: "Documentation",       sub: "How to use ShiftSync effectively" },
+    "/dashboard/settings":  { title: "Settings",            sub: "Account and institution preferences" },
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setSidebarOpen] = useState(true);
-    const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [institutionName, setInstitutionName] = useState("ShiftSync");
     const [userEmail, setUserEmail] = useState("admin@institution.edu");
     const pathname = usePathname();
     const supabase = createClient();
 
     useEffect(() => {
-        // Close sidebar on mobile by default
         if (typeof window !== "undefined" && window.innerWidth < 768) {
             setSidebarOpen(false);
         }
 
-        // Fetch institution name
         const fetchInstitution = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -79,9 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         .eq("id", profile.institution_id)
                         .single();
 
-                    if (institution) {
-                        setInstitutionName(institution.name);
-                    }
+                    if (institution) setInstitutionName(institution.name);
                 }
             }
         };
@@ -89,10 +61,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         fetchInstitution();
     }, []);
 
-    const breadcrumbItems = breadcrumbMap[pathname] || [{ label: "Dashboard" }];
+    const pageMeta = pageMetaMap[pathname] ?? { title: "Dashboard", sub: "ShiftSync" };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row">
+        // ── Root: exact viewport height, no page-level scroll ────────────────
+        <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-row">
             <Toaster position="top-right" richColors />
 
             {/* Sidebar */}
@@ -103,62 +76,59 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 userEmail={userEmail}
             />
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0 md:h-screen md:overflow-hidden print:h-auto print:overflow-visible">
-                {/* Top Header */}
-                <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 print:hidden">
-                    {/* Left Section */}
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                        {/* Mobile Toggle */}
+            {/* ── Main content column ──────────────────────────────────────── */}
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0 print:overflow-visible">
+
+                {/* ── Top header: page title + controls ───────────────────── */}
+                <header className="h-14 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md flex items-center justify-between px-4 md:px-6 z-30 print:hidden">
+
+                    {/* Left — hamburger + dynamic page identity */}
+                    <div className="flex items-center gap-3 min-w-0">
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setSidebarOpen(!isSidebarOpen)}
-                            className="text-slate-500 hover:text-slate-900 dark:hover:text-slate-50"
+                            className="shrink-0 h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-50"
                         >
-                            <Menu className="w-5 h-5" />
+                            <Menu className="w-4 h-4" />
                         </Button>
 
-                        {/* Search */}
-                        <div className="hidden md:flex relative flex-1 max-w-xs">
-                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                            <Input
-                                type="search"
-                                placeholder="Search faculty, rooms..."
-                                className="w-full bg-slate-100 dark:bg-slate-900/50 border-none pl-9 rounded-full h-9 focus-visible:ring-blue-500 text-sm"
-                            />
+                        {/* Page title area (replaces the search bar) */}
+                        <div className="hidden md:flex flex-col justify-center min-w-0">
+                            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 leading-tight truncate">
+                                {pageMeta.title}
+                            </h2>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 leading-tight truncate">
+                                {pageMeta.sub}
+                            </p>
                         </div>
                     </div>
 
-                    {/* Right Section */}
-                    <div className="flex items-center gap-3">
+                    {/* Right — theme toggle + bell */}
+                    <div className="flex items-center gap-2 shrink-0">
                         <ThemeToggle />
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="relative text-slate-500 hover:text-slate-900 dark:hover:text-slate-50"
+                            className="relative h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-50"
                         >
-                            <Bell className="w-5 h-5" />
+                            <Bell className="w-4 h-4" />
                             <motion.span
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ repeat: Infinity, duration: 2 }}
-                                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500"
+                                animate={{ scale: [1, 1.3, 1] }}
+                                transition={{ repeat: Infinity, duration: 2.5 }}
+                                className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"
                             />
                         </Button>
                     </div>
                 </header>
 
-                {/* Page Content */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 print:p-0 print:overflow-visible">
-                    {/* Breadcrumb */}
-                    <Breadcrumb items={breadcrumbItems} />
-
-                    {/* Page Content */}
+                {/* ── Page content: the ONLY scrollable element ────────────── */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 print:p-0 print:overflow-visible">
                     <motion.div
                         key={pathname}
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
+                        transition={{ duration: 0.25 }}
                     >
                         {children}
                     </motion.div>
