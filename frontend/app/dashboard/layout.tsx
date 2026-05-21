@@ -4,13 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Bell, Menu, Search, LogOut, Zap } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 
 import { createClient } from "@/utils/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Sidebar } from "@/components/Sidebar";
