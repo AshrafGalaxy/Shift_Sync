@@ -1,0 +1,533 @@
+{
+  "status": "success",
+  "message": "Optimal timetable in 1.8s.",
+  "total_classes": 35,
+  "overflow_count": 0,
+  "optimality_score": 100,
+  "solver_status": "OPTIMAL",
+  "solve_time_seconds": 1.8,
+  "progress_log": [
+    "[AUTO-FIX] Faculty F007: 'Design Thinking' consecutive_hours capped from 2 to 1",
+    "[AUTO-FIX] Faculty F007: 'Design Thinking' consecutive_hours capped from 2 to 1",
+    "[AUTO-FIX] Faculty F007: 'Design Thinking' consecutive_hours capped from 2 to 1",
+    "=======================================================",
+    "  ShiftSync CP-SAT Engine v2 - Initializing",
+    "=======================================================",
+    "  Days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']  (5 working days)",
+    "  Slots per day: 8",
+    "  Physical rooms: 5",
+    "  Faculty: 6",
+    "  Total events to schedule: 23",
+    "=======================================================",
+    "\n[STEP 1/4] Creating decision variables...",
+    "  Created 2560 variables.",
+    "\n[STEP 2/4] Applying hard constraints...",
+    "  [HC-1] Shift/lunch/blocked constraints applied.",
+    "  [HC-2] Workload fulfillment...",
+    "  [HC-3] Faculty load caps...",
+    "  [HC-4] Room double-booking prevention...",
+    "  [HC-5] Faculty double-booking prevention...",
+    "  [HC-6] Student group conflict prevention...",
+    "  [HC-7] Parent-child subgroup guard...",
+    "  [HC-8] Faculty fatigue limit...",
+    "  All hard constraints applied.",
+    "\n[STEP 3/4] Building soft objective...",
+    "  520 soft penalty terms.",
+    "\n[STEP 4/4] Running CP-SAT solver (30s limit, 4 workers)...",
+    "  Solver done in 1.8s \u2192 OPTIMAL",
+    "  Classes: 35 | Score: 100/100 | Overflow: 0",
+    "======================================================="
+  ],
+  "schedule": [
+    {
+      "workload_id": "W001",
+      "faculty_id": "F001",
+      "faculty_name": "Faculty F001",
+      "subject": "Fundamental of Data Structure",
+      "targets": [
+        "SY B"
+      ],
+      "type": "Theory",
+      "room": "D201",
+      "day": "Wed",
+      "time_slot": 12,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W001",
+      "faculty_id": "F001",
+      "faculty_name": "Faculty F001",
+      "subject": "Fundamental of Data Structure",
+      "targets": [
+        "SY B"
+      ],
+      "type": "Theory",
+      "room": "D205",
+      "day": "Fri",
+      "time_slot": 14,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W002",
+      "faculty_id": "F001",
+      "faculty_name": "Faculty F001",
+      "subject": "Fundamental of Data Structure",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Fri",
+      "time_slot": 11,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W002",
+      "faculty_id": "F001",
+      "faculty_name": "Faculty F001",
+      "subject": "Fundamental of Data Structure",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Fri",
+      "time_slot": 12,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W003",
+      "faculty_id": "F001",
+      "faculty_name": "Faculty F001",
+      "subject": "Fundamental of Data Structure",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Fri",
+      "time_slot": 8,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W003",
+      "faculty_id": "F001",
+      "faculty_name": "Faculty F001",
+      "subject": "Fundamental of Data Structure",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Fri",
+      "time_slot": 9,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W004",
+      "faculty_id": "F002",
+      "faculty_name": "Faculty F002",
+      "subject": "Fundamental of Data Structure",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Thu",
+      "time_slot": 14,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W004",
+      "faculty_id": "F002",
+      "faculty_name": "Faculty F002",
+      "subject": "Fundamental of Data Structure",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Thu",
+      "time_slot": 15,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W005",
+      "faculty_id": "F003",
+      "faculty_name": "Faculty F003",
+      "subject": "Computer Networks",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Thu",
+      "time_slot": 10,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W005",
+      "faculty_id": "F003",
+      "faculty_name": "Faculty F003",
+      "subject": "Computer Networks",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Thu",
+      "time_slot": 11,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W006",
+      "faculty_id": "F007",
+      "faculty_name": "Faculty F007",
+      "subject": "Computer Networks",
+      "targets": [
+        "SY B"
+      ],
+      "type": "Theory",
+      "room": "D201",
+      "day": "Mon",
+      "time_slot": 10,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W007",
+      "faculty_id": "F007",
+      "faculty_name": "Faculty F007",
+      "subject": "Computer Networks",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Thu",
+      "time_slot": 8,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W007",
+      "faculty_id": "F007",
+      "faculty_name": "Faculty F007",
+      "subject": "Computer Networks",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Thu",
+      "time_slot": 9,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W008",
+      "faculty_id": "F007",
+      "faculty_name": "Faculty F007",
+      "subject": "Computer Networks",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Wed",
+      "time_slot": 14,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W008",
+      "faculty_id": "F007",
+      "faculty_name": "Faculty F007",
+      "subject": "Computer Networks",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Wed",
+      "time_slot": 15,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W009",
+      "faculty_id": "F007",
+      "faculty_name": "Faculty F007",
+      "subject": "Design Thinking",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Tutorial",
+      "room": "D205",
+      "day": "Mon",
+      "time_slot": 11,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W010",
+      "faculty_id": "F007",
+      "faculty_name": "Faculty F007",
+      "subject": "Design Thinking",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Tutorial",
+      "room": "D201",
+      "day": "Wed",
+      "time_slot": 11,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W011",
+      "faculty_id": "F007",
+      "faculty_name": "Faculty F007",
+      "subject": "Design Thinking",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Tutorial",
+      "room": "D201",
+      "day": "Tue",
+      "time_slot": 14,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W012",
+      "faculty_id": "F008",
+      "faculty_name": "Faculty F008",
+      "subject": "Object Oriented Programming",
+      "targets": [
+        "SY B"
+      ],
+      "type": "Theory",
+      "room": "D201",
+      "day": "Mon",
+      "time_slot": 14,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W012",
+      "faculty_id": "F008",
+      "faculty_name": "Faculty F008",
+      "subject": "Object Oriented Programming",
+      "targets": [
+        "SY B"
+      ],
+      "type": "Theory",
+      "room": "D201",
+      "day": "Wed",
+      "time_slot": 10,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W013",
+      "faculty_id": "F008",
+      "faculty_name": "Faculty F008",
+      "subject": "Object Oriented Programming",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Wed",
+      "time_slot": 8,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W013",
+      "faculty_id": "F008",
+      "faculty_name": "Faculty F008",
+      "subject": "Object Oriented Programming",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Wed",
+      "time_slot": 9,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W014",
+      "faculty_id": "F008",
+      "faculty_name": "Faculty F008",
+      "subject": "Object Oriented Programming",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Mon",
+      "time_slot": 8,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W014",
+      "faculty_id": "F008",
+      "faculty_name": "Faculty F008",
+      "subject": "Object Oriented Programming",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Mon",
+      "time_slot": 9,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W015",
+      "faculty_id": "F008",
+      "faculty_name": "Faculty F008",
+      "subject": "Object Oriented Programming",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Tue",
+      "time_slot": 11,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W015",
+      "faculty_id": "F008",
+      "faculty_name": "Faculty F008",
+      "subject": "Object Oriented Programming",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Tue",
+      "time_slot": 12,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W016",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B"
+      ],
+      "type": "Theory",
+      "room": "D201",
+      "day": "Tue",
+      "time_slot": 8,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W016",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B"
+      ],
+      "type": "Theory",
+      "room": "D201",
+      "day": "Tue",
+      "time_slot": 9,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W016",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B"
+      ],
+      "type": "Theory",
+      "room": "D201",
+      "day": "Tue",
+      "time_slot": 10,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W017",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Practical",
+      "room": "D205",
+      "day": "Mon",
+      "time_slot": 8,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W017",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B1"
+      ],
+      "type": "Practical",
+      "room": "D205",
+      "day": "Mon",
+      "time_slot": 9,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W018",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Mon",
+      "time_slot": 11,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W018",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B2"
+      ],
+      "type": "Practical",
+      "room": "D201",
+      "day": "Mon",
+      "time_slot": 12,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W019",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Practical",
+      "room": "D208",
+      "day": "Wed",
+      "time_slot": 14,
+      "needs_room_assignment": false
+    },
+    {
+      "workload_id": "W019",
+      "faculty_id": "F014",
+      "faculty_name": "Faculty F014",
+      "subject": "Fundamentals of Data Structures & Algorithms",
+      "targets": [
+        "SY B3"
+      ],
+      "type": "Practical",
+      "room": "D208",
+      "day": "Wed",
+      "time_slot": 15,
+      "needs_room_assignment": false
+    }
+  ]
+}

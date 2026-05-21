@@ -3,14 +3,12 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ortools.sat.python import cp_model  # type: ignore
-from schemas.api_models import GenerationPayload, Room  # type: ignore
+from schemas.api_models import GenerationPayload  # type: ignore
 from typing import Dict, Any, List
+from collections import defaultdict
 import time
 import math
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GHOST_ROOM sentinel — used when no physical room matches required tags
-# ─────────────────────────────────────────────────────────────────────────────
 GHOST_ROOM_ID = "__GHOST_ROOM__"
 GHOST_ROOM_DISPLAY = "TBD (Overflow)"
 
@@ -22,85 +20,71 @@ class TimetableEngine:
         self.variables: Dict[tuple, Any] = {}
         self.schedule: List[Dict[str, Any]] = []
         self.overflow_count: int = 0
-        self.progress_log: List[str] = []  # Live terminal feed
+        self.progress_log: List[str] = []
 
         self.days: List[str] = data.college_settings.days_active
         self.slots: List[int] = data.college_settings.time_slots
+        self.slot_set = set(self.slots)
 
-        # ── Auto-heal workload data before indexing ───────────────────────────
+        # ── Auto-heal impossible workload constraints ─────────────────────────
         for f in self.data.faculty:
             for w in f.workload:
-                # Fix: consecutive_hours > hours → cap to hours (Design Thinking bug)
                 if w.consecutive_hours > w.hours:
-                    self._log(f"[AUTO-FIX] {f.name}: '{w.subject}' consecutive_hours={w.consecutive_hours} > hours={w.hours}. Capping to {w.hours}.")
+                    self._log(f"[AUTO-FIX] {f.name}: '{w.subject}' consecutive_hours capped from {w.consecutive_hours} to {w.hours}")
                     w.consecutive_hours = w.hours
-                # Fix: hours not divisible by consecutive_hours → round up hours
                 if w.consecutive_hours > 0 and w.hours % w.consecutive_hours != 0:
                     fixed = w.consecutive_hours * math.ceil(w.hours / w.consecutive_hours)
-                    self._log(f"[AUTO-FIX] {f.name}: '{w.subject}' hours={w.hours} not divisible by consecutive={w.consecutive_hours}. Rounding up to {fixed}.")
+                    self._log(f"[AUTO-FIX] {f.name}: '{w.subject}' hours rounded {w.hours}->{fixed} to be divisible by consecutive={w.consecutive_hours}")
                     w.hours = fixed
 
-        # Build maps AFTER healing so IDs are consistent
         self.faculty_map: Dict[str, Any] = {f.id: f for f in data.faculty}
         self.rooms_map: Dict[str, Any] = {r.id: r for r in data.rooms_config.rooms}
+
+        # Pre-compute eligible rooms per workload (cache to avoid recomputing in loops)
+        self._room_cache: Dict[str, List[str]] = {}
 
         self._log_init()
 
     def _log(self, msg: str):
-        """Append a message to the live progress log and print it."""
-        print(msg)
+        print(msg, flush=True)
         self.progress_log.append(msg)
 
     def _log_init(self):
         self._log("=" * 55)
-        self._log("  ShiftSync CP-SAT Engine v2 — Initializing")
+        self._log("  ShiftSync CP-SAT Engine v2 - Initializing")
         self._log("=" * 55)
         self._log(f"  Days: {self.days}  ({len(self.days)} working days)")
-        self._log(f"  Slots: {self.slots}  ({len(self.slots)} slots/day)")
-        self._log(f"  Physical rooms: {len(self.rooms_map)} ({', '.join(self.rooms_map.keys())})")
-        self._log(f"  Faculty members: {len(self.data.faculty)}")
+        self._log(f"  Slots per day: {len(self.slots)}")
+        self._log(f"  Physical rooms: {len(self.rooms_map)}")
+        self._log(f"  Faculty: {len(self.data.faculty)}")
         total_events = sum(
             w.hours // max(w.consecutive_hours, 1)
-            for f in self.data.faculty
-            for w in f.workload
+            for f in self.data.faculty for w in f.workload
         )
-        self._log(f"  Total scheduling events: {total_events}")
-        capacity = len(self.days) * len(self.slots) * max(len(self.rooms_map) - 1, 1)
-        density = round(total_events / max(capacity, 1) * 100, 1)
-        self._log(f"  Grid density: {density}%  ({'OK' if density < 80 else 'HIGH - may need more rooms/slots'})")
-        self._log("-" * 55)
-        for f in self.data.faculty:
-            total_req = sum(w.hours for w in f.workload)
-            self._log(f"  > {f.name} ({f.id[:8]}...)  demand={total_req}h  max={f.max_load_hrs}h  shift={len(f.shift)} slots/day")
+        self._log(f"  Total events to schedule: {total_events}")
         self._log("=" * 55)
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Room Resolution
-    # ─────────────────────────────────────────────────────────────────────────
     def _get_rooms_for_workload(self, w) -> List[str]:
+        """Cached room resolution."""
+        cache_key = w.id
+        if cache_key in self._room_cache:
+            return self._room_cache[cache_key]
+
         if getattr(w, "is_online", False):
-            return ["ONLINE"]
+            result = ["ONLINE"]
+        else:
+            valid = [
+                r.id for r in self.data.rooms_config.rooms
+                if r.id.upper() != "ONLINE"
+                and all(tag in r.tags for tag in getattr(w, "required_tags", []))
+            ]
+            result = valid if valid else [GHOST_ROOM_ID]
 
-        valid_rooms = []
-        for room in self.data.rooms_config.rooms:
-            if room.id.upper() == "ONLINE":
-                continue
-            has_all_tags = all(tag in room.tags for tag in getattr(w, "required_tags", []))
-            if has_all_tags:
-                valid_rooms.append(room.id)
+        self._room_cache[cache_key] = result
+        return result
 
-        if not valid_rooms:
-            required = getattr(w, "required_tags", [])
-            self._log(f"  [GHOST ROOM] '{getattr(w, 'subject', w.id)}' needs tags {required} — no match. Using TBD slot.")
-            return [GHOST_ROOM_ID]
-
-        return valid_rooms
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Variable Creation
-    # ─────────────────────────────────────────────────────────────────────────
     def _create_variables(self):
-        self._log("\n[STEP 1/4] Creating decision variables (4D Boolean matrix)...")
+        self._log("\n[STEP 1/4] Creating decision variables...")
         count = 0
         for f in self.data.faculty:
             for w in f.workload:
@@ -108,215 +92,146 @@ class TimetableEngine:
                 for r in valid_rooms:
                     for d in self.days:
                         for s in self.slots:
-                            key = (f.id, w.id, r, d, s)
-                            name = f"V_{f.id[:6]}_{w.id[:6]}_{r}_{d}_{s}"
-                            self.variables[key] = self.model.NewBoolVar(name)
-                            count += 1
-        self._log(f"  Created {count} decision variables.")
+                            # Only create variable if the block fits within the slot list
+                            block_fits = all((s + offset) in self.slot_set for offset in range(w.consecutive_hours))
+                            if block_fits:
+                                key = (f.id, w.id, r, d, s)
+                                self.variables[key] = self.model.NewBoolVar(f"V_{count}")
+                                count += 1
+        self._log(f"  Created {count} variables.")
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Hard Constraints
-    # ─────────────────────────────────────────────────────────────────────────
     def _apply_hard_constraints(self):
         lunch_map = self.data.college_settings.lunch_slot
         self._log("\n[STEP 2/4] Applying hard constraints...")
 
-        # ── 1. Boundary & Shift & Blocked Slots ──────────────────────────────
-        self._log("  [HC-1] Shift bounds, lunch blocks, blocked slots...")
-        for f in self.data.faculty:
+        # Pre-build efficient lookup structures
+        # For each (f_id, r, d, s) → list of vars that are active at that slot
+        room_slot_vars: Dict[tuple, List] = defaultdict(list)    # (r, d, s) → vars
+        faculty_slot_vars: Dict[tuple, List] = defaultdict(list) # (f_id, d, s) → vars
+        group_slot_vars: Dict[tuple, List] = defaultdict(list)   # (tg, d, s) → vars
+
+        for (f_id, w_id, r, d, s), var in self.variables.items():
+            f = self.faculty_map[f_id]
+            w = next(item for item in f.workload if item.id == w_id)
             blocked_set = {(b.day, b.time) for b in f.blocked_slots}
-            for w in f.workload:
-                valid_r_keys = self._get_rooms_for_workload(w)
-                for r in valid_r_keys:
-                    for d in self.days:
-                        daily_lunch = lunch_map.get(d)
-                        for s in self.slots:
-                            var_key = (f.id, w.id, r, d, s)
-                            if var_key not in self.variables:
-                                continue
-                            v = self.variables[var_key]
-                            is_valid = True
-                            for offset in range(w.consecutive_hours):
-                                t = s + offset
-                                if (
-                                    t == daily_lunch
-                                    or t not in f.shift
-                                    or (d, t) in blocked_set
-                                    or t not in self.slots
-                                ):
-                                    is_valid = False
-                                    break
-                            if not is_valid:
-                                self.model.Add(v == 0)
+            daily_lunch = lunch_map.get(d)
 
-        # ── 2. Workload Fulfillment ───────────────────────────────────────────
-        self._log("  [HC-2] Workload fulfillment (exact event counts)...")
+            # HC-1: Shift, lunch, blocked slot validation per offset
+            is_valid = True
+            for offset in range(w.consecutive_hours):
+                t = s + offset
+                if t == daily_lunch or t not in f.shift or (d, t) in blocked_set:
+                    is_valid = False
+                    break
+            if not is_valid:
+                self.model.Add(var == 0)
+                continue  # Don't add to overlap indexes
+
+            # Register this var in overlap indexes (for all offsets it occupies)
+            for offset in range(w.consecutive_hours):
+                t = s + offset
+                if r not in ("ONLINE", GHOST_ROOM_ID):
+                    room_slot_vars[(r, d, t)].append(var)
+                faculty_slot_vars[(f_id, d, t)].append(var)
+                for tg in w.target_groups:
+                    group_slot_vars[(tg, d, t)].append(var)
+
+        self._log("  [HC-1] Shift/lunch/blocked constraints applied.")
+
+        # HC-2: Workload fulfillment
+        self._log("  [HC-2] Workload fulfillment...")
         for f in self.data.faculty:
             for w in f.workload:
-                work_sum = []
-                valid_r_keys = self._get_rooms_for_workload(w)
-                for r in valid_r_keys:
-                    for d in self.days:
-                        for s in self.slots:
-                            var_key = (f.id, w.id, r, d, s)
-                            if var_key in self.variables:
-                                work_sum.append(self.variables[var_key])
-                if work_sum:
+                valid_rooms = self._get_rooms_for_workload(w)
+                work_vars = [
+                    self.variables[(f.id, w.id, r, d, s)]
+                    for r in valid_rooms
+                    for d in self.days
+                    for s in self.slots
+                    if (f.id, w.id, r, d, s) in self.variables
+                ]
+                if work_vars:
                     events_needed = w.hours // max(w.consecutive_hours, 1)
-                    self.model.Add(sum(work_sum) == events_needed)
+                    self.model.Add(sum(work_vars) == events_needed)
 
-        # ── 3. Faculty Load Caps ──────────────────────────────────────────────
-        self._log("  [HC-3] Faculty weekly load caps...")
+        # HC-3: Faculty load cap
+        self._log("  [HC-3] Faculty load caps...")
         for f in self.data.faculty:
-            faculty_assigned = []
-            for w in f.workload:
-                valid_r_keys = self._get_rooms_for_workload(w)
-                for r in valid_r_keys:
-                    for d in self.days:
-                        for s in self.slots:
-                            var_key = (f.id, w.id, r, d, s)
-                            if var_key in self.variables:
-                                faculty_assigned.append(self.variables[var_key] * w.consecutive_hours)
-            if faculty_assigned:
-                self.model.Add(sum(faculty_assigned) <= f.max_load_hrs)
+            load_vars = [
+                self.variables[(f.id, w.id, r, d, s)] * w.consecutive_hours
+                for w in f.workload
+                for r in self._get_rooms_for_workload(w)
+                for d in self.days
+                for s in self.slots
+                if (f.id, w.id, r, d, s) in self.variables
+            ]
+            if load_vars:
+                self.model.Add(sum(load_vars) <= f.max_load_hrs)
 
-        # ── 4. Room Overlap ───────────────────────────────────────────────────
-        self._log("  [HC-4] Room double-booking prevention (sliding window)...")
-        physical_rooms = [r for r in self.rooms_map.keys() if r not in ("ONLINE", GHOST_ROOM_ID)]
-        for r in physical_rooms:
-            for d in self.days:
-                for s in self.slots:
-                    room_active = []
-                    for f in self.data.faculty:
-                        for w in f.workload:
-                            for offset in range(w.consecutive_hours):
-                                start_s = s - offset
-                                var_key = (f.id, w.id, r, d, start_s)
-                                if var_key in self.variables:
-                                    room_active.append(self.variables[var_key])
-                    if room_active:
-                        self.model.Add(sum(room_active) <= 1)
+        # HC-4: Room no-double-booking (using pre-built index)
+        self._log("  [HC-4] Room double-booking prevention...")
+        for key, vars_list in room_slot_vars.items():
+            if len(vars_list) > 1:
+                self.model.Add(sum(vars_list) <= 1)
 
-        # ── 5. Faculty Double-Booking ─────────────────────────────────────────
+        # HC-5: Faculty no-double-booking
         self._log("  [HC-5] Faculty double-booking prevention...")
-        for f in self.data.faculty:
-            for d in self.days:
-                for s in self.slots:
-                    faculty_active = []
-                    for w in f.workload:
-                        valid_r_keys = self._get_rooms_for_workload(w)
-                        for r in valid_r_keys:
-                            for offset in range(w.consecutive_hours):
-                                start_s = s - offset
-                                var_key = (f.id, w.id, r, d, start_s)
-                                if var_key in self.variables:
-                                    faculty_active.append(self.variables[var_key])
-                    if faculty_active:
-                        self.model.Add(sum(faculty_active) <= 1)
+        for key, vars_list in faculty_slot_vars.items():
+            if len(vars_list) > 1:
+                self.model.Add(sum(vars_list) <= 1)
 
-        # ── 6. Target Group Overlap ───────────────────────────────────────────
+        # HC-6: Student group no-overlap
         self._log("  [HC-6] Student group conflict prevention...")
-        targets = set()
-        for f in self.data.faculty:
-            for w in f.workload:
-                for t in w.target_groups:
-                    targets.add(t)
+        for key, vars_list in group_slot_vars.items():
+            if len(vars_list) > 1:
+                self.model.Add(sum(vars_list) <= 1)
 
-        for t_group in targets:
-            for d in self.days:
-                for s in self.slots:
-                    target_active = []
-                    for f in self.data.faculty:
-                        for w in f.workload:
-                            if t_group in w.target_groups:
-                                valid_r_keys = self._get_rooms_for_workload(w)
-                                for r in valid_r_keys:
-                                    for offset in range(w.consecutive_hours):
-                                        start_s = s - offset
-                                        var_key = (f.id, w.id, r, d, start_s)
-                                        if var_key in self.variables:
-                                            target_active.append(self.variables[var_key])
-                    if target_active:
-                        self.model.Add(sum(target_active) <= 1)
-
-        # ── 7. Parent-Child Subgroup Guard ────────────────────────────────────
-        self._log("  [HC-7] Parent-child subgroup conflict guard...")
-        for parent_t in targets:
-            children = [c for c in targets if parent_t in c and c != parent_t and parent_t != c]
-            # Only apply if the parent has Theory classes (not Practical-vs-Practical)
+        # HC-7: Parent-child subgroup guard (Theory parent vs Practical child can't overlap)
+        self._log("  [HC-7] Parent-child subgroup guard...")
+        all_targets = set(tg for f in self.data.faculty for w in f.workload for tg in w.target_groups)
+        for parent_t in all_targets:
+            children = [c for c in all_targets if parent_t in c and c != parent_t]
+            if not children:
+                continue
+            # Check parent has any Theory session
             parent_has_theory = any(
                 parent_t in w.target_groups and w.type == "Theory"
-                for f in self.data.faculty
-                for w in f.workload
+                for f in self.data.faculty for w in f.workload
             )
-            if not children or not parent_has_theory:
+            if not parent_has_theory:
                 continue
             for d in self.days:
                 for s in self.slots:
-                    parent_vars = []
-                    for f in self.data.faculty:
-                        for w in f.workload:
-                            if w.type == "Theory" and parent_t in w.target_groups:
-                                valid_r_keys = self._get_rooms_for_workload(w)
-                                for r in valid_r_keys:
-                                    for offset in range(max(1, w.consecutive_hours)):
-                                        start_s = s - offset
-                                        var_key = (f.id, w.id, r, d, start_s)
-                                        if var_key in self.variables:
-                                            parent_vars.append(self.variables[var_key])
+                    parent_vars = group_slot_vars.get((parent_t, d, s), [])
                     if not parent_vars:
                         continue
                     for child_t in children:
-                        child_vars = []
-                        for f in self.data.faculty:
-                            for w in f.workload:
-                                if w.type in ["Practical", "Tutorial"] and child_t in w.target_groups:
-                                    valid_r_keys = self._get_rooms_for_workload(w)
-                                    for r in valid_r_keys:
-                                        for offset in range(max(1, w.consecutive_hours)):
-                                            start_s = s - offset
-                                            var_key = (f.id, w.id, r, d, start_s)
-                                            if var_key in self.variables:
-                                                child_vars.append(self.variables[var_key])
+                        child_vars = group_slot_vars.get((child_t, d, s), [])
                         if child_vars:
                             self.model.Add(sum(parent_vars) + sum(child_vars) <= 1)
 
-        # ── 8. Fatigue Limit (Continuous Teaching) ────────────────────────────
-        self._log("  [HC-8] Faculty fatigue limit (continuous teaching cap)...")
+        # HC-8: Fatigue limit
+        self._log("  [HC-8] Faculty fatigue limit...")
         for f in self.data.faculty:
             fatigue_limit = getattr(f, "max_continuous_hrs", 3)
-            window_size = fatigue_limit + 1
+            window_size = int(fatigue_limit) + 1
             for d in self.days:
-                active_at_t = {}
-                for s in self.slots:
-                    vars_at_s = []
-                    for w in f.workload:
-                        valid_r_keys = self._get_rooms_for_workload(w)
-                        for r in valid_r_keys:
-                            for offset in range(w.consecutive_hours):
-                                start_s = s - offset
-                                var_key = (f.id, w.id, r, d, start_s)
-                                if var_key in self.variables:
-                                    vars_at_s.append(self.variables[var_key])
-                    active_at_t[s] = sum(vars_at_s) if vars_at_s else 0
-                for i in range(len(self.slots) - int(window_size) + 1):
-                    window_slots = self.slots[i: i + int(window_size)]
-                    window_vars = [active_at_t[s] for s in window_slots if s in active_at_t]
-                    if window_vars:
-                        self.model.Add(sum(window_vars) <= fatigue_limit)
+                active_at = {s: faculty_slot_vars.get((f.id, d, s), []) for s in self.slots}
+                for i in range(len(self.slots) - window_size + 1):
+                    window = self.slots[i: i + window_size]
+                    wvars = [v for s in window for v in active_at.get(s, [])]
+                    if wvars:
+                        self.model.Add(sum(wvars) <= fatigue_limit)
 
-        # ── 9. Custom Pin Rules ───────────────────────────────────────────────
+        # HC-9: Custom pin rules
         for rule in getattr(self.data.college_settings, "custom_rules", []):
             if getattr(rule, "action_type", "") == "FORCE_PIN":
                 w_id_target = getattr(rule, "condition_value", "")
                 try:
-                    r_target, d_target, s_target_str = getattr(rule, "action_value", "||").split("|")
-                    s_target = int(s_target_str)
-                    pin_vars = []
-                    for (f_id, w_id, var_r, var_d, var_s), v in self.variables.items():
-                        if w_id_target in w_id and var_r == r_target and var_d == d_target:
-                            if var_s == s_target:
-                                pin_vars.append(v)
+                    r_t, d_t, s_t = getattr(rule, "action_value", "||").split("|")
+                    s_int = int(s_t)
+                    pin_vars = [v for (fi, wi, r, d, s), v in self.variables.items()
+                                if w_id_target in wi and r == r_t and d == d_t and s == s_int]
                     if pin_vars:
                         self.model.Add(sum(pin_vars) == 1)
                 except ValueError:
@@ -324,103 +239,53 @@ class TimetableEngine:
 
         self._log("  All hard constraints applied.")
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Soft Constraints + Objective
-    # ─────────────────────────────────────────────────────────────────────────
-    def _apply_soft_constraints_and_objective(self):
-        self._log("\n[STEP 3/4] Building soft objective (optimality scoring)...")
-        penalty_terms = []
+    def _apply_objective(self):
+        self._log("\n[STEP 3/4] Building soft objective...")
+        late_slots = set(self.slots[len(self.slots) * 3 // 4:])
+        penalties = []
+        for (f_id, w_id, r, d, s), var in self.variables.items():
+            if r == GHOST_ROOM_ID:
+                penalties.append(var * 100)
+            elif s in late_slots:
+                penalties.append(var * 2)
+        if penalties:
+            self.model.Minimize(sum(penalties))
+        self._log(f"  {len(penalties)} soft penalty terms.")
 
-        MORNING_SLOTS = set(self.slots[:len(self.slots)//2])  # prefer earlier slots
-        LATE_SLOTS = set(self.slots[len(self.slots)*3//4:])   # penalize very late
-
-        for f in self.data.faculty:
-            for w in f.workload:
-                valid_r_keys = self._get_rooms_for_workload(w)
-                for r in valid_r_keys:
-                    for d in self.days:
-                        for s in self.slots:
-                            var_key = (f.id, w.id, r, d, s)
-                            if var_key not in self.variables:
-                                continue
-                            v = self.variables[var_key]
-                            # Ghost room penalty
-                            if r == GHOST_ROOM_ID:
-                                penalty_terms.append(v * 100)
-                            # Late slot penalty
-                            elif s in LATE_SLOTS:
-                                penalty_terms.append(v * 5)
-
-        if penalty_terms:
-            self.model.Minimize(sum(penalty_terms))
-        self._log(f"  Soft objective: minimize {len(penalty_terms)} penalty terms.")
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Compute Optimality Score
-    # ─────────────────────────────────────────────────────────────────────────
     def _compute_score(self, solver) -> int:
-        """
-        Returns 0-100. Deducts points for:
-        - Ghost room slots (-5 each)
-        - Late-slot assignments (-1 each)
-        - Overflow (-3 per overflow hour)
-        """
-        base = 100
-        LATE_SLOTS = set(self.slots[len(self.slots)*3//4:])
+        late_slots = set(self.slots[len(self.slots) * 3 // 4:])
+        ghost = sum(1 for (_, _, r, _, _), v in self.variables.items() if r == GHOST_ROOM_ID and solver.Value(v) == 1)
+        late = sum(1 for (_, _, r, _, s), v in self.variables.items() if r != GHOST_ROOM_ID and s in late_slots and solver.Value(v) == 1)
+        return max(0, min(100, 100 - ghost * 5 - late * 1 - self.overflow_count * 3))
 
-        ghost_count = 0
-        late_count = 0
-        for (f_id, w_id, r, d, s), v in self.variables.items():
-            if solver.Value(v) == 1:
-                if r == GHOST_ROOM_ID:
-                    ghost_count += 1
-                elif s in LATE_SLOTS:
-                    late_count += 1
-
-        score = base - (ghost_count * 5) - (late_count * 1) - (self.overflow_count * 3)
-        return max(0, min(100, score))
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Generate (main entry point)
-    # ─────────────────────────────────────────────────────────────────────────
     def generate(self) -> Dict[str, Any]:
-        t_start = time.time()
-
+        t0 = time.time()
         self._create_variables()
         self._apply_hard_constraints()
-        self._apply_soft_constraints_and_objective()
+        self._apply_objective()
 
-        self._log("\n[STEP 4/4] Running CP-SAT solver (timeout: 30s)...")
+        self._log("\n[STEP 4/4] Running CP-SAT solver (30s limit, 4 workers)...")
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = 30.0
-        solver.parameters.num_search_workers = 4  # parallel search
-
+        solver.parameters.num_search_workers = 4
         status = solver.Solve(self.model)
-        elapsed = round(time.time() - t_start, 2)
+        elapsed = round(time.time() - t0, 2)
 
-        STATUS_NAMES = {
-            cp_model.OPTIMAL: "OPTIMAL",
-            cp_model.FEASIBLE: "FEASIBLE",
-            cp_model.INFEASIBLE: "INFEASIBLE",
-            cp_model.UNKNOWN: "UNKNOWN (timeout)",
-            cp_model.MODEL_INVALID: "MODEL_INVALID",
-        }
-        status_name = STATUS_NAMES.get(status, str(status))
-        self._log(f"  Solver finished in {elapsed}s → status: {status_name}")
+        STATUS_MAP = {cp_model.OPTIMAL: "OPTIMAL", cp_model.FEASIBLE: "FEASIBLE",
+                      cp_model.INFEASIBLE: "INFEASIBLE", cp_model.UNKNOWN: "TIMEOUT"}
+        status_name = STATUS_MAP.get(status, str(status))
+        self._log(f"  Solver done in {elapsed}s → {status_name}")
 
         if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-            for (f_id, w_id, r, d, s), v in self.variables.items():
-                if solver.Value(v) == 1:
+            for (f_id, w_id, r, d, s), var in self.variables.items():
+                if solver.Value(var) == 1:
                     faculty = self.faculty_map[f_id]
-                    workload = next((item for item in faculty.workload if item.id == w_id), None)
+                    workload = next((w for w in faculty.workload if w.id == w_id), None)
                     if not workload:
                         continue
-
                     is_overflow = (r == GHOST_ROOM_ID)
-                    display_room = GHOST_ROOM_DISPLAY if is_overflow else r
                     if is_overflow:
                         self.overflow_count += workload.consecutive_hours
-
                     for offset in range(workload.consecutive_hours):
                         self.schedule.append({
                             "workload_id": w_id,
@@ -429,23 +294,19 @@ class TimetableEngine:
                             "subject": workload.subject,
                             "targets": workload.target_groups,
                             "type": workload.type,
-                            "room": display_room,
+                            "room": GHOST_ROOM_DISPLAY if is_overflow else r,
                             "day": d,
                             "time_slot": s + offset,
                             "needs_room_assignment": is_overflow,
                         })
 
-            optimality_score = self._compute_score(solver)
+            score = self._compute_score(solver)
             result_status = "success_with_overflow" if self.overflow_count > 0 else "success"
-            is_optimal = (status == cp_model.OPTIMAL)
-
-            msg = f"{'Optimal' if is_optimal else 'Feasible'} timetable generated in {elapsed}s."
+            msg = f"{'Optimal' if status == cp_model.OPTIMAL else 'Feasible'} timetable in {elapsed}s."
             if self.overflow_count > 0:
                 msg += f" {self.overflow_count} slot(s) need manual room assignment."
 
-            self._log(f"\n  Schedule entries: {len(self.schedule)}")
-            self._log(f"  Optimality score: {optimality_score}/100")
-            self._log(f"  Overflow slots: {self.overflow_count}")
+            self._log(f"  Classes: {len(self.schedule)} | Score: {score}/100 | Overflow: {self.overflow_count}")
             self._log("=" * 55)
 
             return {
@@ -453,22 +314,18 @@ class TimetableEngine:
                 "message": msg,
                 "total_classes": len(self.schedule),
                 "overflow_count": self.overflow_count,
-                "optimality_score": optimality_score,
+                "optimality_score": score,
                 "solver_status": status_name,
                 "solve_time_seconds": elapsed,
                 "progress_log": self.progress_log,
                 "schedule": self.schedule,
             }
-
         else:
-            # ── Detailed failure diagnosis ─────────────────────────────────
-            diagnosis = self._diagnose_infeasibility()
-            self._log("\n  [INFEASIBLE] Diagnosis complete.")
+            diagnosis = self._diagnose()
             self._log("=" * 55)
-
             return {
                 "status": "infeasible",
-                "message": f"Generation failed after {elapsed}s. See diagnosis for details.",
+                "message": f"No solution found after {elapsed}s. See diagnosis.",
                 "solver_status": status_name,
                 "solve_time_seconds": elapsed,
                 "overflow_count": 0,
@@ -478,73 +335,49 @@ class TimetableEngine:
                 "schedule": [],
             }
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Infeasibility Diagnosis
-    # ─────────────────────────────────────────────────────────────────────────
-    def _diagnose_infeasibility(self) -> Dict[str, Any]:
-        """
-        Returns human-readable reasons why the solver failed.
-        Checks: overloaded faculty, overloaded groups, impossible slots.
-        """
+    def _diagnose(self) -> Dict[str, Any]:
         issues = []
-        total_slots_per_week = len(self.days) * len(self.slots)
         lunch_map = self.data.college_settings.lunch_slot
-        lunch_deductions = sum(1 for d in self.days if lunch_map.get(d) in self.slots)
-        usable_slots = total_slots_per_week - lunch_deductions
-
-        from collections import defaultdict
+        lunch_deductions = sum(1 for d in self.days if lunch_map.get(d) in self.slot_set)
+        usable = len(self.days) * len(self.slots) - lunch_deductions
         group_demand: Dict[str, int] = defaultdict(int)
 
         for f in self.data.faculty:
-            total_demand = sum(w.hours for w in f.workload)
-            faculty_slots = len(f.shift) * len(self.days) - len(f.blocked_slots)
-            if total_demand > f.max_load_hrs:
-                issues.append({
-                    "type": "FACULTY_OVERLOADED",
-                    "message": f"{f.name}: requires {total_demand}h but max_load={f.max_load_hrs}h",
-                    "fix": f"Reduce workloads or increase max_load_hrs to {total_demand}."
-                })
-            if total_demand > faculty_slots:
-                issues.append({
-                    "type": "FACULTY_NO_TIME",
-                    "message": f"{f.name}: requires {total_demand}h but only has {faculty_slots} available slots",
-                    "fix": "Extend shift hours or reduce workload assignments."
-                })
+            demand = sum(w.hours for w in f.workload)
+            avail = len(f.shift) * len(self.days) - len(f.blocked_slots) - lunch_deductions
+            if demand > f.max_load_hrs:
+                issues.append({"type": "FACULTY_OVERLOADED",
+                    "message": f"{f.name}: {demand}h demand > {f.max_load_hrs}h max_load",
+                    "fix": f"Increase max_load_hrs to {demand} or reduce workloads."})
+            if demand > avail:
+                issues.append({"type": "FACULTY_NO_TIME",
+                    "message": f"{f.name}: {demand}h demand > {avail}h available shift slots",
+                    "fix": "Extend shift hours or remove blocked slots."})
             for w in f.workload:
                 for tg in w.target_groups:
                     group_demand[tg] += w.hours
 
-        for tg, demand in group_demand.items():
-            if demand > usable_slots:
-                issues.append({
-                    "type": "GROUP_OVERLOADED",
-                    "message": f"Group '{tg}' has {demand}h of classes but only {usable_slots} usable slots/week",
-                    "fix": "Split the group into subgroups or reduce the number of classes assigned to them."
-                })
+        for tg, hrs in group_demand.items():
+            if hrs > usable:
+                issues.append({"type": "GROUP_OVERLOADED",
+                    "message": f"Group '{tg}': {hrs}h assigned, only {usable} usable slots/week",
+                    "fix": "Split group or reduce classes."})
 
-        # Check room capacity
-        physical_rooms = [r for r in self.data.rooms_config.rooms if r.id.upper() not in ("ONLINE", GHOST_ROOM_ID)]
-        total_room_capacity = len(physical_rooms) * usable_slots
-        total_physical_demand = sum(
-            w.hours for f in self.data.faculty for w in f.workload if not w.is_online
-        )
-        if total_physical_demand > total_room_capacity:
-            issues.append({
-                "type": "ROOM_CAPACITY_EXCEEDED",
-                "message": f"Total demand {total_physical_demand}h exceeds room capacity {total_room_capacity}h ({len(physical_rooms)} rooms × {usable_slots} usable slots)",
-                "fix": "Add more rooms, extend working hours, or move some classes online."
-            })
+        phys_rooms = [r for r in self.data.rooms_config.rooms if r.id.upper() not in ("ONLINE", GHOST_ROOM_ID)]
+        total_cap = len(phys_rooms) * usable
+        total_demand = sum(w.hours for f in self.data.faculty for w in f.workload if not w.is_online)
+        if total_demand > total_cap:
+            issues.append({"type": "ROOM_CAPACITY",
+                "message": f"Demand {total_demand}h > room capacity {total_cap}h ({len(phys_rooms)} rooms)",
+                "fix": "Add rooms, extend hours, or move classes online."})
 
         if not issues:
-            issues.append({
-                "type": "UNKNOWN_CONSTRAINT_CONFLICT",
-                "message": "The solver could not find a feasible solution. The constraints may be too tight even if individual checks pass.",
-                "fix": "Try: (1) adding more rooms, (2) extending working hours, (3) reducing consecutive_hours requirements, or (4) splitting large groups."
-            })
+            issues.append({"type": "CONSTRAINT_CONFLICT",
+                "message": "Constraints are too tight — no valid schedule exists.",
+                "fix": "Reduce consecutive_hours, add rooms/slots, or split groups."})
 
-        self._log(f"  Found {len(issues)} feasibility issue(s):")
+        self._log(f"  Diagnosis: {len(issues)} issue(s) found")
         for issue in issues:
             self._log(f"    [{issue['type']}] {issue['message']}")
-            self._log(f"    Fix: {issue['fix']}")
 
         return {"issues": issues, "total_issues": len(issues)}
