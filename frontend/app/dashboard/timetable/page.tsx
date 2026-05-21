@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Filter, Download, Plus, ChevronLeft, ChevronRight, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, FileText, ChevronDown, Lock, Unlock, Send, AlertTriangle, X } from "lucide-react";
+import { Filter, Download, Plus, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, ChevronDown, Lock, Unlock, Send, AlertTriangle, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/utils/supabase/client";
 
@@ -29,11 +28,13 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     const [activeFilter, setActiveFilter] = useState("All Divisions");
     const [availableFilters, setAvailableFilters] = useState<string[]>(["All Divisions"]);
     const [slots, setSlots] = useState<any[]>([]);
+    const [days, setDays] = useState<string[]>(DAYS);
+    const [times, setTimes] = useState<number[]>(TIMES);
     const [isLoading, setIsLoading] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [pinnedClasses, setPinnedClasses] = useState<string[]>([]);
     const [instId, setInstId] = useState<string | null>(null);
-    const [lunchSlot, setLunchSlot] = useState<number>(13);
+    const [lunchSlot, setLunchSlot] = useState<any>(13);
     const [overflowCount, setOverflowCount] = useState<number>(0);
     const [overflowBannerDismissed, setOverflowBannerDismissed] = useState(false);
     const gridRef = useRef<HTMLDivElement>(null);
@@ -71,15 +72,22 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                 if (!profile?.institution_id) throw new Error("No institution");
                 setInstId(profile.institution_id);
 
-                const { data: instData } = await supabase.from("institutions").select("lunch_slot").eq("id", profile.institution_id).single();
+                const { data: instData } = await supabase
+                    .from("institutions")
+                    .select("lunch_slot, days_active, time_slots")
+                    .eq("id", profile.institution_id)
+                    .single();
+
                 if (instData?.lunch_slot) setLunchSlot(instData.lunch_slot);
+                if (instData?.days_active && instData.days_active.length > 0) setDays(instData.days_active);
+                if (instData?.time_slots && instData.time_slots.length > 0) setTimes(instData.time_slots);
 
                 const storedPins = localStorage.getItem(`pinned_classes_${profile.institution_id}`);
                 if (storedPins) setPinnedClasses(JSON.parse(storedPins));
 
                 const cacheKey = `tt_cache_${profile.institution_id}${targetId ? '_' + targetId : ''}`;
                 const forceRefresh = localStorage.getItem('force_tt_refresh');
-                
+
                 if (!forceRefresh) {
                     const cachedData = sessionStorage.getItem(cacheKey);
                     if (cachedData) {
@@ -87,8 +95,10 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                         setSlots(parsedCache.slots);
                         setAvailableFilters(parsedCache.filters);
                         if (parsedCache.lunch) setLunchSlot(parsedCache.lunch);
+                        if (parsedCache.days) setDays(parsedCache.days);
+                        if (parsedCache.times) setTimes(parsedCache.times);
                         setIsLoading(false);
-                        return; // Skipped Supabase Query
+                        return;
                     }
                 } else {
                     localStorage.removeItem('force_tt_refresh');
@@ -107,16 +117,14 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
 
                 const { data: latestTimetable, error } = await query.single();
                 if (error) {
-                    // Suppress error if it's just 'no rows returned'
                     if (error.code !== "PGRST116") console.error("Timetable Fetch Error:", error);
                 }
 
                 if (latestTimetable && latestTimetable.matrix_data && latestTimetable.matrix_data.schedule) {
-                    // Map Python generic array back into our UI grid system
                     const schedule = latestTimetable.matrix_data.schedule ?? [];
                     const mappedSlots = schedule.map((entry: any) => ({
                         workload_id: entry.workload_id,
-                        day: entry.day, // e.g. "Mon"
+                        day: entry.day,
                         time: entry.time_slot,
                         subject: entry.subject,
                         faculty: entry.faculty_name || entry.faculty_id,
@@ -134,12 +142,13 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                     const uniqueTargets = Array.from(new Set(mappedSlots.flatMap((s: any) => s.targets)));
                     const filters = ["All Divisions", ...uniqueTargets as string[]];
                     setAvailableFilters(filters);
-                    
-                    // Sync to Browser Cache
+
                     sessionStorage.setItem(cacheKey, JSON.stringify({
                         slots: mappedSlots,
                         filters: filters,
-                        lunch: instData?.lunch_slot || lunchSlot
+                        lunch: instData?.lunch_slot || lunchSlot,
+                        days: instData?.days_active || days,
+                        times: instData?.time_slots || times,
                     }));
                 }
             } catch (err) {
@@ -152,76 +161,151 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         fetchLatestTimetable();
     }, []);
 
-    const exportToCSV = () => {
-        if (!slots || slots.length === 0) { toast.warning("Nothing to export", { description: "Generate a timetable first." }); return; }
-
-        const headers = ["Day", "Time", "Subject", "Faculty", "Room", "Type", "Divisions/Batches"];
-        const rows = slots.map(slot => [
-            slot.day,
-            mapMilitaryTo12Hour(slot.time).replace(":", ""), // Simple string to avoid excel issues
-            `"${slot.subject}"`,
-            `"${slot.faculty}"`,
-            slot.room,
-            slot.type,
-            `"${slot.targets.join(", ")}"`
-        ]);
-
-        const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Master_Timetable_${new Date().getTime()}.csv`);
-        link.style.visibility = "hidden";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const isLunchTime = (day: string, time: number): boolean => {
+        if (typeof lunchSlot === 'object' && lunchSlot !== null && !Array.isArray(lunchSlot)) {
+            return lunchSlot[day] === time;
+        }
+        return time === lunchSlot;
     };
 
+    // ── Export: Pixel-perfect Excel matching timetable card layout ───────────────────────
     const exportToExcel = () => {
-        if (!slots || slots.length === 0) { toast.warning("Nothing to export", { description: "Generate a timetable first." }); return; }
+        if (!slots || slots.length === 0) {
+            toast.warning("Nothing to export", { description: "Generate a timetable first." });
+            return;
+        }
 
-        const gridRows: any[][] = [];
+        const activeDays = days;
+        const activeTimes = times;
+        const wb = XLSX.utils.book_new();
+        const ws: any = {};
+        const merges: any[] = [];
 
-        // Header Row
-        const headers = ["Day / Time", ...TIMES.map(t => mapMilitaryTo12Hour(t))];
-        gridRows.push(headers);
+        // ── Column widths ──────────────────────────────────────────────────
+        ws["!cols"] = [
+            { wch: 10 },                           // Day column
+            ...activeTimes.map(() => ({ wch: 30 })) // Time columns
+        ];
 
-        // Body Rows
-        DAYS.forEach(day => {
-            const row: string[] = [day];
-            TIMES.forEach(time => {
-                if (time === lunchSlot) {
-                    row.push("Lunch Break");
+        // ── Helper: format one slot card into multi-line cell text ────────
+        const formatCard = (s: any): string => {
+            const parts = s.subject.split('_');
+            const code = parts.length > 1 ? parts[0] : "";
+            const name = parts.length > 1 ? parts.slice(1).join(' ') : s.subject;
+            const typeLabel = s.type === 'tutorial' ? 'TUT' : s.type === 'lab' ? 'LAB' : 'LEC';
+            const lines = [
+                code ? `[${typeLabel}] ${code}` : `[${typeLabel}]`,
+                name,
+                `\u{1F464} ${s.faculty}`,
+                s.needs_room_assignment ? `\u{1F4CD} Room: TBD \u26A0` : `\u{1F4CD} ${s.room}`,
+                `\u{1F3AB} ${s.targets.join(', ')}`
+            ];
+            return lines.join('\n');
+        };
+
+        // ── Header row (row 0) ─────────────────────────────────────────────
+        const encodeCell = (r: number, c: number) => XLSX.utils.encode_cell({ r, c });
+
+        ws[encodeCell(0, 0)] = { v: "Day \\ Time", t: "s" };
+        activeTimes.forEach((time, ci) => {
+            ws[encodeCell(0, ci + 1)] = { v: mapMilitaryTo12Hour(time), t: "s" };
+        });
+
+        let rowIdx = 1; // current Excel row
+
+        // ── Body: one day block per active day ────────────────────────────
+        activeDays.forEach(day => {
+            // Find max number of classes in any single time slot for this day
+            const slotCounts = activeTimes.map(time => {
+                if (isLunchTime(day, time)) return 1;
+                return slots.filter(s =>
+                    s.day === day &&
+                    s.time === time &&
+                    (activeFilter === "All Divisions" || s.targets.includes(activeFilter))
+                ).length || 1;
+            });
+            const maxRows = Math.max(...slotCounts, 1);
+
+            // Day label cell spans all sub-rows for this day
+            ws[encodeCell(rowIdx, 0)] = { v: day, t: "s" };
+            if (maxRows > 1) {
+                merges.push({ s: { r: rowIdx, c: 0 }, e: { r: rowIdx + maxRows - 1, c: 0 } });
+            }
+
+            // Allocate maxRows rows for each time column
+            activeTimes.forEach((time, ci) => {
+                const colIdx = ci + 1;
+
+                if (isLunchTime(day, time)) {
+                    ws[encodeCell(rowIdx, colIdx)] = { v: "Lunch Break", t: "s" };
+                    // Span remaining sub-rows if any
+                    if (maxRows > 1) {
+                        merges.push({ s: { r: rowIdx, c: colIdx }, e: { r: rowIdx + maxRows - 1, c: colIdx } });
+                    }
+                    return;
+                }
+
+                const activeSlots = slots.filter(s =>
+                    s.day === day &&
+                    s.time === time &&
+                    (activeFilter === "All Divisions" || s.targets.includes(activeFilter))
+                );
+
+                if (activeSlots.length === 0) {
+                    ws[encodeCell(rowIdx, colIdx)] = { v: "", t: "s" };
+                    if (maxRows > 1) {
+                        merges.push({ s: { r: rowIdx, c: colIdx }, e: { r: rowIdx + maxRows - 1, c: colIdx } });
+                    }
+                } else if (activeSlots.length === 1) {
+                    ws[encodeCell(rowIdx, colIdx)] = { v: formatCard(activeSlots[0]), t: "s" };
+                    if (maxRows > 1) {
+                        merges.push({ s: { r: rowIdx, c: colIdx }, e: { r: rowIdx + maxRows - 1, c: colIdx } });
+                    }
                 } else {
-                    const activeSlots = slots.filter(s => s.day === day && s.time === time && (activeFilter === "All Divisions" || s.targets.includes(activeFilter)));
-                    if (activeSlots.length === 0) {
-                        row.push("");
-                    } else {
-                        const cellText = activeSlots.map(s => `[${s.type.toUpperCase()}] ${s.subject}\nFaculty: ${s.faculty}\nRoom: ${s.room}\nDivs: ${s.targets.join(", ")}`).join("\n\n---\n\n");
-                        row.push(cellText);
+                    // Multiple classes: each in its own sub-row
+                    activeSlots.forEach((slot, si) => {
+                        const cellRow = rowIdx + si;
+                        ws[encodeCell(cellRow, colIdx)] = { v: formatCard(slot), t: "s" };
+                    });
+                    // If fewer slots than maxRows, fill remaining rows with empty
+                    for (let si = activeSlots.length; si < maxRows; si++) {
+                        ws[encodeCell(rowIdx + si, colIdx)] = { v: "", t: "s" };
                     }
                 }
             });
-            gridRows.push(row);
+
+            // Set row heights for all sub-rows in this day
+            if (!ws["!rows"]) ws["!rows"] = [];
+            for (let ri = rowIdx; ri < rowIdx + maxRows; ri++) {
+                ws["!rows"][ri] = { hpt: 80 }; // ~80pt per sub-row
+            }
+
+            rowIdx += maxRows;
         });
 
-        const worksheet = XLSX.utils.aoa_to_sheet(gridRows);
+        // Header row height
+        if (!ws["!rows"]) ws["!rows"] = [];
+        ws["!rows"][0] = { hpt: 26 };
 
-        // Auto-size columns slightly
-        const wscols = [{ wch: 15 }, ...TIMES.map(() => ({ wch: 30 }))];
-        worksheet["!cols"] = wscols;
+        // Apply merges
+        ws["!merges"] = merges;
 
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Master Timetable");
-        XLSX.writeFile(workbook, `Master_Timetable_Grid_${new Date().getTime()}.xlsx`);
+        // Sheet bounds
+        ws["!ref"] = XLSX.utils.encode_range({
+            s: { r: 0, c: 0 },
+            e: { r: rowIdx - 1, c: activeTimes.length }
+        });
+
+        const sheetName = activeFilter === "All Divisions" ? "Master Timetable" : `Timetable - ${activeFilter}`;
+        XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+        XLSX.writeFile(wb, `ShiftSync_Timetable_${activeFilter === "All Divisions" ? "All" : activeFilter}_${new Date().toISOString().split('T')[0]}.xlsx`);
+        toast.success("Excel exported", { description: `Saved as ShiftSync_Timetable_${activeFilter === "All Divisions" ? "All" : activeFilter}_[date].xlsx` });
     };
 
     const exportToICS = () => {
         if (!slots || slots.length === 0) { toast.warning("Nothing to export", { description: "Generate a timetable first." }); return; }
 
-        // Define a base fake Monday for the generator to anchor dates to.
-        const dayMap: Record<string, string> = { "Mon": "20240304", "Tue": "20240305", "Wed": "20240306", "Thu": "20240307", "Fri": "20240308" };
+        const dayMap: Record<string, string> = { "Mon": "20240304", "Tue": "20240305", "Wed": "20240306", "Thu": "20240307", "Fri": "20240308", "Sat": "20240309", "Sun": "20240310" };
 
         let icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//ShiftSync//Timetable Generator//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n`;
 
@@ -282,11 +366,75 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         }
     };
 
+    // Slot card renderer — reused for both grid and print
+    const SlotCard = ({ slot }: { slot: any }) => {
+        const isPinned = pinnedClasses.includes(`${slot.workload_id}|${slot.room}|${slot.day}|${slot.time}`);
+        const subjectParts = slot.subject.split('_');
+        const subjectCode = subjectParts.length > 1 ? subjectParts[0] : "";
+        const subjectName = subjectParts.length > 1 ? subjectParts.slice(1).join(' ') : slot.subject;
+
+        const colorScheme =
+            slot.needs_room_assignment
+                ? { card: isPinned ? 'bg-amber-100/80 dark:bg-amber-500/30 border-amber-400' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 hover:border-amber-400', badge: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300', code: 'text-amber-800 dark:text-amber-300', title: 'text-amber-950 dark:text-amber-100' }
+                : slot.type === 'tutorial'
+                    ? { card: isPinned ? 'bg-purple-100/80 dark:bg-purple-500/30 border-purple-400' : 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 hover:border-purple-400', badge: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300', code: 'text-purple-800 dark:text-purple-300', title: 'text-purple-950 dark:text-purple-100' }
+                    : slot.type === 'lab'
+                        ? { card: isPinned ? 'bg-teal-100/80 dark:bg-teal-500/30 border-teal-400' : 'bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20 hover:border-teal-400', badge: 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300', code: 'text-teal-800 dark:text-teal-300', title: 'text-teal-950 dark:text-teal-100' }
+                        : { card: isPinned ? 'bg-blue-100/80 dark:bg-blue-500/30 border-blue-400' : 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 hover:border-blue-400', badge: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300', code: 'text-blue-800 dark:text-blue-300', title: 'text-blue-950 dark:text-blue-100' };
+
+        return (
+            <div className={`w-full rounded-lg p-2 flex flex-col justify-between border transition-all hover:-translate-y-0.5 hover:shadow-md relative group/card ${colorScheme.card}`}>
+                {/* Pin button */}
+                <div
+                    className={`absolute top-1 right-1 p-1 rounded-md opacity-0 group-hover/card:opacity-100 transition-opacity z-10 ${isPinned ? 'opacity-100 bg-white shadow-sm dark:bg-slate-800' : 'bg-white/80 dark:bg-slate-800/80'}`}
+                    onClick={(e) => { e.stopPropagation(); togglePin(slot); }}
+                    title={isPinned ? "Unpin class assignment" : "Pin this slot to prevent shuffling"}
+                >
+                    {isPinned ? <Lock className="w-3 h-3 text-red-500" /> : <Unlock className="w-3 h-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />}
+                </div>
+
+                {/* Top row: division badge + room */}
+                <div className="flex justify-between items-start mb-1 pr-4">
+                    <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 border-none truncate max-w-[60%] shrink-0 ${colorScheme.badge}`}>
+                        {slot.targets.join(", ")}
+                    </Badge>
+                    <span className={`text-[10px] font-medium truncate ml-1 ${slot.needs_room_assignment ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {slot.needs_room_assignment ? (
+                            <><AlertTriangle className="w-3 h-3 inline mr-0.5" />TBD</>
+                        ) : slot.room}
+                    </span>
+                </div>
+
+                {/* Subject code */}
+                {subjectCode && (
+                    <p className={`text-[10px] tracking-wider uppercase opacity-80 mb-0.5 font-semibold ${colorScheme.code}`}>
+                        {subjectCode}
+                    </p>
+                )}
+
+                {/* Subject name */}
+                <p className={`text-xs font-bold leading-tight ${colorScheme.title}`}>
+                    {subjectName}
+                </p>
+
+                {/* Faculty row */}
+                <div className="mt-1.5 flex items-center gap-1">
+                    <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex justify-center items-center overflow-hidden shrink-0">
+                        <span className="text-[8px]">{slot.faculty?.charAt(0)}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium truncate">
+                        {slot.faculty}
+                    </p>
+                </div>
+            </div>
+        );
+    };
+
     return (
-        <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col pt-2 animate-in fade-in duration-500 print:h-auto print:space-y-2">
+        <div className="space-y-4 h-[calc(100vh-6rem)] flex flex-col pt-2 animate-in fade-in duration-500 print:h-auto print:space-y-2">
             <style>{`
                 @media print {
-                    @page { size: landscape; margin: 10mm; }
+                    @page { size: landscape; margin: 8mm; }
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 }
             `}</style>
@@ -295,7 +443,11 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 print:hidden">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Master Timetable</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">View and resolve remaining conflicts across all divisions.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {activeFilter === "All Divisions"
+                            ? "Viewing all divisions. Use the filter to isolate a single division's schedule."
+                            : `Filtered to: ${activeFilter} — each slot shows exactly one class.`}
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="relative">
@@ -315,22 +467,18 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="h-9">
                                 <Download className="w-4 h-4 mr-2" />
-                                Export Options
+                                Export
                                 <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel className="text-xs">Data Formats</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={exportToCSV} className="cursor-pointer">
-                                <FileText className="w-4 h-4 mr-2 text-slate-500" />
-                                CSV Flat Data
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={exportToExcel} className="cursor-pointer text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/50">
+                        <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuLabel className="text-xs">Spreadsheet</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={exportToExcel} className="cursor-pointer text-green-700 dark:text-green-400 focus:text-green-700 focus:bg-green-50 dark:focus:bg-green-950/50">
                                 <FileSpreadsheet className="w-4 h-4 mr-2" />
-                                Excel 2D Grid
+                                Download as Excel (.xlsx)
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuLabel className="text-xs">Integration</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-xs">Calendar Integration</DropdownMenuLabel>
                             <DropdownMenuItem onClick={exportToICS} className="cursor-pointer text-teal-600 focus:text-teal-600 focus:bg-teal-50 dark:focus:bg-teal-950/50">
                                 <CalendarIcon className="w-4 h-4 mr-2" />
                                 Export to iCal (.ics)
@@ -343,7 +491,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                             <DropdownMenuLabel className="text-xs">Printable</DropdownMenuLabel>
                             <DropdownMenuItem onClick={exportToPDF} className="cursor-pointer text-orange-600 focus:text-orange-600 focus:bg-orange-50 dark:focus:bg-orange-950/50">
                                 <Printer className="w-4 h-4 mr-2" />
-                                Save as PDF
+                                Save as PDF / Print
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -351,19 +499,19 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                     {!hideFullscreen && (
                         <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 md:flex hidden" onClick={toggleFullscreen}>
                             {isFullscreen ? <Minimize2 className="w-4 h-4 mr-2" /> : <Maximize2 className="w-4 h-4 mr-2" />}
-                            {isFullscreen ? "Exit Fullscreen" : "Fullscreen Focus"}
+                            {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                         </Button>
                     )}
                 </div>
             </div>
 
-            {/* ── Overflow Banner ────────────────────────────────────────────── */}
+            {/* Overflow Banner */}
             {overflowCount > 0 && !overflowBannerDismissed && (
-                <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-200 text-sm print:hidden animate-in slide-in-from-top-2 duration-300">
+                <div className="shrink-0 flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-200 text-sm print:hidden animate-in slide-in-from-top-2 duration-300">
                     <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
                     <div className="flex-1">
-                        <span className="font-semibold">{overflowCount} class slot{overflowCount !== 1 ? 's' : ''} assigned to overflow</span>
-                        <span className="font-normal ml-1 text-amber-700 dark:text-amber-300">— no matching room was found for these workloads. They are marked <span className="font-semibold">⚠ Room TBD</span> in the grid. Assign a room manually or add a matching room in Data Manager and regenerate.</span>
+                        <span className="font-semibold">{overflowCount} class slot{overflowCount !== 1 ? 's' : ''} have no matching room</span>
+                        <span className="font-normal ml-1 text-amber-700 dark:text-amber-300">— marked <span className="font-semibold">⚠ TBD</span> in the grid. Add a matching room in Data Manager and regenerate.</span>
                     </div>
                     <button
                         onClick={() => setOverflowBannerDismissed(true)}
@@ -375,8 +523,11 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                 </div>
             )}
 
-            {/* Grid Container */}
-            <div ref={gridRef} className={`flex-1 overflow-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm relative print:overflow-visible print:border-none print:shadow-none print:w-full ${isFullscreen ? 'p-6 rounded-none border-none' : ''}`}>
+            {/* Grid Container — min-h-0 prevents flex child from overflowing parent height */}
+            <div
+                ref={gridRef}
+                className={`flex-1 min-h-0 overflow-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm relative print:overflow-visible print:border-none print:shadow-none print:w-full ${isFullscreen ? 'p-4 rounded-none border-none' : ''}`}
+            >
                 {isLoading ? (
                     <div className="w-full h-full flex flex-col items-center justify-center space-y-4 min-h-[400px]">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -389,132 +540,93 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                         </div>
                         <div className="text-center">
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">No Timetable Generated</h3>
-                            <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">You haven't generated a timetable yet. Go to the Overview dashboard and click "Generate Smart Timetable" to populate this view.</p>
+                            <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Go to the Overview dashboard and click "Generate Timetable" to populate this view.</p>
                         </div>
                     </div>
                 ) : (
-                    <div className="min-w-[1000px] h-full inline-block print:min-w-0 print:w-full">
-                        {/* Header Row (Times) */}
-                        <div className="flex sticky top-0 z-20 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
-                            <div className="w-24 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-3 sticky left-0 z-30 flex items-center justify-center font-medium text-xs text-slate-500">
-                                Day / Time
-                            </div>
-                            {TIMES.map((time) => (
-                                <div key={time} className="flex-1 min-w-[140px] border-r border-slate-200 dark:border-slate-800 p-3 text-center font-semibold text-xs text-slate-700 dark:text-slate-300">
-                                    {mapMilitaryTo12Hour(time)}
-                                </div>
-                            ))}
-                        </div>
+                    // ── The actual timetable grid ──────────────────────────────────
+                    <table className="w-full border-collapse table-fixed print:text-[8pt]">
+                        <colgroup>
+                            {/* Day column */}
+                            <col style={{ width: "80px" }} />
+                            {/* Time slot columns — equal width */}
+                            {times.map(t => <col key={t} />)}
+                        </colgroup>
 
-                        {/* Body Rows (Days) */}
-                        <div className="flex flex-col">
-                            {DAYS.map((day) => (
-                                <div key={day} className="flex border-b border-slate-100 dark:border-slate-800/50 group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                                    {/* Fixed Left Column (Day Name) */}
-                                    <div className="w-24 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 sticky left-0 z-10 flex items-center justify-center font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:bg-slate-50 dark:group-hover:bg-slate-900/80 transition-colors shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
-                                        <span className="-rotate-90 md:rotate-0 tracking-widest md:tracking-normal uppercase md:capitalize text-xs md:text-sm">
-                                            {day}
-                                        </span>
-                                    </div>
+                        {/* Header: times */}
+                        <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                                <th className="sticky left-0 z-30 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-2 text-center text-xs font-medium text-slate-500 print:static">
+                                    Day / Time
+                                </th>
+                                {times.map(time => (
+                                    <th key={time} className="border-r border-slate-200 dark:border-slate-800 p-2 text-center text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                                        {mapMilitaryTo12Hour(time)}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
 
-                                    {/* Slots Wrapper */}
-                                    <div className="flex flex-1 relative">
-                                        {TIMES.map((time) => {
-                                            const activeSlots = slots.filter(s => s.day === day && s.time === time && (activeFilter === "All Divisions" || s.targets.includes(activeFilter)));
-                                            // Handle both static global lunch integers and new dynamic Maps
-                                            const isLunch = typeof lunchSlot === 'object' && lunchSlot !== null 
-                                                ? lunchSlot[day] === time 
-                                                : time === lunchSlot;
+                        {/* Body: one row per day */}
+                        <tbody>
+                            {days.map((day) => (
+                                <tr key={day} className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/40 dark:hover:bg-slate-900/20 transition-colors group">
+                                    {/* Day label */}
+                                    <td className="sticky left-0 z-10 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 p-2 text-center font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:bg-slate-50 dark:group-hover:bg-slate-900/80 transition-colors shadow-[1px_0_4px_rgba(0,0,0,0.03)] print:static">
+                                        {day}
+                                    </td>
 
-                                            if (isLunch) {
-                                                return (
-                                                    <div key={time} className="flex-1 min-w-[140px] border-r border-slate-100 dark:border-slate-800/50 p-2 bg-slate-50 dark:bg-slate-900/40 flex items-center justify-center text-slate-400 dark:text-slate-600 text-xs font-medium italic">
-                                                        <span>Lunch Break</span>
-                                                    </div>
-                                                );
-                                            }
-
+                                    {/* Slot cells */}
+                                    {times.map(time => {
+                                        if (isLunchTime(day, time)) {
                                             return (
-                                                <div key={time} className="flex-1 min-w-[140px] border-r border-slate-100 dark:border-slate-800/50 p-1.5 relative group/slot max-h-[140px]">
-                                                    {activeSlots.length > 0 ? (
-                                                        <div className="h-full w-full flex flex-col gap-1.5 overflow-y-auto custom-scrollbar pr-1">
-                                                            {activeSlots.map((slot, i) => {
-                                                                const isPinned = pinnedClasses.includes(`${slot.workload_id}|${slot.room}|${slot.day}|${slot.time}`);
-                                                                
-                                                                // String formatting: "DS2012_ML_Lab" -> Code: "DS2012", Name: "ML Lab"
-                                                                const subjectParts = slot.subject.split('_');
-                                                                const subjectCode = subjectParts.length > 1 ? subjectParts[0] : "";
-                                                                const subjectName = subjectParts.length > 1 ? subjectParts.slice(1).join(' ') : slot.subject;
-
-                                                                return (
-                                                                    <div key={i} className={`shrink-0 rounded-md p-2 flex flex-col justify-between border cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md relative group/card ${
-                                                                        slot.needs_room_assignment
-                                                                            ? (isPinned ? 'bg-amber-100/80 dark:bg-amber-500/30 border-amber-400' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 hover:border-amber-300 dark:hover:border-amber-500/40')
-                                                                            : slot.type === 'tutorial'
-                                                                                ? (isPinned ? 'bg-purple-100/80 dark:bg-purple-500/30 border-purple-400' : 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20 hover:border-purple-300 dark:hover:border-purple-500/40')
-                                                                                : slot.type === 'lab'
-                                                                                    ? (isPinned ? 'bg-teal-100/80 dark:bg-teal-500/30 border-teal-400' : 'bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-500/20 hover:border-teal-300 dark:hover:border-teal-500/40')
-                                                                                    : (isPinned ? 'bg-blue-100/80 dark:bg-blue-500/30 border-blue-400' : 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 hover:border-blue-300 dark:hover:border-blue-500/40')
-                                                                        }`}>
-
-                                                                        <div
-                                                                            className={`absolute top-1 right-1 p-1 rounded-md opacity-0 group-hover/card:opacity-100 transition-opacity z-10 ${isPinned ? 'opacity-100 bg-white shadow-sm dark:bg-slate-800' : 'bg-white/80 dark:bg-slate-800/80'}`}
-                                                                            onClick={(e) => { e.stopPropagation(); togglePin(slot); }}
-                                                                            title={isPinned ? "Unpin class assignment" : "Pin this slot to prevent shuffling"}
-                                                                        >
-                                                                            {isPinned ? <Lock className="w-3 h-3 text-red-500" /> : <Unlock className="w-3 h-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />}
-                                                                        </div>
-
-                                                                        <div>
-                                                                            <div className="flex justify-between items-start mb-1">
-                                                                                <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 border-none truncate max-w-[55px] ${slot.type === 'tutorial' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300' : slot.type === 'lab' ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300' : 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300'}`}>
-                                                                                    {slot.targets.join(", ")}
-                                                                                </Badge>
-                                                                                 <span className={`text-[10px] font-medium truncate ${
-                                                                        slot.needs_room_assignment
-                                                                            ? 'text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5'
-                                                                            : isPinned ? 'text-slate-800 dark:text-slate-200 flex-1 text-right mr-5' : 'text-slate-500 dark:text-slate-400'
-                                                                    }`}>
-                                                                        {slot.needs_room_assignment ? (
-                                                                            <><AlertTriangle className="w-3 h-3 inline mr-0.5" />Room TBD</>
-                                                                        ) : slot.room}
-                                                                    </span>
-                                                                            </div>
-                                                                            {subjectCode && (
-                                                                                <p className={`text-[10px] tracking-wider uppercase opacity-80 mb-0.5 font-semibold ${slot.type === 'tutorial' ? 'text-purple-800 dark:text-purple-300' : slot.type === 'lab' ? 'text-teal-800 dark:text-teal-300' : 'text-blue-800 dark:text-blue-300'}`}>
-                                                                                    {subjectCode}
-                                                                                </p>
-                                                                            )}
-                                                                            <p className={`text-xs font-bold leading-tight ${slot.type === 'tutorial' ? 'text-purple-950 dark:text-purple-100' : slot.type === 'lab' ? 'text-teal-950 dark:text-teal-100' : 'text-blue-950 dark:text-blue-100'}`}>
-                                                                                {subjectName}
-                                                                            </p>
-                                                                        </div>
-                                                                        <div className="mt-2 flex items-center gap-1">
-                                                                            <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex justify-center items-center overflow-hidden shrink-0">
-                                                                                <span className="text-[8px]">{slot.faculty?.charAt(0)}</span>
-                                                                            </div>
-                                                                            <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium truncate">
-                                                                                {slot.faculty}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="h-full w-full rounded-md border border-dashed border-slate-200 dark:border-slate-800 opacity-0 group-hover/slot:opacity-100 transition-opacity flex items-center justify-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                                            <Plus className="w-4 h-4 text-slate-400" />
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <td key={time} className="border-r border-slate-100 dark:border-slate-800/50 p-2 bg-slate-50 dark:bg-slate-900/40 text-center align-middle">
+                                                    <span className="text-xs text-slate-400 dark:text-slate-600 font-medium italic">Lunch Break</span>
+                                                </td>
                                             );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                        }
 
-                    </div>
+                                        const activeSlots = slots.filter(s =>
+                                            s.day === day &&
+                                            s.time === time &&
+                                            (activeFilter === "All Divisions" || s.targets.includes(activeFilter))
+                                        );
+
+                                        if (activeSlots.length === 0) {
+                                            return (
+                                                <td key={time} className="border-r border-slate-100 dark:border-slate-800/50 p-1.5 align-top group/slot">
+                                                    <div className="h-full w-full rounded-md border border-dashed border-slate-200 dark:border-slate-800 opacity-0 group-hover/slot:opacity-100 transition-opacity flex items-center justify-center min-h-[80px] cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                        <Plus className="w-4 h-4 text-slate-400" />
+                                                    </div>
+                                                </td>
+                                            );
+                                        }
+
+                                        if (activeFilter === "All Divisions" && activeSlots.length > 1) {
+                                            // Multi-class cell (All Divisions view):
+                                            // Stack cards vertically, each full width — NO scroll, all visible
+                                            return (
+                                                <td key={time} className="border-r border-slate-100 dark:border-slate-800/50 p-1.5 align-top">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        {activeSlots.map((slot, i) => (
+                                                            <SlotCard key={i} slot={slot} />
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                            );
+                                        }
+
+                                        // Single-class cell (filtered or single result)
+                                        return (
+                                            <td key={time} className="border-r border-slate-100 dark:border-slate-800/50 p-1.5 align-top">
+                                                <SlotCard slot={activeSlots[0]} />
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 )}
             </div>
         </div>

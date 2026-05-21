@@ -64,6 +64,43 @@ async def generate_timetable(payload: GenerationPayload) -> Dict[str, Any]:
 
 
 @router.post(
+    "/readiness",
+    summary="Check Pre-Flight Readiness of the Master Data",
+    response_description="Returns a readiness score and any blocking issues.",
+)
+async def check_readiness(payload: GenerationPayload) -> Dict[str, Any]:
+    """
+    Predictive Pre-Flight check to eliminate 'hit and trial'.
+    Analyzes the data for mathematical impossibilities (room limits, faculty limits, overlap).
+    """
+    is_valid, errors = validate_input_payload(payload)
+    if not is_valid:
+        return {
+            "ready": False,
+            "score": 0,
+            "issues": [{"type": "VALIDATION_ERROR", "message": e} for e in errors]
+        }
+
+    diagnosis = diagnose(payload)
+    critical_issues = diagnosis.get("critical", [])
+    warnings = diagnosis.get("warnings", [])
+    all_issues = critical_issues + warnings
+    
+    # Calculate a simple readiness score based on issues
+    score = 100 - (len(critical_issues) * 20) - (len(warnings) * 5)
+    score = max(0, score)
+
+    return {
+        "ready": len(critical_issues) == 0,
+        "score": score,
+        "critical": critical_issues,
+        "warnings": warnings,
+        "total_issues": len(all_issues)
+    }
+
+
+
+@router.post(
     "/substitute-search",
     summary="Find available substitutes for a given day/time slot",
 )
