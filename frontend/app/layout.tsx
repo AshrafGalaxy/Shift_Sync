@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"] });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" });
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "ShiftSync | Intelligent Timetable Management",
@@ -20,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${outfit.variable} antialiased selection:bg-teal-500/30`} suppressHydrationWarning>
+      <body className={`${jakarta.variable} font-sans antialiased selection:bg-violet-500/30`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
