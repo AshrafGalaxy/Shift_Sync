@@ -102,11 +102,7 @@ export function Sidebar({ isOpen, onToggle, institutionName = "ShiftSync", userE
                                 </Button>
                             </div>
 
-                            {/* Institution Name */}
-                            <div className="px-6 py-3 border-b border-slate-800">
-                                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Logged In</p>
-                                <p className="text-sm font-semibold text-slate-300 mt-1">{institutionName}</p>
-                            </div>
+
 
             {/* Navigation Links */}
             <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
