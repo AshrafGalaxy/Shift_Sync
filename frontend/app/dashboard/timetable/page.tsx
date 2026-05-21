@@ -438,6 +438,15 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         );
     };
 
+    // Compute visible slot count based on all active filters
+    const visibleSlots = slots.filter(s => {
+        const matchDiv = activeFilter === "All Divisions" || s.targets.includes(activeFilter);
+        const matchFac = facultyFilter === "All Faculty" || s.faculty === facultyFilter;
+        const q = searchQuery.toLowerCase();
+        const matchSearch = !q || s.subject.toLowerCase().includes(q) || s.faculty?.toLowerCase().includes(q) || s.room?.toLowerCase().includes(q);
+        return matchDiv && matchFac && matchSearch;
+    });
+
     return (
         <div className="space-y-4 h-[calc(100vh-6rem)] flex flex-col pt-2 animate-in fade-in duration-500 print:h-auto print:space-y-2">
             <style>{`
@@ -450,7 +459,20 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
             {/* Header & Controls */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 print:hidden">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Master Timetable</h1>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Master Timetable</h1>
+                        {slots.length > 0 && (
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                visibleSlots.length === slots.length
+                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                    : 'bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300'
+                            }`}>
+                                {visibleSlots.length === slots.length
+                                    ? `${slots.length} slots`
+                                    : `${visibleSlots.length} / ${slots.length} slots`}
+                            </span>
+                        )}
+                    </div>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                         {activeFilter === "All Divisions"
                             ? "Viewing all divisions. Use the filter to isolate a single division's schedule."

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -95,7 +95,7 @@ export default function HistoryPage() {
         const logs: string[] = record.matrix_data?.progress_log || [];
         const score = record.matrix_data?.optimality_score;
         const text = [
-            `ShiftSync Solver Log — ${format(new Date(record.created_at), "MMMM do, yyyy 'at' h:mm a")}`,
+            `ShiftSync Solver Log â€” ${format(new Date(record.created_at), "MMMM do, yyyy 'at' h:mm a")}`,
             `Status: ${record.status}`,
             score != null ? `Optimality Score: ${score}/100` : "",
             "",
@@ -144,7 +144,7 @@ export default function HistoryPage() {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
 
-            {/* ── Delete confirm dialog ── */}
+            {/* â”€â”€ Delete confirm dialog â”€â”€ */}
             <Dialog open={!!pendingDeleteId} onOpenChange={(o) => !o && setPendingDeleteId(null)}>
                 <DialogContent className="max-w-sm bg-white dark:bg-slate-900">
                     <DialogHeader>
@@ -158,7 +158,7 @@ export default function HistoryPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* ── Clear all confirm dialog ── */}
+            {/* â”€â”€ Clear all confirm dialog â”€â”€ */}
             <Dialog open={pendingClearAll} onOpenChange={(o) => !o && setPendingClearAll(false)}>
                 <DialogContent className="max-w-sm bg-white dark:bg-slate-900">
                     <DialogHeader>
@@ -175,7 +175,7 @@ export default function HistoryPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* ── Solver Logs Modal ── */}
+            {/* â”€â”€ Solver Logs Modal â”€â”€ */}
             <Dialog open={!!logsRecord} onOpenChange={(o) => !o && setLogsRecord(null)}>
                 <DialogContent className="max-w-3xl w-full h-[80vh] flex flex-col p-0 overflow-hidden bg-slate-950 border border-slate-800">
                     <DialogHeader className="sr-only">
@@ -193,9 +193,9 @@ export default function HistoryPage() {
                                 <p className="text-xs font-mono text-slate-400 uppercase tracking-wider">Solver Log Archive</p>
                                 {logsRecord && (
                                     <p className="text-[10px] text-slate-600 font-mono mt-0.5">
-                                        {format(new Date(logsRecord.created_at), "MMM do, yyyy · h:mm a")}
+                                        {format(new Date(logsRecord.created_at), "MMM do, yyyy Â· h:mm a")}
                                         {logsRecord.matrix_data?.optimality_score != null &&
-                                            ` · Score ${logsRecord.matrix_data.optimality_score}/100`}
+                                            ` Â· Score ${logsRecord.matrix_data.optimality_score}/100`}
                                     </p>
                                 )}
                             </div>
@@ -251,7 +251,7 @@ export default function HistoryPage() {
                         { label: "Total Runs", value: history.length, icon: History, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-500/10" },
                         { label: "Successful", value: successRecords.length, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
                         { label: "Success Rate", value: `${successRate}%`, icon: TrendingUp, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
-                        { label: "Avg Score", value: avgScore != null ? `${avgScore}/100` : "—", icon: Star, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
+                        { label: "Avg Score", value: avgScore != null ? `${avgScore}/100` : "â€”", icon: Star, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
                     ].map(stat => (
                         <div key={stat.label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center gap-3">
                             <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center shrink-0`}>
@@ -263,6 +263,46 @@ export default function HistoryPage() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* â”€â”€ Score Trend Sparkline â”€â”€ */}
+            {scores.length >= 2 && (
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                            Score Trend (last {Math.min(scores.length, 10)} runs)
+                        </p>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            (scores[0] ?? 0) >= (scores[1] ?? 0)
+                                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10"
+                                : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10"
+                        }`}>
+                            {(scores[0] ?? 0) >= (scores[1] ?? 0) ? "up" : "down"} Latest: {scores[0]}/100
+                        </span>
+                    </div>
+                    <div className="flex items-end gap-1.5 h-12 relative">
+                        {[...scores].reverse().slice(-10).map((s, i, arr) => {
+                            const pct = Math.max(6, Math.round((s / 100) * 100));
+                            const isLatest = i === arr.length - 1;
+                            const barColor = s >= 90 ? "bg-emerald-500" : s >= 70 ? "bg-amber-500" : "bg-red-500";
+                            return (
+                                <div key={i} className="flex-1 flex flex-col items-end group relative h-full justify-end">
+                                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                        {s}/100
+                                    </div>
+                                    <div
+                                        className={`w-full rounded-sm transition-all ${barColor} ${isLatest ? "ring-2 ring-offset-1 ring-violet-400 dark:ring-offset-slate-900" : "opacity-60 hover:opacity-100"}`}
+                                        style={{ height: `${pct}%` }}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="flex justify-between mt-1.5">
+                        <span className="text-[9px] text-slate-400">Oldest</span>
+                        <span className="text-[9px] text-slate-400">Latest</span>
+                    </div>
                 </div>
             )}
 
@@ -354,7 +394,7 @@ export default function HistoryPage() {
                                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                                     {format(new Date(record.created_at), "MMMM do, yyyy 'at' h:mm a")}
                                                     {logs.length > 0 && (
-                                                        <span className="ml-2 text-slate-400 dark:text-slate-600">· {logs.length} log lines</span>
+                                                        <span className="ml-2 text-slate-400 dark:text-slate-600">Â· {logs.length} log lines</span>
                                                     )}
                                                 </p>
                                                 {record.status === "failed" && record.error_message && (
@@ -365,7 +405,7 @@ export default function HistoryPage() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0 justify-end flex-wrap">
-                                            {/* Set as Active — only for successful non-active records */}
+                                            {/* Set as Active â€” only for successful non-active records */}
                                             {record.status !== "failed" && !record.is_active && (
                                                 <Button
                                                     variant="outline"
@@ -377,7 +417,7 @@ export default function HistoryPage() {
                                                     Set Active
                                                 </Button>
                                             )}
-                                            {/* View Logs button — always visible */}
+                                            {/* View Logs button â€” always visible */}
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -387,7 +427,7 @@ export default function HistoryPage() {
                                                 <ScrollText className="w-3.5 h-3.5 mr-1.5" />
                                                 View Logs
                                             </Button>
-                                            {/* View timetable — only for non-failed */}
+                                            {/* View timetable â€” only for non-failed */}
                                             {record.status !== "failed" && (
                                                 <Button
                                                     variant="outline"
@@ -425,7 +465,7 @@ export default function HistoryPage() {
                             <History className="w-5 h-5 text-violet-600" />
                             Historical Timetable Preview
                         </DialogTitle>
-                        <DialogDescription>Viewing an archived generation — export or print this version.</DialogDescription>
+                        <DialogDescription>Viewing an archived generation â€” export or print this version.</DialogDescription>
                     </DialogHeader>
                     <div className="flex-1 w-full min-h-0 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 overflow-y-auto">
                         <div className="p-4 h-full">
