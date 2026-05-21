@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, User, Users, Calendar, ArrowRight, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { ShieldCheck, Users, Calendar, ArrowRight, Loader2, Calendar as CalendarIcon, Lock, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { createClient } from "@/utils/supabase/client";
@@ -19,103 +20,190 @@ export default function LoginPage() {
     const [role, setRole] = useState("faculty");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
     const supabase = createClient();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setError(null);
 
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { data, error: authError } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password,
             });
 
-            if (error) {
-                alert(error.message);
+            if (authError) {
+                setError(authError.message);
+                toast.error("Authentication failed", { description: authError.message });
                 setIsLoading(false);
                 return;
             }
 
-            // Redirect to dashboard on success
+            toast.success("Signed in successfully!", { description: "Redirecting to dashboard..." });
             router.push("/dashboard");
-            router.refresh(); // Refresh to apply middleware session
+            router.refresh();
         } catch (err: any) {
-            alert(err.message || "An unexpected error occurred");
+            const message = err.message || "An unexpected error occurred";
+            setError(message);
+            toast.error("Sign in failed", { description: message });
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4 selection:bg-teal-500/30">
-
-            {/* Background Ornaments */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 dark:bg-blue-600/20 blur-[120px] rounded-full" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 dark:bg-purple-600/20 blur-[120px] rounded-full" />
-            </div>
-
-            <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 group z-10">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center group-hover:shadow-lg transition-all">
-                    <Calendar className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-slate-50">ShiftSync</span>
-            </Link>
-
+        <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-teal-500/30 overflow-hidden flex">
+            {/* Left Panel - Branding */}
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="w-full max-w-md z-10"
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
             >
-                <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
+                {/* Background Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-purple-600/20" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/30 blur-[120px] rounded-full" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/30 blur-[120px] rounded-full" />
+
+                <div className="relative z-10">
+                    <Link href="/" className="flex items-center gap-2 mb-12">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+                            <CalendarIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <span className="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                            ShiftSync
+                        </span>
+                    </Link>
+
+                    <div className="space-y-8">
+                        <h2 className="text-4xl font-bold leading-tight">
+                            Access Your Institution's Scheduling Engine
+                        </h2>
+
+                        <div className="space-y-6">
+                            {[
+                                {
+                                    icon: Users,
+                                    title: "Intelligent Scheduling",
+                                    description: "CP-SAT solver handles thousands of constraints",
+                                },
+                                {
+                                    icon: Lock,
+                                    title: "Institution Privacy",
+                                    description: "Row-level security ensures data isolation",
+                                },
+                                {
+                                    icon: Mail,
+                                    title: "Real-Time Sync",
+                                    description: "Export to Google Calendar instantly",
+                                },
+                            ].map((item, idx) => {
+                                const Icon = item.icon;
+                                return (
+                                    <motion.div
+                                        key={idx}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.2 + idx * 0.1 }}
+                                        className="flex gap-4"
+                                    >
+                                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                            <Icon className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-sm mb-1">{item.title}</p>
+                                            <p className="text-slate-400 text-sm">{item.description}</p>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Floating Orb Animation */}
+                <motion.div
+                    className="absolute bottom-12 left-12 w-48 h-48 rounded-full border border-purple-500/20"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                />
+            </motion.div>
+
+            {/* Right Panel - Form */}
+            <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                className="w-full lg:w-1/2 flex flex-col justify-center items-center p-4 sm:p-8"
+            >
+                {/* Mobile Logo */}
+                <Link href="/" className="lg:hidden flex items-center gap-2 mb-8">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+                        <CalendarIcon className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="font-bold text-xl tracking-tight text-slate-50">ShiftSync</span>
+                </Link>
+
+                <Card className="w-full max-w-md border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl">
                     <CardHeader className="space-y-1 pb-6">
-                        <CardTitle className="text-2xl font-bold text-center tracking-tight">Welcome back</CardTitle>
-                        <CardDescription className="text-center text-slate-500 dark:text-slate-400">
+                        <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
+                        <CardDescription className="text-slate-400">
                             Access the intelligent scheduling engine
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="faculty" className="w-full" onValueChange={setRole}>
-                            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
-                                <TabsTrigger value="faculty" className="rounded-md data-[state=active]:bg-white data-[state=active]:dark:bg-slate-800 data-[state=active]:shadow-sm text-xs sm:text-sm">
+                            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/50 p-1 rounded-lg border border-slate-700">
+                                <TabsTrigger
+                                    value="faculty"
+                                    className="rounded-md data-[state=active]:bg-blue-600/20 data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:text-blue-400"
+                                >
                                     <Users className="w-4 h-4 mr-2 hidden sm:block" />
                                     Faculty
                                 </TabsTrigger>
-                                <TabsTrigger value="admin" className="rounded-md data-[state=active]:bg-white data-[state=active]:dark:bg-slate-800 data-[state=active]:shadow-sm text-xs sm:text-sm">
+                                <TabsTrigger
+                                    value="admin"
+                                    className="rounded-md data-[state=active]:bg-blue-600/20 data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:text-blue-400"
+                                >
                                     <ShieldCheck className="w-4 h-4 mr-2 hidden sm:block" />
                                     Admin
                                 </TabsTrigger>
                             </TabsList>
 
                             <form onSubmit={handleLogin} className="space-y-4">
-                                <AnimatePresence mode="popLayout">
+                                {/* Error Banner */}
+                                {error && (
                                     <motion.div
-                                        key="email-input"
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="space-y-2"
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm"
                                     >
-                                        <Label htmlFor="email">Institute Email</Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="name@institute.edu"
-                                            required
-                                            className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500"
-                                        />
+                                        {error}
                                     </motion.div>
-                                </AnimatePresence>
+                                )}
 
-                                <div className="space-y-2 pt-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Institute Email</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="name@institute.edu"
+                                        required
+                                        className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <Label htmlFor="password">Password</Label>
-                                        <Link href="#" className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+                                        <Link
+                                            href="#"
+                                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                        >
                                             Forgot password?
                                         </Link>
                                     </div>
@@ -126,13 +214,13 @@ export default function LoginPage() {
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="••••••••"
                                         required
-                                        className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 focus-visible:ring-blue-500"
+                                        className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
                                     />
                                 </div>
 
                                 <Button
                                     type="submit"
-                                    className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20"
+                                    className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-600/20"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
@@ -149,18 +237,14 @@ export default function LoginPage() {
                                 </Button>
                             </form>
                         </Tabs>
-                    </CardContent>
-                    <CardFooter className="flex flex-col items-center gap-3 border-t border-slate-100 dark:border-slate-800/60 pt-6">
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Need help? Contact <a href="#" className="text-blue-600 dark:text-blue-400 hover:underline">IT Support</a>
-                        </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            New institution?{" "}
-                            <Link href="/register" className="text-teal-600 dark:text-teal-400 hover:underline font-medium">
+
+                        <div className="mt-6 text-center text-sm text-slate-400">
+                            Don&apos;t have an account?{" "}
+                            <Link href="/register" className="text-teal-400 hover:text-teal-300 font-semibold transition-colors">
                                 Register here
                             </Link>
-                        </p>
-                    </CardFooter>
+                        </div>
+                    </CardContent>
                 </Card>
             </motion.div>
         </div>

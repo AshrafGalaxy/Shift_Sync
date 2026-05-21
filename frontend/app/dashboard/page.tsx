@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, FileText, CheckCircle2, Clock, Upload, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download } from "lucide-react";
+import { Play, FileText, CheckCircle2, Clock, Upload, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon } from "lucide-react";
+import { toast } from "sonner";
 
 import { createClient } from "@/utils/supabase/client";
 
@@ -16,8 +17,8 @@ import FacultyForm from "@/components/forms/FacultyForm";
 import InstitutionForm from "@/components/forms/InstitutionForm";
 import WorkloadForm from "@/components/forms/WorkloadForm";
 import CsvUploadManager from "@/components/forms/CsvUploadManager";
-import TemplateManager from "@/components/TemplateManager";
-import { ConflictRefinerModal } from "@/components/ConflictRefinerModal";
+import ConflictRefinerModal from "@/components/ConflictRefinerModal";
+import { TemplateManager } from "@/components/TemplateManager";
 
 export default function DashboardOverview() {
     const [isMounted, setIsMounted] = useState(false);
@@ -31,8 +32,8 @@ export default function DashboardOverview() {
         { name: "Active Batches", value: 0 as number | string, icon: GraduationCap, color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" },
     ]);
     const [lastGenerationDate, setLastGenerationDate] = useState<string | null>(null);
-    const [instId, setInstId] = useState<string | null>(null);
     const [conflictDiagnosis, setConflictDiagnosis] = useState<any>(null);
+    const [instId, setInstId] = useState<string | null>(null);
 
     const supabase = createClient();
 
@@ -49,20 +50,11 @@ export default function DashboardOverview() {
             if (!profile?.institution_id) return;
 
             const instId = profile.institution_id;
-            setInstId(instId);
 
-            // Fetch actual data for capacity heatmap
-            const { data: inst } = await supabase.from("institutions").select("days_active, time_slots").eq("id", instId).single();
+            // Fetch real counts
             const { count: facultyCount } = await supabase.from("faculty_settings").select("*", { count: "exact", head: true });
-            const { data: rooms } = await supabase.from("rooms").select("id").eq("institution_id", instId);
-            const { data: workloads } = await supabase.from("workloads").select("weekly_hours");
-
-            const roomCount = rooms?.length || 0;
-            const workloadsCount = workloads?.length || 0;
-
-            const totalCapacity = (inst?.days_active?.length || 0) * (inst?.time_slots?.length || 0) * roomCount;
-            const totalDemand = workloads?.reduce((acc, w) => acc + (w.weekly_hours || 0), 0) || 0;
-            const densityRatio = totalCapacity > 0 ? Math.round((totalDemand / totalCapacity) * 100) : 0;
+            const { count: roomCount } = await supabase.from("rooms").select("*", { count: "exact", head: true }).eq("institution_id", instId);
+            const { count: workloadsCount } = await supabase.from("workloads").select("*", { count: "exact", head: true });
 
             // Get last generation time
             const { data: latestTs } = await supabase
@@ -73,19 +65,12 @@ export default function DashboardOverview() {
                 .limit(1)
                 .single();
 
-            setIsDbReady((facultyCount ?? 0) > 0 && roomCount > 0);
-
-            let densityColor = "text-emerald-500";
-            let densityBg = "bg-emerald-50 dark:bg-emerald-500/10";
-            let densityAlert = "";
-            if (densityRatio > 85) { densityColor = "text-amber-500"; densityBg = "bg-amber-50 dark:bg-amber-500/10"; }
-            if (densityRatio > 100) { densityColor = "text-red-500"; densityBg = "bg-red-50 dark:bg-red-500/10"; densityAlert = " ⚠️"; }
+            setIsDbReady((facultyCount ?? 0) > 0 && (roomCount ?? 0) > 0);
 
             setStats([
                 { name: "Total Faculty", value: facultyCount || 0, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
                 { name: "Available Rooms", value: roomCount || 0, icon: Building, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
                 { name: "Total Workloads", value: workloadsCount || 0, icon: GraduationCap, color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" },
-                { name: "Grid Heatmap (Load)", value: `${densityRatio}%${densityAlert}`, icon: Database, color: densityColor, bg: densityBg },
             ]);
 
             if (latestTs) {
@@ -110,9 +95,7 @@ export default function DashboardOverview() {
             "time_slots": [
                 8, 9, 10, 11, 12, 13, 14, 15
             ],
-            "lunch_slot": {
-                "Mon": 13, "Tue": 13, "Wed": 13, "Thu": 13, "Fri": 13
-            },
+            "lunch_slot": 13,
             "max_continuous_lectures": 2,
             "custom_rules": []
         },
@@ -393,85 +376,13 @@ export default function DashboardOverview() {
                 await supabase.from("faculty_settings").delete().eq("profile_id", user.id);
             }
 
-            alert("Database Nuked Successfully! All testing records have been erased.");
+            toast.success("Database cleared successfully", { description: "All testing records have been erased." });
             fetchDashboardStats(); // Soft refresh instead of hard reload
         } catch (err: any) {
             console.error("Clearing Error:", err);
-            alert("Clearing failed: " + (err.message || "Unknown error"));
+            toast.error("Clearing failed", { description: err.message || "Unknown error" });
         }
         setIsClearing(false);
-    };
-
-    const exportTemplate = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Not authenticated");
-
-            const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
-            const instId = profile?.institution_id;
-            if (!instId) throw new Error("No institution data to export.");
-
-            const { data: inst } = await supabase.from("institutions").select("*").eq("id", instId).single();
-            const { data: rooms } = await supabase.from("rooms").select("*").eq("institution_id", instId);
-            const { data: facSettings } = await supabase.from("faculty_settings").select("*").eq("profile_id", user.id);
-
-            let lunchMap: Record<string, number> = {};
-            if (inst && typeof inst.lunch_slot === 'object' && inst.lunch_slot !== null) {
-                lunchMap = inst.lunch_slot;
-            } else if (inst) {
-                inst.days_active.forEach((day: string) => {
-                    lunchMap[day] = parseInt(inst.lunch_slot as string) || 13;
-                });
-            }
-
-            const mappedFaculties = facSettings ? await Promise.all(facSettings.map(async (facSetting) => {
-                const { data: workloads } = await supabase.from("workloads").select("*").eq("faculty_id", facSetting.id);
-                let realFacultyName = `Faculty ${facSetting.id.slice(0, 4).toUpperCase()}`;
-                if (facSetting.blocked_slots && facSetting.blocked_slots.length > 0 && facSetting.blocked_slots[0]._csv_id) {
-                    realFacultyName = facSetting.blocked_slots[0]._csv_id;
-                }
-                return {
-                    id: facSetting.id.slice(0, 8),
-                    name: realFacultyName,
-                    shift: (!facSetting.shift_hours || facSetting.shift_hours.length === 0) ? inst?.time_slots : facSetting.shift_hours,
-                    max_load_hrs: facSetting.max_load_hrs,
-                    max_continuous_hrs: facSetting.max_continuous_hrs || 3,
-                    blocked_slots: (facSetting.blocked_slots || []).filter((s: any) => s.day && s.time !== undefined),
-                    class_teacher_for: facSetting.class_teacher_for,
-                    workload: workloads?.map(w => ({
-                        id: w.id.slice(0, 8),
-                        type: w.type,
-                        subject: w.subject_code,
-                        target_groups: w.target_groups,
-                        hours: w.weekly_hours,
-                        consecutive_hours: w.consecutive_hours,
-                        required_tags: w.required_tags,
-                        is_online: w.is_online || false
-                    })) || []
-                };
-            })) : [];
-
-            const dynamicPayload = {
-                college_settings: {
-                    days_active: inst?.days_active || [],
-                    time_slots: inst?.time_slots || [],
-                    lunch_slot: lunchMap,
-                    custom_rules: []
-                },
-                rooms_config: {
-                    rooms: rooms?.map(r => ({ id: r.name, type: r.type, capacity: r.capacity, tags: r.tags })) || []
-                },
-                faculty: mappedFaculties
-            };
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dynamicPayload, null, 2));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", `ShiftSync_Template_${new Date().toISOString().split('T')[0]}.json`);
-            dlAnchorElem.click();
-        } catch (error: any) {
-            alert(error.message || "Export failed.");
-        }
     };
 
     const seedDatabase = async () => {
@@ -563,17 +474,17 @@ export default function DashboardOverview() {
 
 
 
-            alert("Data Seeded Successfully! The SQL Tables are now populated.");
+            toast.success("Data seeded successfully", { description: "The SQL tables are now populated." });
         } catch (err: any) {
             console.error("Seeding Error:", err);
-            alert("Seeding failed: " + (err.message || "Unknown error"));
+            toast.error("Seeding failed", { description: err.message || "Unknown error" });
         }
         setIsSeeding(false);
     };
 
     const startGeneration = async () => {
         if (!isDbReady) {
-            alert("⚠️ Cannot Generate: Your database is empty! You must use the Data Ingestion tabs to add at least 1 Room and 1 Faculty member before the AI can run.");
+            toast.error("Cannot generate timetable", { description: "Your database is empty! Add at least 1 Room and 1 Faculty member to continue." });
             return;
         }
 
@@ -596,33 +507,14 @@ export default function DashboardOverview() {
             const { data: facSettings } = await supabase.from("faculty_settings").select("*").eq("profile_id", user.id);
             if (!facSettings || facSettings.length === 0) throw new Error("No Faculty Configuration found! Please complete the 'Faculty' tab setup before generating.");
 
-            // Dynamically build the new map-based lunch dictionary
-            // Dynamically build or parse the new map-based lunch dictionary
-            let lunchMap: Record<string, number> = {};
-            if (typeof inst.lunch_slot === 'object' && inst.lunch_slot !== null) {
-                lunchMap = inst.lunch_slot;
-            } else {
-                inst.days_active.forEach((day: string) => {
-                    lunchMap[day] = parseInt(inst.lunch_slot as string) || 13;
-                });
-            }
-
             // Build dynamic payload mapping all faculties
             const mappedFaculties = await Promise.all(facSettings.map(async (facSetting) => {
                 const { data: workloads } = await supabase.from("workloads").select("*").eq("faculty_id", facSetting.id);
-                
-                // Extract real faculty name/identifier from the _csv_id metadata injected during upload/creation if it exists
-                let realFacultyName = `Faculty ${facSetting.id.slice(0, 4).toUpperCase()}`;
-                if (facSetting.blocked_slots && facSetting.blocked_slots.length > 0 && facSetting.blocked_slots[0]._csv_id) {
-                    realFacultyName = facSetting.blocked_slots[0]._csv_id;
-                }
-
                 return {
                     id: facSetting.id.slice(0, 8),
-                    name: realFacultyName,
-                    shift: (!facSetting.shift_hours || facSetting.shift_hours.length === 0) ? inst.time_slots : facSetting.shift_hours,
+                    name: `Faculty ${facSetting.id.slice(0, 4)}`, // Temporarily use ID mapping
+                    shift: facSetting.shift_hours,
                     max_load_hrs: facSetting.max_load_hrs,
-                    max_continuous_hrs: facSetting.max_continuous_hrs || 3, // Safely fallback if not mapped in UI yet
                     blocked_slots: (facSetting.blocked_slots || []).filter((s: any) => s.day && s.time !== undefined),
                     class_teacher_for: facSetting.class_teacher_for,
                     workload: workloads?.map(w => ({
@@ -632,8 +524,7 @@ export default function DashboardOverview() {
                         target_groups: w.target_groups,
                         hours: w.weekly_hours,
                         consecutive_hours: w.consecutive_hours,
-                        required_tags: w.required_tags,
-                        is_online: w.is_online || false
+                        required_tags: w.required_tags
                     })) || []
                 };
             }));
@@ -666,7 +557,8 @@ export default function DashboardOverview() {
                 college_settings: {
                     days_active: inst.days_active,
                     time_slots: inst.time_slots,
-                    lunch_slot: lunchMap,
+                    lunch_slot: inst.lunch_slot,
+                    max_continuous_lectures: inst.max_continuous_lectures,
                     custom_rules: customRules
                 },
                 rooms_config: {
@@ -677,33 +569,7 @@ export default function DashboardOverview() {
 
             setGenerationStep(1); // Calling API
 
-            // ----------------------------------------------------
-            // PHASE 3: REAL-TIME HEALTH CHECKER
-            // Catch basic mathematical impossibilities BEFORE hitting the cloud CP-SAT solver.
-            // ----------------------------------------------------
-            for (const fac of mappedFaculties) {
-                let totalAssignedHours = 0;
-                fac.workload.forEach((w: any) => totalAssignedHours += w.hours);
-                
-                if (totalAssignedHours > fac.max_load_hrs) {
-                    setIsGenerating(false);
-                    setGenerationStep(0);
-                    alert(`❌ Mathematical Impossibility detected: ${fac.name} has been assigned ${totalAssignedHours} hours of workloads, but their personal Max Fatigue Limit is ${fac.max_load_hrs} hrs. Please decrease their workload or increase their limit in Faculty Settings.`);
-                    return;
-                }
-            }
-
-            // Quick check: Are there ANY physical rooms if we have offline classes?
-            const requiresRooms = dynamicPayload.faculty.some((f: any) => f.workload.some((w: any) => !w.is_online));
-            if (requiresRooms && (!dynamicPayload.rooms_config.rooms || dynamicPayload.rooms_config.rooms.length === 0)) {
-                 setIsGenerating(false);
-                 setGenerationStep(0);
-                 alert(`❌ Impossible Geometry: You have scheduled standard physical classes, but have 0 Rooms configured in Step 2.`);
-                 return;
-            }
-            // ----------------------------------------------------
-
-            const response = await fetch(`${process.env.NEXT_PUBLIC_ENGINE_URL || 'http://localhost:8000'}/api/v1/generate`, {
+            const response = await fetch("http://localhost:8000/api/v1/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(dynamicPayload)
@@ -711,27 +577,18 @@ export default function DashboardOverview() {
 
             if (!response.ok) {
                 const errorData = await response.json();
+                const errorMsg = JSON.stringify(errorData.detail || errorData);
 
-                // Track failure asynchronously
+                // Track failure asynchronously (Don't await to avoid stalling error alert)
                 supabase.from("generated_timetables").insert({
                     institution_id: instId,
                     is_active: false,
                     matrix_data: {},
                     status: 'failed',
-                    error_message: JSON.stringify(errorData.detail || errorData)
+                    error_message: errorMsg
                 }).then();
 
-                // 422 with a structured diagnosis → open Conflict Refiner Modal
-                if (response.status === 422 && errorData?.detail?.diagnosis) {
-                    setConflictDiagnosis(errorData.detail.diagnosis);
-                    setIsGenerating(false);
-                    setGenerationStep(0);
-                    return;
-                }
-
-                // All other errors → plain alert
-                const errorMsg = errorData?.detail?.message ?? JSON.stringify(errorData.detail ?? errorData);
-                alert("Generation Failed: " + errorMsg);
+                toast.error("Generation failed", { description: errorMsg });
                 setIsGenerating(false);
                 return;
             }
@@ -739,54 +596,36 @@ export default function DashboardOverview() {
             const data = await response.json();
             console.log("Optimal Timetable Matrix (Remote):", data);
 
-            setGenerationStep(3); // Optimizing database
+            setGenerationStep(2); // Optimizing
 
             // STEP 2: Save the generated matrix to Supabase `generated_timetables`
-            // Persist real status — 'success' or 'success_with_overflow'
             const { error: insertErr } = await supabase.from("generated_timetables").insert({
                 institution_id: instId,
                 is_active: true,
                 matrix_data: data,
-                status: data.status ?? 'success'   // carries 'success_with_overflow' when ghost room fired
+                status: 'success'
             });
 
             if (insertErr) {
                 console.error("Supabase Insert Error:", insertErr);
-                alert("Database Error! Did you run the SQL Migration to add 'status' column? " + insertErr.message);
+                toast.error("Database error", { description: "Did you run the SQL migration to add 'status' column? " + insertErr.message });
                 setIsGenerating(false);
                 return;
             }
 
-            const isOverflow = data.status === 'success_with_overflow';
-            const overflowMsg = isOverflow
-                ? `\n\n⚠️ ${data.overflow_count} class slot(s) have no matching room and were assigned to overflow. Open the Timetable view to see them highlighted in amber.`
-                : "";
-
             setTimeout(() => {
-                setGenerationStep(4); // Complete
+                setGenerationStep(3); // Complete
                 setTimeout(() => {
-                    localStorage.setItem('force_tt_refresh', 'true');
                     setIsGenerating(false);
-                    fetchDashboardStats();
-                    alert(`✅ Timetable generated and saved to PostgreSQL!${overflowMsg}`);
+                    fetchDashboardStats(); // Instantly update the timestamp and top metrics
+                    toast.success("Generation complete!", { description: "Generated 4D matrix saved to PostgreSQL!" });
                 }, 1500);
             }, 1000);
 
         } catch (error: any) {
             console.warn("Pipeline Validation:", error.message);
-            // Try to parse a structured 422 diagnosis from the backend
-            try {
-                const parsed = JSON.parse(error.message);
-                if (parsed?.detail?.diagnosis) {
-                    setConflictDiagnosis(parsed.detail.diagnosis);
-                    setIsGenerating(false);
-                    setGenerationStep(0);
-                    return;
-                }
-            } catch (_) { /* not a JSON error — fall through */ }
-            alert(error.message || "Failed to connect to Python Backend Engine.");
+            toast.error("Generation error", { description: error.message || "Failed to connect to Python backend engine." });
             setIsGenerating(false);
-            setGenerationStep(0);
         }
     };
 
@@ -806,25 +645,15 @@ export default function DashboardOverview() {
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Overview</h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">Manage master data and trigger timetable generation.</p>
                 </div>
-                <div className="flex gap-3">
-                    <Button
-                        onClick={exportTemplate}
-                        variant="outline"
-                        className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 border-slate-200 dark:border-slate-800"
-                    >
-                        <Download className="w-4 h-4 mr-2" />
-                        Save Template JSON
-                    </Button>
-                    <Button
-                        onClick={clearDatabase}
-                        disabled={isSeeding || isClearing}
-                        variant="outline"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/30"
-                    >
-                        {isClearing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertOctagon className="w-4 h-4 mr-2" />}
-                        {isClearing ? "Nuking Database..." : "Danger: Nuke Database"}
-                    </Button>
-                </div>
+                <Button
+                    onClick={clearDatabase}
+                    disabled={isSeeding || isClearing}
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/30"
+                >
+                    {isClearing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertOctagon className="w-4 h-4 mr-2" />}
+                    {isClearing ? "Nuking Database..." : "Danger: Nuke Database"}
+                </Button>
             </div>
 
             {/* Top Full-Width Hero: AI Generation Trigger */}
@@ -901,51 +730,27 @@ export default function DashboardOverview() {
 
                                     <div className="space-y-2 flex-1 w-full max-w-xl">
                                         <h3 className="font-semibold text-xl text-slate-900 dark:text-slate-50">
-                                            {generationStep === 0 && "Validating Geometry..."}
-                                            {generationStep === 1 && "Booting Engine..."}
-                                            {generationStep === 2 && "Synthesizing Timetables..."}
-                                            {generationStep === 3 && "Finalizing Matrix..."}
-                                            {generationStep === 4 && "Synchronization Complete!"}
+                                            {generationStep === 0 && "Parsing constraints..."}
+                                            {generationStep === 1 && "Running CP-SAT Solver..."}
+                                            {generationStep === 2 && "Optimizing soft constraints..."}
+                                            {generationStep === 3 && "Generation Complete!"}
                                         </h3>
 
                                         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner">
                                             <motion.div
-                                                className={`h-full ${generationStep === 4 ? "bg-teal-500" : "bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 bg-[length:200%_auto] animate-gradient"}`}
+                                                className="bg-gradient-to-r from-blue-500 to-teal-400 h-full"
                                                 initial={{ width: "0%" }}
-                                                animate={{ width: generationStep === 0 ? "10%" : generationStep === 1 ? "40%" : generationStep === 2 ? "70%" : generationStep === 3 ? "90%" : "100%" }}
+                                                animate={{ width: generationStep === 0 ? "25%" : generationStep === 1 ? "60%" : generationStep === 2 ? "90%" : "100%" }}
                                                 transition={{ duration: 0.5 }}
                                             />
                                         </div>
 
-                                        <div className="h-10 text-sm text-slate-500 dark:text-slate-400 font-mono mt-2 overflow-hidden relative">
-                                            <AnimatePresence mode="wait">
-                                                {generationStep === 0 && (
-                                                    <motion.p key="v0" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                                                        &gt; Running Local Health Checks... <br/>&gt; Validating {stats[2].value} Master Workloads...
-                                                    </motion.p>
-                                                )}
-                                                {generationStep === 1 && (
-                                                    <motion.p key="v1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                                                        &gt; Initializing Google OR-Tools CP-SAT Solver... <br/>&gt; Applying Hard Constraints (Rooms, Overlaps)...
-                                                    </motion.p>
-                                                )}
-                                                {generationStep === 2 && (
-                                                    <motion.p key="v2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                                                        &gt; Calculating 89,012 Potential Multi-verse Combos...<br/>&gt; Resolving {stats[0].value} Faculty burnout limits...
-                                                    </motion.p>
-                                                )}
-                                                {generationStep === 3 && (
-                                                    <motion.p key="v3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                                                        &gt; Optimizing Soft Constraints (Minimizing Day-Gaps)...<br/>&gt; Compiling Optimal 4D JSON Matrix Payload...
-                                                    </motion.p>
-                                                )}
-                                                {generationStep === 4 && (
-                                                    <motion.p key="v4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-teal-600 dark:text-teal-400">
-                                                        &gt; Local Minimum Reached! <br/>&gt; Database Synchronization Successful.
-                                                    </motion.p>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
+                                        <p className="text-sm text-slate-500 font-mono mt-2">
+                                            {generationStep === 0 && "> Initializing Google OR-Tools..."}
+                                            {generationStep === 1 && "> Resolving room/teacher conflicts (4,231 vars)"}
+                                            {generationStep === 2 && "> Distributing lunch breaks & gaps"}
+                                            {generationStep === 3 && "> Saving to Supabase Data Layer..."}
+                                        </p>
                                     </div>
                                 </motion.div>
                             )}
@@ -960,7 +765,7 @@ export default function DashboardOverview() {
             </Card>
 
             {/* Metrics Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {stats.map((stat) => (
                     <Card key={stat.name} className="border-slate-200/60 dark:border-slate-800/60 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-200 dark:hover:border-blue-800/50 cursor-default">
                         <CardContent className="p-6 flex items-center justify-between">
@@ -975,14 +780,6 @@ export default function DashboardOverview() {
                     </Card>
                 ))}
             </div>
-
-            {/* Constraint Templates — Phase 31 */}
-            {instId && (
-                <TemplateManager
-                    institutionId={instId}
-                    onTemplateLoaded={() => fetchDashboardStats()}
-                />
-            )}
 
             <div className="w-full space-y-4 pb-8">
 
@@ -1019,7 +816,7 @@ export default function DashboardOverview() {
                                 </TabsList>
 
                                 <TabsContent value="global" className="pt-6">
-                                    <InstitutionForm onSuccess={() => { alert("Global Constraints Set!"); fetchDashboardStats(); }} />
+                                    <InstitutionForm onSuccess={() => { toast.success("Global constraints set!"); fetchDashboardStats(); }} />
                                 </TabsContent>
 
                                 <TabsContent value="csv" className="pt-6">
@@ -1027,15 +824,15 @@ export default function DashboardOverview() {
                                 </TabsContent>
 
                                 <TabsContent value="rooms" className="pt-6">
-                                    <RoomForm onSuccess={() => { alert("Room Added! Check the top dashboard stats to verify."); fetchDashboardStats(); }} />
+                                    <RoomForm onSuccess={() => { toast.success("Room added successfully!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
                                 </TabsContent>
 
                                 <TabsContent value="faculty" className="pt-6">
-                                    <FacultyForm onSuccess={() => { alert("Faculty Settings Saved! Check the top dashboard stats to verify."); fetchDashboardStats(); }} />
+                                    <FacultyForm onSuccess={() => { toast.success("Faculty settings saved!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
                                 </TabsContent>
 
                                 <TabsContent value="workloads" className="pt-6">
-                                    <WorkloadForm onSuccess={() => { alert("Workload Mapped Successfully!"); fetchDashboardStats(); }} />
+                                    <WorkloadForm onSuccess={() => { toast.success("Workload mapped successfully!"); fetchDashboardStats(); }} />
                                 </TabsContent>
 
                                 <TabsContent value="demo_data" className="pt-6">
@@ -1071,7 +868,15 @@ export default function DashboardOverview() {
 
             </div>
 
-            {/* Conflict Refiner Modal */}
+            {/* Constraint Templates — Phase 31 */}
+            {instId && (
+                <TemplateManager
+                    institutionId={instId}
+                    onTemplateLoaded={() => fetchDashboardStats()}
+                />
+            )}
+
+            {/* Conflict Refiner Modal — Phase 34 */}
             <ConflictRefinerModal
                 open={!!conflictDiagnosis}
                 diagnosis={conflictDiagnosis}

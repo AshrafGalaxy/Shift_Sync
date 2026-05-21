@@ -3,169 +3,318 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Building2, Calendar, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { Calendar as CalendarIcon, Lock, Mail, Building2, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
     const [isLoading, setIsLoading] = useState(false);
-    const [done, setDone] = useState(false);
-    const [form, setForm] = useState({ institutionName: "", email: "", password: "", confirm: "" });
-    const [error, setError] = useState("");
+    const [institutionName, setInstitutionName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
     const router = useRouter();
     const supabase = createClient();
 
-    const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
-        setForm(f => ({ ...f, [k]: e.target.value }));
-
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError("");
-        if (form.password !== form.confirm) { setError("Passwords do not match."); return; }
-        if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
-        if (!form.institutionName.trim()) { setError("Institution name is required."); return; }
+        setError(null);
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            toast.error("Password mismatch", { description: "Passwords do not match" });
+            return;
+        }
+
+        if (password.length < 8) {
+            setError("Password must be at least 8 characters");
+            toast.error("Weak password", { description: "Password must be at least 8 characters" });
+            return;
+        }
+
         setIsLoading(true);
 
         try {
-            // 1. Create auth user
-            const { data: authData, error: authErr } = await supabase.auth.signUp({
-                email: form.email,
-                password: form.password,
+            // Register user
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
             });
-            if (authErr) throw new Error(authErr.message);
-            const userId = authData.user?.id;
-            if (!userId) throw new Error("User creation failed.");
 
-            // 2. Create institution row
-            const { data: inst, error: instErr } = await supabase
-                .from("institutions")
-                .insert({ name: form.institutionName.trim() })
-                .select("id")
-                .single();
-            if (instErr) throw new Error("Could not create institution: " + instErr.message);
+            if (authError) {
+                setError(authError.message);
+                toast.error("Registration failed", { description: authError.message });
+                setIsLoading(false);
+                return;
+            }
 
-            // 3. Create profile row linking user → institution
-            const { error: profileErr } = await supabase
-                .from("profiles")
-                .insert({ id: userId, institution_id: inst.id, role: "admin" });
-            if (profileErr) throw new Error("Could not create profile: " + profileErr.message);
+            if (authData.user) {
+                // Create institution
+                const { data: instData, error: instError } = await supabase
+                    .from("institutions")
+                    .insert({
+                        name: institutionName,
+                        days_active: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+                        time_slots: [8, 9, 10, 11, 12, 13, 14, 15],
+                        lunch_slot: 12,
+                        max_continuous_lectures: 2,
+                    })
+                    .select()
+                    .single();
 
-            setDone(true);
+                if (instError) throw instError;
+
+                // Create profile
+                const { error: profileError } = await supabase.from("profiles").insert({
+                    id: authData.user.id,
+                    full_name: email.split("@")[0],
+                    role: "admin",
+                    institution_id: instData?.id,
+                });
+
+                if (profileError) throw profileError;
+
+                setSuccess(true);
+                toast.success("Registration successful!", {
+                    description: "Check your email to confirm your account",
+                });
+
+                setTimeout(() => {
+                    router.push("/login");
+                }, 2000);
+            }
         } catch (err: any) {
-            setError(err.message || "Registration failed.");
-        } finally {
+            const message = err.message || "An unexpected error occurred";
+            setError(message);
+            toast.error("Registration error", { description: message });
             setIsLoading(false);
         }
     };
 
-    return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center p-4">
-            {/* Background blobs */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-600/10 dark:bg-teal-600/20 blur-[120px] rounded-full" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 dark:bg-blue-600/20 blur-[120px] rounded-full" />
+    if (success) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-teal-500/30 overflow-hidden flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center max-w-md"
+                >
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2, type: "spring" }}
+                        className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center mx-auto mb-6"
+                    >
+                        <CheckCircle2 className="w-10 h-10 text-white" />
+                    </motion.div>
+                    <h2 className="text-3xl font-bold mb-3">Verify Your Email</h2>
+                    <p className="text-slate-400 mb-8">
+                        We&apos;ve sent a confirmation link to <span className="font-semibold text-teal-400">{email}</span>. Please check your inbox and click the link to activate your account.
+                    </p>
+                    <Link href="/login">
+                        <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                            Back to Sign In
+                        </Button>
+                    </Link>
+                </motion.div>
             </div>
+        );
+    }
 
-            <Link href="/" className="absolute top-8 left-8 flex items-center gap-2 z-10">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-slate-50">ShiftSync</span>
-            </Link>
-
+    return (
+        <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-teal-500/30 overflow-hidden flex">
+            {/* Left Panel - Branding */}
             <motion.div
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
-                className="w-full max-w-md z-10"
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
             >
-                <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
-                    <CardHeader className="space-y-1 pb-6">
-                        <div className="flex justify-center mb-2">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-blue-600 flex items-center justify-center shadow-lg shadow-teal-500/30">
-                                <Building2 className="w-6 h-6 text-white" />
-                            </div>
+                {/* Background Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-600/20 to-blue-600/20" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-teal-600/30 blur-[120px] rounded-full" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/30 blur-[120px] rounded-full" />
+
+                <div className="relative z-10">
+                    <Link href="/" className="flex items-center gap-2 mb-12">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+                            <CalendarIcon className="w-6 h-6 text-white" />
                         </div>
-                        <CardTitle className="text-2xl font-bold text-center tracking-tight">Register Institution</CardTitle>
-                        <CardDescription className="text-center text-slate-500 dark:text-slate-400">
-                            Create a new ShiftSync workspace for your college
+                        <span className="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                            ShiftSync
+                        </span>
+                    </Link>
+
+                    <div className="space-y-8">
+                        <h2 className="text-4xl font-bold leading-tight">
+                            Start Your Institution&apos;s Journey
+                        </h2>
+
+                        <div className="space-y-6">
+                            {[
+                                {
+                                    icon: Building2,
+                                    title: "Dedicated Workspace",
+                                    description: "Each institution gets isolated, secure data environment",
+                                },
+                                {
+                                    icon: CheckCircle2,
+                                    title: "Zero Setup Required",
+                                    description: "Start generating timetables in minutes",
+                                },
+                                {
+                                    icon: Mail,
+                                    title: "Multi-Department Support",
+                                    description: "Manage multiple departments and schedules",
+                                },
+                            ].map((item, idx) => {
+                                const Icon = item.icon;
+                                return (
+                                    <motion.div
+                                        key={idx}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.2 + idx * 0.1 }}
+                                        className="flex gap-4"
+                                    >
+                                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-600 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                                            <Icon className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-sm mb-1">{item.title}</p>
+                                            <p className="text-slate-400 text-sm">{item.description}</p>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Right Panel - Form */}
+            <motion.div
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                className="w-full lg:w-1/2 flex flex-col justify-center items-center p-4 sm:p-8"
+            >
+                {/* Mobile Logo */}
+                <Link href="/" className="lg:hidden flex items-center gap-2 mb-8">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+                        <CalendarIcon className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="font-bold text-xl tracking-tight text-slate-50">ShiftSync</span>
+                </Link>
+
+                <Card className="w-full max-w-md border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl">
+                    <CardHeader className="space-y-1 pb-6">
+                        <CardTitle className="text-2xl font-bold tracking-tight">Create Your Account</CardTitle>
+                        <CardDescription className="text-slate-400">
+                            Register your institution to get started
                         </CardDescription>
                     </CardHeader>
-
                     <CardContent>
-                        {done ? (
-                            <div className="flex flex-col items-center gap-4 py-6 text-center">
-                                <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-                                <div>
-                                    <p className="font-semibold text-slate-900 dark:text-slate-50 text-lg">Registration complete!</p>
-                                    <p className="text-sm text-slate-500 mt-1">
-                                        Check your email to confirm your account, then sign in.
-                                    </p>
-                                </div>
-                                <Button className="mt-2 w-full" onClick={() => router.push("/login")}>
-                                    Go to Sign In <ArrowRight className="ml-2 w-4 h-4" />
-                                </Button>
-                            </div>
-                        ) : (
-                            <form onSubmit={handleRegister} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="institutionName">Institution / College Name</Label>
-                                    <Input
-                                        id="institutionName" value={form.institutionName} onChange={set("institutionName")}
-                                        placeholder="e.g. SATIS Engineering College" required
-                                        className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="reg-email">Admin Email</Label>
-                                    <Input
-                                        id="reg-email" type="email" value={form.email} onChange={set("email")}
-                                        placeholder="admin@college.edu" required
-                                        className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="reg-password">Password</Label>
-                                    <Input
-                                        id="reg-password" type="password" value={form.password} onChange={set("password")}
-                                        placeholder="Min. 8 characters" required
-                                        className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="confirm">Confirm Password</Label>
-                                    <Input
-                                        id="confirm" type="password" value={form.confirm} onChange={set("confirm")}
-                                        placeholder="••••••••" required
-                                        className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
-                                    />
-                                </div>
-                                {error && (
-                                    <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg px-3 py-2">
-                                        {error}
-                                    </p>
-                                )}
-                                <Button type="submit" className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-500/20" disabled={isLoading}>
-                                    {isLoading ? (
-                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating workspace...</>
-                                    ) : (
-                                        <>Create Institution <ArrowRight className="ml-2 w-4 h-4" /></>
-                                    )}
-                                </Button>
-                            </form>
-                        )}
-                    </CardContent>
+                        <form onSubmit={handleRegister} className="space-y-4">
+                            {/* Error Banner */}
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm"
+                                >
+                                    {error}
+                                </motion.div>
+                            )}
 
-                    <CardFooter className="flex justify-center border-t border-slate-100 dark:border-slate-800/60 pt-6">
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <div className="space-y-2">
+                                <Label htmlFor="institution">Institution Name</Label>
+                                <Input
+                                    id="institution"
+                                    type="text"
+                                    value={institutionName}
+                                    onChange={(e) => setInstitutionName(e.target.value)}
+                                    placeholder="e.g., SATIS Engineering College"
+                                    required
+                                    className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Institute Email</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="admin@institute.edu"
+                                    required
+                                    className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                    className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
+                                />
+                                <p className="text-xs text-slate-400">Minimum 8 characters</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                <Input
+                                    id="confirmPassword"
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                    className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
+                                />
+                            </div>
+
+                            <Button
+                                type="submit"
+                                className="w-full mt-6 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-lg shadow-teal-600/20"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Creating Account...
+                                    </>
+                                ) : (
+                                    <>
+                                        Register Institution
+                                        <ArrowRight className="ml-2 w-4 h-4" />
+                                    </>
+                                )}
+                            </Button>
+                        </form>
+
+                        <div className="mt-6 text-center text-sm text-slate-400">
                             Already have an account?{" "}
-                            <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
                                 Sign in
                             </Link>
-                        </p>
-                    </CardFooter>
+                        </div>
+                    </CardContent>
                 </Card>
             </motion.div>
         </div>
