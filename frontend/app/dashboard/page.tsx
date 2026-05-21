@@ -17,8 +17,8 @@ import FacultyForm from "@/components/forms/FacultyForm";
 import InstitutionForm from "@/components/forms/InstitutionForm";
 import WorkloadForm from "@/components/forms/WorkloadForm";
 import CsvUploadManager from "@/components/forms/CsvUploadManager";
-import ConflictRefinerModal from "@/components/ConflictRefinerModal";
-import { TemplateManager } from "@/components/TemplateManager";
+import { ConflictRefinerModal } from "@/components/ConflictRefinerModal";
+import TemplateManager from "@/components/TemplateManager";
 
 export default function DashboardOverview() {
     const [isMounted, setIsMounted] = useState(false);
