@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, AlertTriangle, Play, Download, Terminal, X, ArrowRight, LayoutDashboard, Database, Building } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Play, Download, Terminal, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Issue {
@@ -28,7 +28,7 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
     const [score, setScore] = useState<number | null>(null);
     const [overflowCount, setOverflowCount] = useState<number>(0);
     const [issues, setIssues] = useState<{ critical: Issue[]; warnings: Issue[] }>({ critical: [], warnings: [] });
-    
+
     const logsEndRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll logs
@@ -48,9 +48,8 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
     const runGeneration = async () => {
         setStep("solving");
         setLogs(["[SYSTEM] Initializing AI Engine...", "[SYSTEM] Validating Master Workloads..."]);
-        
+
         try {
-            // Decoupled API call via Next.js server proxy
             const response = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -60,30 +59,25 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                // Infeasible / Error
                 let diag = data.diagnosis || {};
                 setIssues({
                     critical: diag.critical || [],
                     warnings: diag.warnings || []
                 });
-                
-                // Artificially stream logs if provided, then fail
                 await streamLogs(data.progress_log || ["[ERROR] Engine encountered fatal constraints."], true);
                 setStep("failed");
                 return;
             }
 
-            // Success or Warning (Overflow)
             const targetStep = data.status === "success_with_overflow" ? "warning" : "success";
             setScore(data.optimality_score ?? 100);
             setOverflowCount(data.overflow_count ?? 0);
-            
-            // Dynamic delay: stream logs smoothly
+
             await streamLogs(data.progress_log || ["[SUCCESS] Timetable generated."], false, data.optimality_score);
-            
+
             setStep(targetStep);
+            // Fire log callback — does NOT navigate. User clicks "View Timetable" to navigate.
             if (onLogsComplete) onLogsComplete(data.progress_log || [], data.optimality_score ?? 100);
-            if (onSuccess) onSuccess();
 
         } catch (err: any) {
             setLogs(prev => [...prev, `[FATAL ERROR] ${err.message}`]);
@@ -92,14 +86,12 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
     };
 
     const streamLogs = async (incomingLogs: string[], isFailure: boolean, optScore: number = 100) => {
-        // Dynamic speed based on optimality score (lower score = slower so they can read conflicts)
         const baseDelay = isFailure ? 300 : (optScore < 80 ? 200 : 80);
-        
         for (let i = 0; i < incomingLogs.length; i++) {
-            await new Promise(r => setTimeout(r, baseDelay + Math.random() * 50)); // Jitter for realism
+            await new Promise(r => setTimeout(r, baseDelay + Math.random() * 50));
             setLogs(prev => [...prev, incomingLogs[i]]);
         }
-        await new Promise(r => setTimeout(r, 500)); // Final pause
+        await new Promise(r => setTimeout(r, 600)); // Final pause so user sees last line
     };
 
     const handleDownloadLogs = () => {
@@ -116,7 +108,7 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 md:p-8">
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -125,8 +117,8 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                            <Terminal className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
+                            <Terminal className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50">AI Solver Console</h2>
@@ -146,9 +138,9 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                     )}
                 </div>
 
-                <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-                    {/* Left: Terminal Logs (Always visible, takes up space) */}
-                    <div className={`flex-1 flex flex-col bg-slate-950 p-4 overflow-hidden relative transition-all duration-500 ${step === 'solving' ? 'w-full' : 'w-full md:w-1/2 border-r border-slate-800'}`}>
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+                    {/* Left: Terminal Logs */}
+                    <div className={`flex-1 flex flex-col bg-slate-950 p-4 overflow-hidden relative transition-all duration-500 ${step === "solving" ? "w-full" : "w-full md:w-1/2 border-r border-slate-800"}`}>
                         <div className="flex items-center justify-between mb-2 shrink-0">
                             <div className="flex gap-1.5">
                                 <div className="w-3 h-3 rounded-full bg-red-500/80" />
@@ -157,10 +149,10 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                             </div>
                             <span className="text-[10px] text-slate-600 font-mono uppercase tracking-wider">cp-sat stdout</span>
                         </div>
-                        
+
                         <div className="flex-1 overflow-y-auto font-mono text-xs sm:text-sm text-slate-300 space-y-1.5 pr-2 custom-scrollbar">
                             {logs.map((log, idx) => (
-                                <div key={idx} className={`${log.includes('[ERROR]') ? 'text-red-400' : log.includes('[SUCCESS]') ? 'text-emerald-400' : log.includes('[STEP') ? 'text-blue-400 font-bold mt-3' : 'opacity-80'}`}>
+                                <div key={idx} className={`${log.includes("[ERROR]") ? "text-red-400" : log.includes("[SUCCESS]") || log.includes("OPTIMAL") || log.includes("FEASIBLE") ? "text-emerald-400" : log.includes("[STEP") ? "text-violet-400 font-bold mt-3" : "opacity-80"}`}>
                                     {log}
                                 </div>
                             ))}
@@ -173,53 +165,75 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                         </div>
                     </div>
 
-                    {/* Right: Results Dashboard (Fades in when done) */}
+                    {/* Right: Results Panel — user must click CTA to navigate */}
                     <AnimatePresence>
                         {step !== "solving" && step !== "idle" && (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900/20 p-6 flex flex-col"
+                                className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900/20 p-6 flex flex-col custom-scrollbar"
                             >
+                                {/* ── SUCCESS ── */}
                                 {step === "success" && (
-                                    <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
+                                    <div className="flex flex-col items-center justify-center text-center space-y-4 py-8 h-full">
                                         <div className="w-24 h-24 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
                                             <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
                                         </div>
                                         <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Optimal Timetable Generated!</h3>
-                                        <p className="text-slate-500 max-w-md">The AI successfully mapped all variables with zero hard constraint violations.</p>
-                                        
-                                        <div className="mt-8 p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 w-full max-w-sm flex flex-col items-center">
-                                            <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-2">Optimality Score</span>
-                                            <div className="text-5xl font-black text-emerald-600 dark:text-emerald-400">
+                                        <p className="text-slate-500 max-w-md text-sm">The AI successfully mapped all variables with zero hard constraint violations.</p>
+
+                                        <div className="mt-4 p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 w-full max-w-xs flex flex-col items-center gap-3">
+                                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Optimality Score</span>
+                                            <div className="text-6xl font-black text-emerald-600 dark:text-emerald-400">
                                                 {score}/100
                                             </div>
+                                            <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                                                <div
+                                                    className="h-2 rounded-full bg-emerald-500 transition-all duration-1000"
+                                                    style={{ width: `${score ?? 0}%` }}
+                                                />
+                                            </div>
                                         </div>
+
+                                        <Button
+                                            onClick={() => { if (onSuccess) onSuccess(); }}
+                                            className="mt-4 h-12 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 text-base flex items-center gap-2"
+                                        >
+                                            <Play className="w-4 h-4 fill-white" />
+                                            View Timetable
+                                            <ArrowRight className="w-4 h-4" />
+                                        </Button>
+                                        <p className="text-xs text-slate-400">Download logs before navigating if needed.</p>
                                     </div>
                                 )}
 
+                                {/* ── WARNING (overflow) ── */}
                                 {step === "warning" && (
-                                    <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
+                                    <div className="flex flex-col items-center justify-center text-center space-y-4 py-8 h-full">
                                         <div className="w-24 h-24 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
                                             <AlertTriangle className="w-12 h-12 text-amber-600 dark:text-amber-400" />
                                         </div>
                                         <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Generated with Overflow</h3>
-                                        <p className="text-slate-500 max-w-md">All faculty and groups were scheduled, but some classes required Ghost Rooms due to physical capacity constraints.</p>
-                                        
-                                        <div className="mt-6 w-full space-y-3">
-                                            <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl flex items-center justify-between">
-                                                <div className="flex flex-col text-left">
-                                                    <span className="font-semibold text-amber-900 dark:text-amber-200">Manual Assignment Needed</span>
-                                                    <span className="text-sm text-amber-700 dark:text-amber-400/80">{overflowCount} slot(s) are currently marked as TBD in the schedule.</span>
-                                                </div>
-                                                <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30" onClick={() => { onClose(); if(onRoutingRequest) onRoutingRequest("timetable"); }}>
-                                                    View Grid
-                                                </Button>
-                                            </div>
+                                        <p className="text-slate-500 max-w-md text-sm">All faculty and groups were scheduled, but {overflowCount} slot(s) required Ghost Rooms due to physical capacity constraints.</p>
+
+                                        <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl w-full max-w-xs text-left">
+                                            <span className="font-semibold text-amber-900 dark:text-amber-200 text-sm">Manual Assignment Needed</span>
+                                            <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-1">{overflowCount} slot(s) are marked TBD — assign physical rooms in the timetable view.</p>
                                         </div>
+
+                                        <Button
+                                            onClick={() => { if (onSuccess) onSuccess(); }}
+                                            className="mt-4 h-12 px-8 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-lg text-base flex items-center gap-2"
+                                        >
+                                            <Play className="w-4 h-4 fill-white" />
+                                            View Timetable
+                                            <ArrowRight className="w-4 h-4" />
+                                        </Button>
+                                        <p className="text-xs text-slate-400">Rooms marked TBD need manual assignment.</p>
                                     </div>
                                 )}
 
+                                {/* ── FAILED ── */}
                                 {step === "failed" && (
                                     <div className="flex flex-col space-y-6">
                                         <div className="flex items-center gap-4">
@@ -228,7 +242,7 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                                             </div>
                                             <div>
                                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">Generation Failed</h3>
-                                                <p className="text-sm text-slate-500">The constraints are mathematically impossible. Please resolve the critical issues below.</p>
+                                                <p className="text-sm text-slate-500">The constraints are mathematically impossible. Resolve the critical issues below.</p>
                                             </div>
                                         </div>
 
@@ -247,13 +261,13 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                                                                 <span className="leading-snug">{issue.fix_hint}</span>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {issue.tab_hint && (
-                                                            <Button 
-                                                                variant="default" 
-                                                                size="sm" 
+                                                            <Button
+                                                                variant="default"
+                                                                size="sm"
                                                                 className="shrink-0 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900"
-                                                                onClick={() => { onClose(); if(onRoutingRequest) onRoutingRequest(issue.tab_hint); }}
+                                                                onClick={() => { onClose(); if (onRoutingRequest) onRoutingRequest(issue.tab_hint); }}
                                                             >
                                                                 Fix {issue.tab_hint} <ArrowRight className="w-4 h-4 ml-2" />
                                                             </Button>
@@ -261,10 +275,10 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                                                     </div>
                                                 </div>
                                             ))}
-                                            
+
                                             {issues.critical.length === 0 && issues.warnings.length === 0 && (
                                                 <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm">
-                                                    Unknown error occurred. Please check logs.
+                                                    Unknown error occurred. Please check the logs.
                                                 </div>
                                             )}
                                         </div>
