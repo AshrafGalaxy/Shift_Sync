@@ -18,6 +18,7 @@ import FacultyForm from "@/components/forms/FacultyForm";
 import InstitutionForm from "@/components/forms/InstitutionForm";
 import WorkloadForm from "@/components/forms/WorkloadForm";
 import CsvUploadManager from "@/components/forms/CsvUploadManager";
+import SpreadsheetEditor from "@/components/SpreadsheetEditor";
 import TemplateManager from "@/components/TemplateManager";
 import { ConflictRefinerModal } from "@/components/ConflictRefinerModal";
 
@@ -932,15 +933,21 @@ export default function DashboardOverview() {
                                 </TabsContent>
 
                                 <TabsContent value="rooms" className="pt-6">
-                                    <RoomForm onSuccess={() => { toast.success("Room added successfully!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
+                                    <SpreadsheetEditor type="rooms" onSuccess={() => { toast.success("Room added!"); fetchDashboardStats(); }}>
+                                        <RoomForm onSuccess={() => { toast.success("Room added successfully!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
+                                    </SpreadsheetEditor>
                                 </TabsContent>
 
                                 <TabsContent value="faculty" className="pt-6">
-                                    <FacultyForm onSuccess={() => { toast.success("Faculty settings saved!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
+                                    <SpreadsheetEditor type="faculty" onSuccess={() => { toast.success("Faculty saved!"); fetchDashboardStats(); }}>
+                                        <FacultyForm onSuccess={() => { toast.success("Faculty settings saved!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
+                                    </SpreadsheetEditor>
                                 </TabsContent>
 
                                 <TabsContent value="workloads" className="pt-6">
-                                    <WorkloadForm onSuccess={() => { toast.success("Workload mapped successfully!"); fetchDashboardStats(); }} />
+                                    <SpreadsheetEditor type="workloads" onSuccess={() => { toast.success("Workload saved!"); fetchDashboardStats(); }}>
+                                        <WorkloadForm onSuccess={() => { toast.success("Workload mapped successfully!"); fetchDashboardStats(); }} />
+                                    </SpreadsheetEditor>
                                 </TabsContent>
 
                                 <TabsContent value="demo_data" className="pt-6">
