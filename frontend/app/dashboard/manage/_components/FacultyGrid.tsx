@@ -15,13 +15,18 @@ import { Loader2, Users, AlertTriangle, Archive, RotateCcw, Trash2 } from "lucid
 interface FacultyGridProps {
     data: Faculty[];
     onDataChange: () => void;
+    workloads?: { faculty_id: string; weekly_hours: number }[];
 }
 
-export default function FacultyGrid({ data, onDataChange }: FacultyGridProps) {
+export default function FacultyGrid({ data, onDataChange, workloads = [] }: FacultyGridProps) {
     const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [archivingId, setArchivingId] = useState<string | null>(null);
     const supabase = createClient();
+
+    // Build assigned-hours map from workloads
+    const assignedMap: Record<string, number> = {};
+    workloads.forEach(w => { assignedMap[w.faculty_id] = (assignedMap[w.faculty_id] || 0) + w.weekly_hours; });
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase.from("faculty_settings").delete().eq("id", id);
@@ -115,6 +120,25 @@ export default function FacultyGrid({ data, onDataChange }: FacultyGridProps) {
             render: (f: Faculty) => (
                 <span className="text-xs text-slate-600 dark:text-slate-400">{formatShift(f.shift_hours)}</span>
             ),
+        },
+        {
+            key: "load",
+            header: "Load",
+            render: (f: Faculty) => {
+                const assigned = assignedMap[f.id] || 0;
+                const max = f.max_load_hrs || 1;
+                const pct = Math.min(100, Math.round((assigned / max) * 100));
+                const color = pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500";
+                const textColor = pct >= 100 ? "text-red-600 dark:text-red-400" : pct >= 80 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+                return (
+                    <div className="w-28 space-y-1">
+                        <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <p className={`text-[10px] font-mono font-semibold ${textColor}`}>{assigned}/{max} hrs</p>
+                    </div>
+                );
+            },
         },
         {
             key: "class_teacher_for",

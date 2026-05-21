@@ -270,6 +270,7 @@ export default function ManagePage() {
                     <FacultyGrid
                         data={faculty}
                         onDataChange={fetchAll}
+                        workloads={workloads}
                     />
                 </TabsContent>
 
