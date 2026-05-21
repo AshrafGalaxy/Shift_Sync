@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import { DataGrid } from "./DataGrid";
 import { Workload } from "../page";
@@ -23,9 +24,7 @@ export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) 
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase.from("workloads").delete().eq("id", id);
-        if (error) {
-            alert("Delete failed: " + error.message);
-        }
+        if (error) { toast.error("Delete failed", { description: error.message }); return; }
         onDataChange();
     };
 
@@ -54,7 +53,7 @@ export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) 
             setEditingWorkload(null);
             onDataChange();
         } catch (err: any) {
-            alert("Save failed: " + err.message);
+            toast.error("Save failed", { description: err.message });
         } finally {
             setIsSaving(false);
         }

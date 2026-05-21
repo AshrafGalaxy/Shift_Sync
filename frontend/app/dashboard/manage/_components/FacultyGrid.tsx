@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import { DataGrid } from "./DataGrid";
 import { Faculty } from "../page";
@@ -24,7 +25,7 @@ export default function FacultyGrid({ data, onDataChange }: FacultyGridProps) {
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase.from("faculty_settings").delete().eq("id", id);
-        if (error) alert("Delete failed: " + error.message);
+        if (error) { toast.error("Delete failed", { description: error.message }); return; }
         onDataChange();
     };
 
@@ -34,7 +35,7 @@ export default function FacultyGrid({ data, onDataChange }: FacultyGridProps) {
             .from("faculty_settings")
             .update({ is_archived: !currentState })
             .eq("id", id);
-        if (error) alert("Archive failed: " + error.message);
+        if (error) { toast.error("Archive failed", { description: error.message }); }
         setArchivingId(null);
         onDataChange();
     };
@@ -61,7 +62,7 @@ export default function FacultyGrid({ data, onDataChange }: FacultyGridProps) {
             setEditingFaculty(null);
             onDataChange();
         } catch (err: any) {
-            alert("Save failed: " + err.message);
+            toast.error("Save failed", { description: err.message });
         } finally {
             setIsSaving(false);
         }
@@ -143,7 +144,7 @@ export default function FacultyGrid({ data, onDataChange }: FacultyGridProps) {
                 {archivingId === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (row as any).is_archived ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
             </Button>
             {(row as any).is_archived && (
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50" onClick={() => { if (confirm("Permanently delete this archived faculty record?")) handleDelete(row.id); }} title="Permanently Delete">
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50" onClick={() => handleDelete(row.id)} title="Permanently Delete">
                     <Trash2 className="w-3.5 h-3.5" />
                 </Button>
             )}
