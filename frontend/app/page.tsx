@@ -562,8 +562,9 @@ function Pricing() {
             </li>
           </ul>
           <Link href="/login">
-            <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+            <Button className="w-full rounded-full bg-white text-slate-900 hover:bg-slate-50 font-semibold shadow-md hover:shadow-lg transition-all duration-150 hover:scale-[1.01]">
               Get Started Free
+              <ArrowRight className="ml-1.5 w-4 h-4" />
             </Button>
           </Link>
         </motion.div>
@@ -838,13 +839,14 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">
+          <div className="hidden md:flex items-center gap-3">
+            <Link href="/login" className="text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors px-3 py-1.5">
               Sign In
             </Link>
             <Link href="/login">
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+              <Button className="relative h-9 px-5 rounded-full text-sm font-semibold bg-white text-slate-900 hover:bg-slate-100 shadow-sm transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]">
                 Get Started Free
+                <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
               </Button>
             </Link>
           </div>
@@ -890,7 +892,7 @@ export default function LandingPage() {
                     Sign In
                   </Link>
                   <Link href="/login">
-                    <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
+                    <Button className="w-full rounded-full bg-white text-slate-900 hover:bg-slate-100 font-semibold">
                       Get Started Free
                     </Button>
                   </Link>
@@ -943,16 +945,26 @@ export default function LandingPage() {
               className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
             >
               <Link href="/login">
-                <Button size="lg" className="h-14 px-8 text-lg rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl shadow-blue-600/30">
-                  Generate Your Timetable <ArrowRight className="ml-2 w-5 h-5" />
+                <Button
+                  size="lg"
+                  className="relative h-14 px-10 text-base font-bold rounded-full overflow-hidden
+                    bg-white text-slate-900 hover:bg-slate-50
+                    shadow-[0_0_40px_rgba(139,92,246,0.35)] hover:shadow-[0_0_60px_rgba(139,92,246,0.5)]
+                    transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] tracking-tight"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-violet-100/40 via-white/0 to-indigo-100/40 pointer-events-none" />
+                  <span className="relative z-10 flex items-center gap-2">
+                    Generate Your Timetable
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
                 </Button>
               </Link>
               <Button
                 size="lg"
                 variant="outline"
-                className="h-14 px-8 text-lg rounded-2xl border-slate-700 hover:bg-slate-800"
+                className="h-14 px-8 text-base font-semibold rounded-full border border-slate-700 bg-transparent text-slate-300 hover:text-white hover:border-slate-500 hover:bg-slate-800/60 transition-all duration-200 tracking-tight"
               >
-                <Play className="mr-2 w-5 h-5" /> Watch Demo
+                <Play className="mr-2 w-4 h-4 fill-slate-400" /> Watch Demo
               </Button>
             </motion.div>
           </div>
