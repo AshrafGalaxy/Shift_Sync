@@ -45,6 +45,7 @@ export default function DashboardOverview() {
         { name: "Grid Heatmap (Load)", value: "0%", icon: Database, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
     ]);
     const [lastGenerationDate, setLastGenerationDate] = useState<string | null>(null);
+    const [lastGenSummary, setLastGenSummary] = useState<{score:number|null; slots:number; status:string; date:string} | null>(null);
     const [conflictDiagnosis, setConflictDiagnosis] = useState<any>(null);
     const [instId, setInstId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("global");
@@ -185,14 +186,26 @@ export default function DashboardOverview() {
             if (densityRatio > 85) { densityColor = "text-amber-500"; densityBg = "bg-amber-50 dark:bg-amber-500/10"; }
             if (densityRatio > 100) { densityColor = "text-red-500"; densityBg = "bg-red-50 dark:bg-red-500/10"; densityAlert = " ⚠️"; }
 
-            // Get last generation time
+            // Get last generation metadata
             const { data: latestTs } = await supabase
                 .from("generated_timetables")
-                .select("created_at")
+                .select("created_at, status, matrix_data")
                 .eq("institution_id", instId)
                 .order("created_at", { ascending: false })
                 .limit(1)
                 .single();
+
+            if (latestTs) {
+                const schedule = Array.isArray(latestTs.matrix_data)
+                    ? latestTs.matrix_data
+                    : (latestTs.matrix_data?.schedule ?? []);
+                setLastGenSummary({
+                    score: latestTs.matrix_data?.optimality_score ?? null,
+                    slots: schedule.length,
+                    status: latestTs.status,
+                    date: new Date(latestTs.created_at).toLocaleString(),
+                });
+            }
 
             setIsDbReady((facultyCount ?? 0) > 0 && roomCount > 0);
             if ((facultyCount ?? 0) > 0 && roomCount > 0) fetchReadiness(instId);
@@ -478,7 +491,38 @@ export default function DashboardOverview() {
                 </div>
             </div>
 
-            {/* ── AI Solver Engine Card (redesigned) ───────────────────────────── */}
+            {/* ── Last-Generation Summary Strip ─────────────────────────── */}
+            {lastGenSummary && (
+                <div className="flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                    {/* Status badge */}
+                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md ${
+                        lastGenSummary.status === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                        : lastGenSummary.status === 'success_with_overflow' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    }`}>
+                        {lastGenSummary.status === 'success' ? '✓ Success' : lastGenSummary.status === 'success_with_overflow' ? '⚠ Overflow' : '✕ Failed'}
+                    </span>
+                    {/* Score mini-bar */}
+                    {lastGenSummary.score != null && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-20 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full ${
+                                        lastGenSummary.score >= 90 ? 'bg-emerald-500' : lastGenSummary.score >= 70 ? 'bg-amber-500' : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${lastGenSummary.score}%` }}
+                                />
+                            </div>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{lastGenSummary.score}/100</span>
+                        </div>
+                    )}
+                    <span className="text-xs text-slate-500">{lastGenSummary.slots} slots scheduled</span>
+                    <span className="text-xs text-slate-400 ml-auto">{lastGenSummary.date}</span>
+                    <button onClick={() => router.push('/dashboard/history')} className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 hover:underline shrink-0">View History →</button>
+                </div>
+            )}
+
+            {/* ── AI Solver Engine Card ───────────────────────────────────── */}
             <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-violet-200 dark:hover:border-violet-800/40">
                 {/* Ambient glow */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-500/6 to-transparent blur-[80px] rounded-full pointer-events-none" />
