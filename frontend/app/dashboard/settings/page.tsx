@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Lock, Save, Loader2, Key, ShieldCheck, Calendar } from "lucide-react";
+import { User, Lock, Save, Loader2, Key, ShieldCheck, Calendar, Building2, Clock, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 
@@ -10,6 +10,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+
+const ALL_DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
 export default function SettingsPage() {
     const [isMounted, setIsMounted] = useState(false);
@@ -19,9 +21,17 @@ export default function SettingsPage() {
     const [newPassword, setNewPassword] = useState("");
     const [isCalendarConnected, setIsCalendarConnected] = useState(false);
     const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
-
     const [isSavingName, setIsSavingName] = useState(false);
     const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+    // Institution config
+    const [instDbId, setInstDbId] = useState<string | null>(null);
+    const [instName, setInstName] = useState("");
+    const [activeDays, setActiveDays] = useState<string[]>(["Mon","Tue","Wed","Thu","Fri"]);
+    const [startHour, setStartHour] = useState(8);
+    const [endHour, setEndHour] = useState(17);
+    const [lunchHour, setLunchHour] = useState(13);
+    const [isSavingInst, setIsSavingInst] = useState(false);
 
     const supabase = createClient();
 
@@ -34,9 +44,28 @@ export default function SettingsPage() {
                 if (profile) {
                     setName(profile.full_name || "");
                     setInstitutionId(profile.institution_id || "Not Configured Yet");
+
+                    // Fetch institution config
+                    if (profile.institution_id) {
+                        const { data: inst } = await supabase.from("institutions").select("*").eq("id", profile.institution_id).single();
+                        if (inst) {
+                            setInstDbId(inst.id);
+                            setInstName(inst.name || "");
+                            if (inst.days_active?.length) setActiveDays(inst.days_active);
+                            if (inst.time_slots?.length) {
+                                setStartHour(Math.min(...inst.time_slots));
+                                setEndHour(Math.max(...inst.time_slots) + 1);
+                            }
+                            const rawLunch = inst.lunch_slot;
+                            if (typeof rawLunch === "number") setLunchHour(rawLunch);
+                            else if (rawLunch && typeof rawLunch === "object") {
+                                const vals = Object.values(rawLunch) as number[];
+                                if (vals.length) setLunchHour(vals[0]);
+                            }
+                        }
+                    }
                 }
             }
-            // Check if Google Calendar is connected via provider_token
             const { data: { session } } = await supabase.auth.getSession();
             setIsCalendarConnected(!!session?.provider_token);
             setIsMounted(true);
@@ -71,13 +100,38 @@ export default function SettingsPage() {
         try {
             const { error } = await supabase.auth.updateUser({ password: newPassword });
             if (error) throw error;
-
             toast.success("Security password updated successfully!");
             setNewPassword("");
         } catch (err: any) {
             toast.error(err.message || "Failed to update password.");
         }
         setIsSavingPassword(false);
+    };
+
+    const handleSaveInstitution = async () => {
+        if (!instDbId) { toast.error("No institution linked to this account."); return; }
+        if (activeDays.length === 0) { toast.warning("Select at least one working day."); return; }
+        if (startHour >= endHour) { toast.warning("Start hour must be before end hour."); return; }
+        setIsSavingInst(true);
+        try {
+            const timeSlots = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
+            const lunchMap: Record<string, number> = {};
+            activeDays.forEach(d => { lunchMap[d] = lunchHour; });
+            const { error } = await supabase.from("institutions").update({
+                name: instName,
+                days_active: activeDays,
+                time_slots: timeSlots,
+                lunch_slot: lunchMap,
+            }).eq("id", instDbId);
+            if (error) throw error;
+            // Bust timetable cache so next view reloads fresh
+            Object.keys(sessionStorage).filter(k => k.startsWith("tt_cache_")).forEach(k => sessionStorage.removeItem(k));
+            localStorage.setItem("force_tt_refresh", "1");
+            toast.success("Institution settings saved", { description: `${activeDays.join(", ")} · ${startHour}:00–${endHour}:00 · Lunch at ${lunchHour}:00` });
+        } catch (err: any) {
+            toast.error(err.message || "Failed to save institution settings.");
+        }
+        setIsSavingInst(false);
     };
 
     if (!isMounted) {
@@ -135,6 +189,101 @@ export default function SettingsPage() {
                                 Save Profile
                             </Button>
                         </form>
+                    </CardContent>
+                </Card>
+
+                {/* Institution Configuration Card */}
+                <Card className="md:col-span-2 border-slate-200/60 dark:border-slate-800/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 hover:border-violet-200 dark:hover:border-violet-800/50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Building2 className="w-5 h-5 text-violet-500" />
+                            Institution Configuration
+                        </CardTitle>
+                        <CardDescription>Configure working days, time slots, and lunch breaks. Changes take effect on the next generation.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Institution name */}
+                        <div className="space-y-2">
+                            <Label>Institution Name</Label>
+                            <Input value={instName} onChange={e => setInstName(e.target.value)} placeholder="e.g. Engineering College" />
+                        </div>
+
+                        {/* Working days */}
+                        <div className="space-y-3">
+                            <Label className="flex items-center gap-1.5"><Sun className="w-4 h-4 text-amber-500" /> Working Days</Label>
+                            <div className="flex flex-wrap gap-2">
+                                {ALL_DAYS.map(day => (
+                                    <button
+                                        key={day}
+                                        onClick={() => setActiveDays(prev =>
+                                            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                                        )}
+                                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold border-2 transition-all ${
+                                            activeDays.includes(day)
+                                                ? "bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-500/20"
+                                                : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-violet-300"
+                                        }`}
+                                    >
+                                        {day}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Time range */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-blue-500" /> Start Hour</Label>
+                                <select
+                                    value={startHour}
+                                    onChange={e => setStartHour(Number(e.target.value))}
+                                    className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+                                >
+                                    {Array.from({length: 12}, (_, i) => i + 6).map(h => (
+                                        <option key={h} value={h}>{h}:00 {h < 12 ? "AM" : "PM"}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>End Hour</Label>
+                                <select
+                                    value={endHour}
+                                    onChange={e => setEndHour(Number(e.target.value))}
+                                    className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+                                >
+                                    {Array.from({length: 12}, (_, i) => i + 10).map(h => (
+                                        <option key={h} value={h}>{h}:00 {h < 12 ? "AM" : "PM"}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Lunch Slot</Label>
+                                <select
+                                    value={lunchHour}
+                                    onChange={e => setLunchHour(Number(e.target.value))}
+                                    className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+                                >
+                                    {Array.from({length: endHour - startHour}, (_, i) => startHour + i).map(h => (
+                                        <option key={h} value={h}>{h}:00 {h < 12 ? "AM" : "PM"}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Preview */}
+                        <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-xs text-slate-500 font-mono">
+                            <span className="text-slate-400">Preview: </span>
+                            {activeDays.join(", ")} · {startHour}:00–{endHour}:00 · Lunch {lunchHour}:00 · {endHour - startHour} slots/day
+                        </div>
+
+                        <Button
+                            onClick={handleSaveInstitution}
+                            disabled={isSavingInst || !instDbId}
+                            className="bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20"
+                        >
+                            {isSavingInst ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                            Save Institution Settings
+                        </Button>
                     </CardContent>
                 </Card>
 
