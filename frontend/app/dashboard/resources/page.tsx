@@ -184,15 +184,10 @@ export default function ResourceHeatmapView() {
     return (
         <div ref={containerRef} className={`space-y-6 animate-in fade-in duration-500 ${isFullscreen ? 'p-6 bg-slate-50 dark:bg-slate-950 min-h-screen overflow-auto' : ''}`}>
 
-            {/* Header & Controls */}
+            {/* Controls row: search + export + fullscreen */}
             <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Resource Heatmap</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Live view of room vacancies and occupancies.</p>
-                    </div>
-                    <div className="flex items-center gap-2 w-full md:w-auto">
-                        <div className="relative flex-1 md:w-64">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="relative w-full sm:w-64">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                             <Input
                                 placeholder="Search rooms..."
@@ -201,11 +196,12 @@ export default function ResourceHeatmapView() {
                                 className="pl-9 h-9"
                             />
                         </div>
+                        <div className="flex items-center gap-2 ml-auto">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm" className="h-9">
                                     <Download className="w-4 h-4 mr-2" />
-                                    Export Options
+                                    Export
                                     <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -228,12 +224,13 @@ export default function ResourceHeatmapView() {
                             </DropdownMenuContent>
                         </DropdownMenu>
 
-                        <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 md:flex hidden" onClick={toggleFullscreen}>
+                        <Button size="sm" className="h-9 bg-violet-600 hover:bg-violet-700 text-white shadow-md" onClick={toggleFullscreen}>
                             {isFullscreen ? <Minimize2 className="w-4 h-4 mr-2" /> : <Maximize2 className="w-4 h-4 mr-2" />}
-                            {isFullscreen ? "Exit Fullscreen" : "Fullscreen Focus"}
+                            {isFullscreen ? "Exit" : "Fullscreen"}
                         </Button>
+                        </div>
                     </div>
-                </div>
+
 
                 {/* Day Selector — BUG-03 fix: selectedDay was state with no UI */}
                 <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-lg w-fit">
@@ -257,7 +254,7 @@ export default function ResourceHeatmapView() {
 
                 {/* Left Stats/Legend Panel */}
                 <div className="md:col-span-1 space-y-4">
-                    <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-sm font-medium">Status Legend</CardTitle>
                         </CardHeader>
@@ -286,7 +283,7 @@ export default function ResourceHeatmapView() {
                         </CardContent>
                     </Card>
 
-                    <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm bg-blue-50/50 dark:bg-blue-900/10">
+                    <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <CardContent className="p-4 flex gap-4 items-center">
                             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
                                 <Map className="w-5 h-5 text-blue-600 dark:text-blue-400" />
