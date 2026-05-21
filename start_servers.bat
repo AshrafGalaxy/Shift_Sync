@@ -9,4 +9,4 @@ echo.
 
 npx concurrently -n "FastAPI,Next.js" -c "cyan,magenta" ^
   "cd backend && ..\backend\venv311\Scripts\python.exe -m uvicorn main:app --port 8000 --reload" ^
-  "cd frontend && npx next start"
+  "cd frontend && npx next dev"
