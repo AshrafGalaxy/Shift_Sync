@@ -32,34 +32,28 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
                 setActiveDays(data.days_active);
                 if (data.time_slots && data.time_slots.length > 0) {
                     setStartHour(Math.min(...data.time_slots));
-                    setEndHour(Math.max(...data.time_slots) + 1); // +1 because end is boundary
+                    setEndHour(Math.max(...data.time_slots) + 1);
                 }
-                
-                // Handle legacy integer vs new object map
-                if (typeof data.lunch_slot === 'number') {
+                if (typeof data.lunch_slot === "number") {
                     const newMap: Record<string, number> = {};
                     data.days_active.forEach((d: string) => newMap[d] = data.lunch_slot);
                     setLunchMap(newMap);
                 } else if (data.lunch_slot) {
                     setLunchMap(data.lunch_slot);
                 }
-                
                 setMaxContinuous(data.max_continuous_lectures);
             }
         }
     };
 
-    useEffect(() => {
-        fetchConfig();
-    }, []);
+    useEffect(() => { fetchConfig(); }, []);
 
     const toggleDay = (day: string) => {
         if (activeDays.includes(day)) {
             setActiveDays(activeDays.filter(d => d !== day));
-            // Optional: clean up lunchMap, but keeping it is harmless
         } else {
             setActiveDays([...activeDays, day]);
-            setLunchMap(prev => ({ ...prev, [day]: 13 })); // Default to 1PM
+            setLunchMap(prev => ({ ...prev, [day]: 13 }));
         }
     };
 
@@ -76,28 +70,23 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
 
             let { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
 
-            // Build Time Slots array (e.g., 8 to 16 creates [8, 9, 10, 11, 12, 13, 14, 15])
             const slots = [];
-            for (let i = startHour; i < endHour; i++) {
-                slots.push(i);
-            }
+            for (let i = startHour; i < endHour; i++) slots.push(i);
 
             const payload = {
-                name: name,
+                name,
                 days_active: activeDays,
                 time_slots: slots,
-                lunch_slot: lunchMap, // Now sending the dictionary!
-                max_continuous_lectures: maxContinuous === "" ? 2 : maxContinuous
+                lunch_slot: lunchMap,
+                max_continuous_lectures: maxContinuous === "" ? 2 : maxContinuous,
             };
 
             let instId = profile?.institution_id;
 
             if (instId) {
-                // Update existing
                 const { error } = await supabase.from("institutions").update(payload).eq("id", instId);
                 if (error) throw error;
             } else {
-                // Insert new and link profile
                 const { data: newInst, error: iErr } = await supabase.from("institutions").insert(payload).select().single();
                 if (iErr) throw iErr;
                 instId = newInst.id;
@@ -107,7 +96,7 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
                         id: user.id,
                         full_name: user.email || "ShiftSync Admin",
                         role: "admin",
-                        institution_id: instId
+                        institution_id: instId,
                     });
                 } else {
                     await supabase.from("profiles").update({ institution_id: instId }).eq("id", user.id);
@@ -123,12 +112,12 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-xl mx-auto border border-slate-200 dark:border-slate-800 p-6 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+        <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto border border-slate-200 dark:border-slate-800 p-6 rounded-xl bg-slate-50 dark:bg-slate-900/50">
             {/* IN-APP USER GUIDE */}
             <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 p-4 rounded-lg flex gap-3 text-sm text-blue-800 dark:text-blue-200">
                 <Info className="w-5 h-5 shrink-0 mt-0.5" />
                 <div>
-                    <strong>Global Settings Guide:</strong> Define the foundational rules of your college here. These settings dictate the bounds of the generated timetable (e.g., if you set Active Days to Mon-Fri, the AI will never schedule classes on Saturday).
+                    <strong>Global Settings Guide:</strong> Define the foundational rules of your college here. These settings dictate the bounds of the generated timetable (e.g., if you set Active Days to Mon–Fri, the AI will never schedule classes on Saturday).
                 </div>
             </div>
 
@@ -181,30 +170,31 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-4 col-span-2 border border-slate-200 dark:border-slate-800 p-4 rounded-lg bg-white dark:bg-slate-950">
+            {/* Dynamic Daily Lunch Blocks — responsive grid, won't clip dropdowns */}
+            <div className="space-y-4 border border-slate-200 dark:border-slate-800 p-4 rounded-lg bg-white dark:bg-slate-950">
+                <div>
                     <Label className="text-base font-semibold">Dynamic Daily Lunch Blocks</Label>
-                    <p className="text-xs text-slate-500 mb-2">Assign different lunch times for each active day to accommodate variable lab schedules or half-days.</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {activeDays.map(day => (
-                            <div key={day} className="space-y-1.5 p-2 bg-slate-50 dark:bg-slate-900 rounded-md border border-slate-100 dark:border-slate-800">
-                                <Label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{day}</Label>
-                                <select
-                                    className="flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1 text-xs ring-offset-white focus:outline-none focus:ring-2 focus:ring-slate-950 dark:border-slate-800 dark:bg-slate-950"
-                                    value={lunchMap[day] || 13} 
-                                    onChange={e => updateLunchForDay(day, parseInt(e.target.value))}
-                                >
-                                    {[11, 12, 13, 14, 15].map(h => <option key={h} value={h}>{h}:00 - {h+1}:00</option>)}
-                                </select>
-                            </div>
-                        ))}
-                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Assign a different lunch hour for each active day.</p>
                 </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {activeDays.map(day => (
+                        <div key={day} className="space-y-1.5 p-2 bg-slate-50 dark:bg-slate-900 rounded-md border border-slate-100 dark:border-slate-800">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{day}</Label>
+                            <select
+                                className="flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1 text-xs ring-offset-white focus:outline-none focus:ring-2 focus:ring-slate-950 dark:border-slate-800 dark:bg-slate-950"
+                                value={lunchMap[day] || 13}
+                                onChange={e => updateLunchForDay(day, parseInt(e.target.value))}
+                            >
+                                {[11, 12, 13, 14, 15].map(h => <option key={h} value={h}>{h}:00 – {h + 1}:00</option>)}
+                            </select>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
-                <div className="space-y-2 col-span-2 md:col-span-1">
-                    <Label>Max Continuous Lectures (Fatigue Limit)</Label>
-                    <Input required type="number" min="1" max="5" value={maxContinuous} onChange={e => setMaxContinuous(e.target.value ? parseInt(e.target.value) : "")} />
-                </div>
+            <div className="space-y-2">
+                <Label>Max Continuous Lectures (Fatigue Limit)</Label>
+                <Input required type="number" min="1" max="5" value={maxContinuous} onChange={e => setMaxContinuous(e.target.value ? parseInt(e.target.value) : "")} />
             </div>
 
             <Button disabled={isSubmitting} type="submit" className="w-full mt-4">
