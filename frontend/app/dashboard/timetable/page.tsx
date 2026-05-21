@@ -1,12 +1,14 @@
 "use client";
 
+
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Filter, Download, Plus, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, ChevronDown, Lock, Unlock, Send, AlertTriangle, X } from "lucide-react";
+import { Filter, Download, Plus, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, ChevronDown, Lock, Unlock, Send, AlertTriangle, X, Users, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { createClient } from "@/utils/supabase/client";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -26,7 +28,10 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     const targetId = targetIdProp || searchParams.get("id");
 
     const [activeFilter, setActiveFilter] = useState("All Divisions");
+    const [facultyFilter, setFacultyFilter] = useState("All Faculty");
+    const [searchQuery, setSearchQuery] = useState("");
     const [availableFilters, setAvailableFilters] = useState<string[]>(["All Divisions"]);
+    const [availableFaculty, setAvailableFaculty] = useState<string[]>(["All Faculty"]);
     const [slots, setSlots] = useState<any[]>([]);
     const [days, setDays] = useState<string[]>(DAYS);
     const [times, setTimes] = useState<number[]>(TIMES);
@@ -142,6 +147,9 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                     const uniqueTargets = Array.from(new Set(mappedSlots.flatMap((s: any) => s.targets)));
                     const filters = ["All Divisions", ...uniqueTargets as string[]];
                     setAvailableFilters(filters);
+
+                    const uniqueFaculty = Array.from(new Set(mappedSlots.map((s: any) => s.faculty).filter(Boolean))) as string[];
+                    setAvailableFaculty(["All Faculty", ...uniqueFaculty]);
 
                     sessionStorage.setItem(cacheKey, JSON.stringify({
                         slots: mappedSlots,
@@ -449,7 +457,24 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                             : `Filtered to: ${activeFilter} — each slot shows exactly one class.`}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* Search box */}
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                            placeholder="Search subject or faculty..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-8 h-9 w-48 text-sm"
+                        />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery("")} className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600">
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Division filter */}
                     <div className="relative">
                         <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                         <select
@@ -458,6 +483,20 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                             onChange={(e) => setActiveFilter(e.target.value)}
                         >
                             {availableFilters.map(f => (
+                                <option key={f} value={f}>{f}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Faculty filter */}
+                    <div className="relative">
+                        <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                        <select
+                            className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 appearance-none h-9"
+                            value={facultyFilter}
+                            onChange={(e) => setFacultyFilter(e.target.value)}
+                        >
+                            {availableFaculty.map(f => (
                                 <option key={f} value={f}>{f}</option>
                             ))}
                         </select>
@@ -589,7 +628,9 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                                         const activeSlots = slots.filter(s =>
                                             s.day === day &&
                                             s.time === time &&
-                                            (activeFilter === "All Divisions" || s.targets.includes(activeFilter))
+                                            (activeFilter === "All Divisions" || s.targets.includes(activeFilter)) &&
+                                            (facultyFilter === "All Faculty" || s.faculty === facultyFilter) &&
+                                            (searchQuery === "" || s.subject.toLowerCase().includes(searchQuery.toLowerCase()) || (s.faculty ?? "").toLowerCase().includes(searchQuery.toLowerCase()))
                                         );
 
                                         if (activeSlots.length === 0) {
