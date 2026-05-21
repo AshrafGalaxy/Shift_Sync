@@ -176,12 +176,12 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
                     <Label className="text-base font-semibold">Dynamic Daily Lunch Blocks</Label>
                     <p className="text-xs text-slate-500 mt-1">Assign a different lunch hour for each active day.</p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {activeDays.map(day => (
-                        <div key={day} className="space-y-1.5 p-2 bg-slate-50 dark:bg-slate-900 rounded-md border border-slate-100 dark:border-slate-800">
+                        <div key={day} className="space-y-1.5 p-2.5 bg-slate-50 dark:bg-slate-900 rounded-md border border-slate-100 dark:border-slate-800">
                             <Label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{day}</Label>
                             <select
-                                className="flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1 text-xs ring-offset-white focus:outline-none focus:ring-2 focus:ring-slate-950 dark:border-slate-800 dark:bg-slate-950"
+                                className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-xs ring-offset-white focus:outline-none focus:ring-2 focus:ring-slate-950 dark:border-slate-800 dark:bg-slate-950"
                                 value={lunchMap[day] || 13}
                                 onChange={e => updateLunchForDay(day, parseInt(e.target.value))}
                             >

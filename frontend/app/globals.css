@@ -122,6 +122,17 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* ── Native <select> arrow clearance ────────────────────────────────
+   * Prevents the browser dropdown arrow from overlapping option text.
+   * pr-8 = 2rem right padding — enough for any browser's native arrow.
+   * ──────────────────────────────────────────────────────────────────── */
+  select {
+    padding-right: 2rem !important;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
