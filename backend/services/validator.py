@@ -125,4 +125,4 @@ def validate_input_payload(payload: GenerationPayload) -> Tuple[bool, List[str]]
                 f"Please ensure you split your batch into smaller divisions (e.g. 'SY-A' and 'SY-B') in your CSV Upload."
             )
 
-    return len(errors) == 0, set(errors) # type: ignore
+    return len(errors) == 0, list(errors)
