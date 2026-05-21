@@ -111,268 +111,46 @@ export default function DashboardOverview() {
     }, []);
 
     const [jsonPayload, setJsonPayload] = useState(JSON.stringify({
-        "college_settings": {
-            "days_active": [
-                "Mon", "Tue", "Wed", "Thu", "Fri"
-            ],
-            "time_slots": [
-                8, 9, 10, 11, 12, 13, 14, 15
-            ],
-            "lunch_slot": { "Mon": 13, "Tue": 13, "Wed": 13, "Thu": 13, "Fri": 13 },
-            "max_continuous_lectures": 2,
-            "custom_rules": []
-        },
-        "rooms_config": {
-            "rooms": [
-                {
-                    "id": "D201",
-                    "type": "Classroom",
-                    "capacity": 80,
-                    "tags": ["Theory_Room"]
-                },
-                {
-                    "id": "D205",
-                    "type": "Laboratory",
-                    "capacity": 30,
-                    "tags": ["Computer_Lab"]
-                },
-                {
-                    "id": "D207",
-                    "type": "Laboratory",
-                    "capacity": 30,
-                    "tags": ["Computer_Lab"]
-                },
-                {
-                    "id": "D313",
-                    "type": "Tutorial_Room",
-                    "capacity": 30,
-                    "tags": ["Tutorial_Room"]
-                }
-            ]
-        },
-        "faculty": [
-            {
-                "id": "F_RNB",
-                "name": "Dr. Ratnmala Nivrutti B.",
-                "shift": [8, 9, 10, 11, 12, 13, 14, 15],
-                "max_load_hrs": 12,
-                "blocked_slots": [],
-                "class_teacher_for": "SY-CSDS-A",
-                "workload": [
-                    {
-                        "id": "EVT_RNB_TH",
-                        "type": "Theory",
-                        "subject": "DS2009_DMS",
-                        "target_groups": ["SY-CSDS-A"],
-                        "hours": 3,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Theory_Room"]
-                    },
-                    {
-                        "id": "EVT_RNB_PR_B1",
-                        "type": "Practical",
-                        "subject": "DS2009_DMS_LAB",
-                        "target_groups": ["B1"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    },
-                    {
-                        "id": "EVT_RNB_PR_B2",
-                        "type": "Practical",
-                        "subject": "DS2009_DMS_LAB",
-                        "target_groups": ["B2"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    },
-                    {
-                        "id": "EVT_RNB_PR_B3",
-                        "type": "Practical",
-                        "subject": "DS2009_DMS_LAB",
-                        "target_groups": ["B3"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    },
-                    {
-                        "id": "EVT_RNB_TUT_B1",
-                        "type": "Tutorial",
-                        "subject": "DS2009_DMS_TUT",
-                        "target_groups": ["B1"],
-                        "hours": 1,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Tutorial_Room"]
-                    },
-                    {
-                        "id": "EVT_RNB_TUT_B2",
-                        "type": "Tutorial",
-                        "subject": "DS2009_DMS_TUT",
-                        "target_groups": ["B2"],
-                        "hours": 1,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Tutorial_Room"]
-                    },
-                    {
-                        "id": "EVT_RNB_TUT_B3",
-                        "type": "Tutorial",
-                        "subject": "DS2009_DMS_TUT",
-                        "target_groups": ["B3"],
-                        "hours": 1,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Tutorial_Room"]
-                    }
-                ]
-            },
-            {
-                "id": "F_KGT",
-                "name": "Mr. Keshav Gopinath T.",
-                "shift": [8, 9, 10, 11, 12, 13, 14, 15],
-                "max_load_hrs": 9,
-                "blocked_slots": [],
-                "class_teacher_for": null,
-                "workload": [
-                    {
-                        "id": "EVT_KGT_TH",
-                        "type": "Theory",
-                        "subject": "DS2010_DAA",
-                        "target_groups": ["SY-CSDS-A"],
-                        "hours": 3,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Theory_Room"]
-                    },
-                    {
-                        "id": "EVT_KGT_PR_B1",
-                        "type": "Practical",
-                        "subject": "DS2010_DAA_LAB",
-                        "target_groups": ["B1"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    },
-                    {
-                        "id": "EVT_KGT_PR_B2",
-                        "type": "Practical",
-                        "subject": "DS2010_DAA_LAB",
-                        "target_groups": ["B2"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    },
-                    {
-                        "id": "EVT_KGT_PR_B3",
-                        "type": "Practical",
-                        "subject": "DS2010_DAA_LAB",
-                        "target_groups": ["B3"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    }
-                ]
-            },
-            {
-                "id": "F_NRT",
-                "name": "Ms. Nilam Rajendra T.",
-                "shift": [8, 9, 10, 11, 12, 13, 14, 15],
-                "max_load_hrs": 7,
-                "blocked_slots": [],
-                "class_teacher_for": null,
-                "workload": [
-                    {
-                        "id": "EVT_NRT_TH",
-                        "type": "Theory",
-                        "subject": "MM0402_PAS",
-                        "target_groups": ["SY-CSDS-A"],
-                        "hours": 2,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Theory_Room"]
-                    },
-                    {
-                        "id": "EVT_NRT_PR_B2",
-                        "type": "Practical",
-                        "subject": "DS2012_ML_LAB",
-                        "target_groups": ["B2"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    },
-                    {
-                        "id": "EVT_NRT_TUT_B1",
-                        "type": "Tutorial",
-                        "subject": "DS2013_DT2_TUT",
-                        "target_groups": ["B1"],
-                        "hours": 1,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Tutorial_Room"]
-                    },
-                    {
-                        "id": "EVT_NRT_TUT_B2",
-                        "type": "Tutorial",
-                        "subject": "DS2013_DT2_TUT",
-                        "target_groups": ["B2"],
-                        "hours": 1,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Tutorial_Room"]
-                    },
-                    {
-                        "id": "EVT_NRT_TUT_B3",
-                        "type": "Tutorial",
-                        "subject": "DS2013_DT2_TUT",
-                        "target_groups": ["B3"],
-                        "hours": 1,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Tutorial_Room"]
-                    }
-                ]
-            },
-            {
-                "id": "F_PSS",
-                "name": "Ms. Punam Sanjay S.",
-                "shift": [8, 9, 10, 11, 12, 13, 14, 15],
-                "max_load_hrs": 9,
-                "blocked_slots": [],
-                "class_teacher_for": null,
-                "workload": [
-                    {
-                        "id": "EVT_PSS_TH",
-                        "type": "Theory",
-                        "subject": "DS2011_SPOS",
-                        "target_groups": ["SY-CSDS-A"],
-                        "hours": 3,
-                        "consecutive_hours": 1,
-                        "required_tags": ["Theory_Room"]
-                    },
-                    {
-                        "id": "EVT_PSS_PR_B1",
-                        "type": "Practical",
-                        "subject": "DS2011_SPOS_LAB",
-                        "target_groups": ["B1"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    },
-                    {
-                        "id": "EVT_PSS_PR_B2",
-                        "type": "Practical",
-                        "subject": "DS2011_SPOS_LAB",
-                        "target_groups": ["B2"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    },
-                    {
-                        "id": "EVT_PSS_PR_B3",
-                        "type": "Practical",
-                        "subject": "DS2011_SPOS_LAB",
-                        "target_groups": ["B3"],
-                        "hours": 2,
-                        "consecutive_hours": 2,
-                        "required_tags": ["Computer_Lab"]
-                    }
-                ]
-            }
-        ]
-    }, null, 4));
+  "college_settings": {
+    "days_active": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+    "time_slots": [8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "lunch_slot": {"Mon": 13, "Tue": 13, "Wed": 13, "Thu": 13, "Fri": 13},
+    "max_continuous_lectures": 3,
+    "custom_rules": []
+  },
+  "rooms_config": {
+    "rooms": [
+      {"id": "D201", "type": "theory", "capacity": 80, "tags": []},
+      {"id": "D205", "type": "theory", "capacity": 80, "tags": []},
+      {"id": "D207", "type": "theory", "capacity": 80, "tags": []},
+      {"id": "Lab1", "type": "practical", "capacity": 40, "tags": ["Computer_Lab"]},
+      {"id": "Lab2", "type": "practical", "capacity": 40, "tags": ["Computer_Lab"]}
+    ]
+  },
+  "faculty": [
+    {
+      "id": "F001", "name": "Dr. Smith", "shift": [8, 9, 10, 11, 12, 13, 14, 15, 16], "max_load_hrs": 12, "max_continuous_hrs": 3, "blocked_slots": [], "class_teacher_for": "SY-A",
+      "workload": [
+        {"id": "W1", "type": "Theory", "subject": "Math", "target_groups": ["SY-A"], "hours": 4, "consecutive_hours": 1, "required_tags": [], "is_online": false},
+        {"id": "W2", "type": "Theory", "subject": "Math", "target_groups": ["SY-B"], "hours": 4, "consecutive_hours": 1, "required_tags": [], "is_online": false}
+      ]
+    },
+    {
+      "id": "F002", "name": "Prof. Jones", "shift": [8, 9, 10, 11, 12, 13, 14, 15, 16], "max_load_hrs": 17, "max_continuous_hrs": 3, "blocked_slots": [], "class_teacher_for": "SY-B",
+      "workload": [
+        {"id": "W3", "type": "Theory", "subject": "Physics", "target_groups": ["SY-A"], "hours": 3, "consecutive_hours": 1, "required_tags": [], "is_online": false},
+        {"id": "W4", "type": "Theory", "subject": "Physics", "target_groups": ["SY-B"], "hours": 3, "consecutive_hours": 1, "required_tags": [], "is_online": false}
+      ]
+    },
+    {
+      "id": "F003", "name": "Dr. Davis", "shift": [8, 9, 10, 11, 12, 13, 14, 15, 16], "max_load_hrs": 14, "max_continuous_hrs": 3, "blocked_slots": [], "class_teacher_for": "",
+      "workload": [
+        {"id": "W5", "type": "Practical", "subject": "CS Lab", "target_groups": ["SY-A"], "hours": 4, "consecutive_hours": 2, "required_tags": ["Computer_Lab"], "is_online": false},
+        {"id": "W6", "type": "Practical", "subject": "CS Lab", "target_groups": ["SY-B"], "hours": 4, "consecutive_hours": 2, "required_tags": ["Computer_Lab"], "is_online": false}
+      ]
+    }
+  ]
+}, null, 2));
 
     // JSON parsing bypass code left unchanged below 
     const [isSeeding, setIsSeeding] = useState(false);
@@ -526,6 +304,8 @@ export default function DashboardOverview() {
 
 
             toast.success("Data seeded successfully", { description: "The SQL tables are now populated." });
+            fetchDashboardStats();
+
         } catch (err: any) {
             console.error("Seeding Error:", err);
             toast.error("Seeding failed", { description: err.message || "Unknown error" });
@@ -920,7 +700,8 @@ export default function DashboardOverview() {
                                     </TabsTrigger>
                                     <TabsTrigger value="demo_data" className="data-[state=active]:bg-teal-50 dark:data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm font-semibold text-slate-500 hover:text-teal-600 transition-all flex items-center gap-2">
                                         <AlertOctagon className="w-4 h-4" />
-                                        Database Tools
+                                        Demo Environment
+
                                     </TabsTrigger>
                                 </TabsList>
 
