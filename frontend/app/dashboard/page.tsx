@@ -560,26 +560,26 @@ export default function DashboardOverview() {
             // Build dynamic payload mapping all faculties
             const mappedFaculties = await Promise.all(facSettings.map(async (facSetting) => {
                 const { data: workloads } = await supabase.from("workloads").select("*").eq("faculty_id", facSetting.id);
-                // Use stored name directly; fall back to id slice only if blank
-                const realName = facSetting.name || `Faculty ${facSetting.id.slice(0, 4)}`;
+                // Use stored name directly; fall back to faculty_csv_id or UUID prefix
+                const realName = facSetting.name || facSetting.faculty_csv_id || `Faculty ${facSetting.id.slice(0, 8)}`;
                 return {
-                    id: facSetting.id.slice(0, 8),
+                    id: facSetting.id,          // ← full UUID, NO truncation
                     name: realName,
                     shift: (!facSetting.shift_hours || facSetting.shift_hours.length === 0) ? (inst?.time_slots || []) : facSetting.shift_hours,
                     max_load_hrs: facSetting.max_load_hrs,
                     max_continuous_hrs: facSetting.max_continuous_hrs || 3,
                     blocked_slots: (facSetting.blocked_slots || []).filter((s: any) => s.day && s.time !== undefined),
                     class_teacher_for: facSetting.class_teacher_for,
-                    workload: workloads?.map(w => ({
-                        id: w.id.slice(0, 8),
-                        type: w.type,
-                        subject: w.subject_code,
-                        target_groups: w.target_groups,
-                        hours: w.weekly_hours,
-                        consecutive_hours: w.consecutive_hours,
-                        required_tags: w.required_tags,
+                    workload: (workloads || []).map(w => ({
+                        id: w.id,               // ← full UUID, NO truncation
+                        type: w.type || "Theory",
+                        subject: w.subject_code || "Unknown Subject",
+                        target_groups: Array.isArray(w.target_groups) ? w.target_groups : [],
+                        hours: w.weekly_hours || 1,
+                        consecutive_hours: w.consecutive_hours || 1,
+                        required_tags: Array.isArray(w.required_tags) ? w.required_tags : [],
                         is_online: w.is_online || false
-                    })) || []
+                    }))
                 };
             }));
 
@@ -606,15 +606,21 @@ export default function DashboardOverview() {
                 }
             }
 
-            // Build per-day lunch_slot map — backend schema requires Dict[str, int]
+            // Build per-day lunch_slot map — backend requires Dict[str, int]
             const lunchMap: Record<string, number> = {};
-            if (inst && typeof inst.lunch_slot === 'object' && inst.lunch_slot !== null && !Array.isArray(inst.lunch_slot)) {
-                Object.assign(lunchMap, inst.lunch_slot);
+            const rawLunch = inst?.lunch_slot;
+            if (rawLunch && typeof rawLunch === 'object' && !Array.isArray(rawLunch)) {
+                // Already a dict — copy as-is
+                Object.assign(lunchMap, rawLunch);
             } else {
-                (inst?.days_active || []).forEach((day: string) => {
-                    lunchMap[day] = typeof inst?.lunch_slot === 'number' ? inst.lunch_slot : 13;
-                });
+                // Legacy: stored as a single integer — broadcast to all days
+                const lunchHour = typeof rawLunch === 'number' ? rawLunch : 13;
+                (inst?.days_active || []).forEach((day: string) => { lunchMap[day] = lunchHour; });
             }
+            // Ensure every active day has a lunch entry
+            (inst?.days_active || []).forEach((day: string) => {
+                if (!(day in lunchMap)) lunchMap[day] = 13;
+            });
 
             // Construct the Python Engine Payload dynamically from SQL Result!
             const dynamicPayload = {
@@ -640,22 +646,25 @@ export default function DashboardOverview() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                const errorMsg = JSON.stringify(errorData.detail || errorData);
+                const errorData = await response.json().catch(() => ({}));
+                const detail = errorData.detail || errorData;
 
-                // FastAPI wraps the body in { detail: {...} } — diagnosis lives inside .detail
-                if (errorData.detail?.diagnosis) {
-                    setConflictDiagnosis(errorData.detail.diagnosis);
-                } else if (errorData.diagnosis) {
-                    // Fallback for non-FastAPI wrappers
-                    setConflictDiagnosis(errorData.diagnosis);
-                }
+                // Extract human-readable error
+                let errorMsg = "Unknown error";
+                if (typeof detail === "string") errorMsg = detail;
+                else if (detail?.message) errorMsg = detail.message;
+                else if (detail?.validation_errors) errorMsg = (detail.validation_errors as string[]).join(" | ");
+                else errorMsg = JSON.stringify(detail);
 
-                // Track failure asynchronously (Don't await to avoid stalling error alert)
+                // Extract diagnosis if available
+                const diagnosis = detail?.diagnosis || null;
+                if (diagnosis) setConflictDiagnosis(diagnosis);
+
+                // Track failure
                 supabase.from("generated_timetables").insert({
                     institution_id: instId,
                     is_active: false,
-                    matrix_data: {},
+                    matrix_data: { error: errorMsg },
                     status: 'failed',
                     error_message: errorMsg
                 }).then();
@@ -666,31 +675,38 @@ export default function DashboardOverview() {
             }
 
             const data = await response.json();
-            console.log("Optimal Timetable Matrix (Remote):", data);
+            console.log("Timetable Matrix:", data);
 
-            setGenerationStep(2); // Optimizing
+            setGenerationStep(2);
 
-            // STEP 2: Save the generated matrix to Supabase `generated_timetables`
+            // Show optimality score in toast
+            const score = data.optimality_score ?? null;
+            const scoreStr = score !== null ? ` (Optimality: ${score}/100)` : "";
+
             const { error: insertErr } = await supabase.from("generated_timetables").insert({
                 institution_id: instId,
                 is_active: true,
                 matrix_data: data,
-                status: 'success'
+                status: data.status || 'success'
             });
 
             if (insertErr) {
                 console.error("Supabase Insert Error:", insertErr);
-                toast.error("Database error", { description: "Did you run the SQL migration to add 'status' column? " + insertErr.message });
+                toast.error("Database save failed", { description: insertErr.message });
                 setIsGenerating(false);
                 return;
             }
 
             setTimeout(() => {
-                setGenerationStep(3); // Complete
+                setGenerationStep(3);
                 setTimeout(() => {
                     setIsGenerating(false);
-                    fetchDashboardStats(); // Instantly update the timestamp and top metrics
-                    toast.success("Generation complete!", { description: "Generated 4D matrix saved to PostgreSQL!" });
+                    fetchDashboardStats();
+                    if (data.status === 'success_with_overflow') {
+                        toast.warning("Generated with overflow", { description: `${data.overflow_count} slot(s) need manual room assignment.${scoreStr}` });
+                    } else {
+                        toast.success("Timetable generated!", { description: `${data.total_classes} classes scheduled.${scoreStr}` });
+                    }
                 }, 1500);
             }, 1000);
 
