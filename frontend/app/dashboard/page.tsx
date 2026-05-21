@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, FileText, CheckCircle2, Clock, Upload, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon } from "lucide-react";
+import { toast } from "sonner";
 
 import { createClient } from "@/utils/supabase/client";
 
@@ -371,11 +372,11 @@ export default function DashboardOverview() {
                 await supabase.from("faculty_settings").delete().eq("profile_id", user.id);
             }
 
-            alert("Database Nuked Successfully! All testing records have been erased.");
+            toast.success("Database cleared successfully", { description: "All testing records have been erased." });
             fetchDashboardStats(); // Soft refresh instead of hard reload
         } catch (err: any) {
             console.error("Clearing Error:", err);
-            alert("Clearing failed: " + (err.message || "Unknown error"));
+            toast.error("Clearing failed", { description: err.message || "Unknown error" });
         }
         setIsClearing(false);
     };
@@ -469,17 +470,17 @@ export default function DashboardOverview() {
 
 
 
-            alert("Data Seeded Successfully! The SQL Tables are now populated.");
+            toast.success("Data seeded successfully", { description: "The SQL tables are now populated." });
         } catch (err: any) {
             console.error("Seeding Error:", err);
-            alert("Seeding failed: " + (err.message || "Unknown error"));
+            toast.error("Seeding failed", { description: err.message || "Unknown error" });
         }
         setIsSeeding(false);
     };
 
     const startGeneration = async () => {
         if (!isDbReady) {
-            alert("⚠️ Cannot Generate: Your database is empty! You must use the Data Ingestion tabs to add at least 1 Room and 1 Faculty member before the AI can run.");
+            toast.error("Cannot generate timetable", { description: "Your database is empty! Add at least 1 Room and 1 Faculty member to continue." });
             return;
         }
 
@@ -583,7 +584,7 @@ export default function DashboardOverview() {
                     error_message: errorMsg
                 }).then();
 
-                alert("Generation Failed: " + errorMsg);
+                toast.error("Generation failed", { description: errorMsg });
                 setIsGenerating(false);
                 return;
             }
@@ -603,7 +604,7 @@ export default function DashboardOverview() {
 
             if (insertErr) {
                 console.error("Supabase Insert Error:", insertErr);
-                alert("Database Error! Did you run the SQL Migration to add 'status' column? " + insertErr.message);
+                toast.error("Database error", { description: "Did you run the SQL migration to add 'status' column? " + insertErr.message });
                 setIsGenerating(false);
                 return;
             }
@@ -613,13 +614,13 @@ export default function DashboardOverview() {
                 setTimeout(() => {
                     setIsGenerating(false);
                     fetchDashboardStats(); // Instantly update the timestamp and top metrics
-                    alert(`Success! Generated 4D Matrix saved to PostgreSQL!`);
+                    toast.success("Generation complete!", { description: "Generated 4D matrix saved to PostgreSQL!" });
                 }, 1500);
             }, 1000);
 
         } catch (error: any) {
             console.warn("Pipeline Validation:", error.message);
-            alert(error.message || "Failed to connect to Python Backend Engine.");
+            toast.error("Generation error", { description: error.message || "Failed to connect to Python backend engine." });
             setIsGenerating(false);
         }
     };
@@ -811,7 +812,7 @@ export default function DashboardOverview() {
                                 </TabsList>
 
                                 <TabsContent value="global" className="pt-6">
-                                    <InstitutionForm onSuccess={() => { alert("Global Constraints Set!"); fetchDashboardStats(); }} />
+                                    <InstitutionForm onSuccess={() => { toast.success("Global constraints set!"); fetchDashboardStats(); }} />
                                 </TabsContent>
 
                                 <TabsContent value="csv" className="pt-6">
@@ -819,15 +820,15 @@ export default function DashboardOverview() {
                                 </TabsContent>
 
                                 <TabsContent value="rooms" className="pt-6">
-                                    <RoomForm onSuccess={() => { alert("Room Added! Check the top dashboard stats to verify."); fetchDashboardStats(); }} />
+                                    <RoomForm onSuccess={() => { toast.success("Room added successfully!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
                                 </TabsContent>
 
                                 <TabsContent value="faculty" className="pt-6">
-                                    <FacultyForm onSuccess={() => { alert("Faculty Settings Saved! Check the top dashboard stats to verify."); fetchDashboardStats(); }} />
+                                    <FacultyForm onSuccess={() => { toast.success("Faculty settings saved!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
                                 </TabsContent>
 
                                 <TabsContent value="workloads" className="pt-6">
-                                    <WorkloadForm onSuccess={() => { alert("Workload Mapped Successfully!"); fetchDashboardStats(); }} />
+                                    <WorkloadForm onSuccess={() => { toast.success("Workload mapped successfully!"); fetchDashboardStats(); }} />
                                 </TabsContent>
 
                                 <TabsContent value="demo_data" className="pt-6">
