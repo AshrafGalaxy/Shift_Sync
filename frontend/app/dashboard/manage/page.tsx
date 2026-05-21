@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Database, Building, Users, BookOpen, Loader2, Archive, RotateCcw } from "lucide-react";
+import { Database, Building, Users, BookOpen, Loader2, Archive, RotateCcw, AlertTriangle, CheckCircle2, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/utils/supabase/client";
 import RoomGrid from "./_components/RoomGrid";
@@ -149,6 +149,99 @@ export default function ManagePage() {
                     </motion.div>
                 ))}
             </div>
+
+            {/* ── Data Health Panel ─────────────────────────────────────────── */}
+            {(() => {
+                const issues: { type: "error" | "warning"; msg: string; tab?: string }[] = [];
+
+                // 1. Empty entities
+                if (rooms.filter(r => !r.is_archived).length === 0)
+                    issues.push({ type: "error", msg: "No rooms configured. The solver needs at least one physical room.", tab: "rooms" });
+                if (faculty.filter(f => !f.is_archived).length === 0)
+                    issues.push({ type: "error", msg: "No faculty configured. Add faculty profiles before generating.", tab: "faculty" });
+                if (workloads.length === 0)
+                    issues.push({ type: "error", msg: "No workloads configured. Nothing to schedule.", tab: "workloads" });
+
+                // 2. Orphan workloads (faculty deleted/missing)
+                const facIds = new Set(faculty.map(f => f.id));
+                const orphans = workloads.filter(w => !facIds.has(w.faculty_id));
+                if (orphans.length > 0)
+                    issues.push({ type: "error", msg: `${orphans.length} workload(s) have no assigned faculty. Re-assign or delete them.`, tab: "workloads" });
+
+                // 3. Overloaded faculty
+                const loadMap: Record<string, number> = {};
+                workloads.forEach(w => { loadMap[w.faculty_id] = (loadMap[w.faculty_id] || 0) + w.weekly_hours; });
+                faculty.forEach(f => {
+                    const load = loadMap[f.id] || 0;
+                    if (load > f.max_load_hrs)
+                        issues.push({ type: "warning", msg: `${f.full_name ?? "Faculty"} is overloaded: ${load} hrs assigned vs ${f.max_load_hrs} hrs max.`, tab: "faculty" });
+                });
+
+                // 4. Unresolvable room tags
+                const allTags = new Set(rooms.flatMap(r => r.tags || []));
+                workloads.filter(w => !w.is_online).forEach(w => {
+                    (w.required_tags || []).forEach(tag => {
+                        if (!allTags.has(tag))
+                            issues.push({ type: "warning", msg: `Workload "${w.subject_code}" needs tag "${tag}" but no room has it.`, tab: "rooms" });
+                    });
+                });
+
+                // 5. Consecutive > weekly hours
+                workloads.forEach(w => {
+                    if (w.consecutive_hours > w.weekly_hours)
+                        issues.push({ type: "error", msg: `Workload "${w.subject_code}": consecutive hours (${w.consecutive_hours}) > weekly hours (${w.weekly_hours}).`, tab: "workloads" });
+                    if (w.weekly_hours % w.consecutive_hours !== 0)
+                        issues.push({ type: "warning", msg: `Workload "${w.subject_code}": ${w.weekly_hours} hrs not evenly divisible by ${w.consecutive_hours} consecutive hrs.`, tab: "workloads" });
+                });
+
+                if (issues.length === 0) {
+                    return (
+                        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-sm text-emerald-700 dark:text-emerald-300">
+                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                            <span className="font-medium">Data looks healthy</span>
+                            <span className="text-emerald-600/70 dark:text-emerald-400/70">— No validation issues found across rooms, faculty, and workloads.</span>
+                        </div>
+                    );
+                }
+
+                const errors = issues.filter(i => i.type === "error");
+                const warnings = issues.filter(i => i.type === "warning");
+
+                return (
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                Data Health
+                            </div>
+                            <div className="flex gap-2 text-[11px]">
+                                {errors.length > 0 && <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-semibold">{errors.length} error{errors.length !== 1 ? "s" : ""}</span>}
+                                {warnings.length > 0 && <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-semibold">{warnings.length} warning{warnings.length !== 1 ? "s" : ""}</span>}
+                            </div>
+                        </div>
+                        <div className="divide-y divide-slate-50 dark:divide-slate-800/60">
+                            {issues.slice(0, 8).map((issue, i) => (
+                                <div
+                                    key={i}
+                                    className={`flex items-start gap-3 px-4 py-2.5 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors ${
+                                        issue.type === "error" ? "border-l-2 border-red-400" : "border-l-2 border-amber-400"
+                                    }`}
+                                    onClick={() => issue.tab && setActiveTab(issue.tab)}
+                                >
+                                    {issue.type === "error"
+                                        ? <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                                        : <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />}
+                                    <span className={issue.type === "error" ? "text-red-700 dark:text-red-300" : "text-amber-700 dark:text-amber-300"}>{issue.msg}</span>
+                                    {issue.tab && <span className="ml-auto text-[10px] text-slate-400 shrink-0">→ {issue.tab}</span>}
+                                </div>
+                            ))}
+                            {issues.length > 8 && (
+                                <div className="px-4 py-2 text-[11px] text-slate-400 text-center">+{issues.length - 8} more issues hidden</div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="bg-slate-100 dark:bg-slate-900 p-1">
