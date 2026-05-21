@@ -32,6 +32,10 @@ const breadcrumbMap: Record<string, Array<{ label: string; href?: string }>> = {
     ],
     "/dashboard/faculty": [
         { label: "Dashboard", href: "/dashboard" },
+        { label: "Faculty" },
+    ],
+    "/dashboard/manage": [
+        { label: "Dashboard", href: "/dashboard" },
         { label: "Data Manager" },
     ],
     "/dashboard/guide": [

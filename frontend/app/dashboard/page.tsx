@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, FileText, CheckCircle2, Clock, Upload, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon } from "lucide-react";
+import { Play, FileText, CheckCircle2, Clock, Upload, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download } from "lucide-react";
 import { toast } from "sonner";
 
 import { createClient } from "@/utils/supabase/client";
@@ -17,8 +18,8 @@ import FacultyForm from "@/components/forms/FacultyForm";
 import InstitutionForm from "@/components/forms/InstitutionForm";
 import WorkloadForm from "@/components/forms/WorkloadForm";
 import CsvUploadManager from "@/components/forms/CsvUploadManager";
-import { ConflictRefinerModal } from "@/components/ConflictRefinerModal";
 import TemplateManager from "@/components/TemplateManager";
+import { ConflictRefinerModal } from "@/components/ConflictRefinerModal";
 
 export default function DashboardOverview() {
     const [isMounted, setIsMounted] = useState(false);
@@ -29,11 +30,15 @@ export default function DashboardOverview() {
     const [stats, setStats] = useState([
         { name: "Total Faculty", value: 0 as number | string, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
         { name: "Available Rooms", value: 0 as number | string, icon: Building, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
-        { name: "Active Batches", value: 0 as number | string, icon: GraduationCap, color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" },
+        { name: "Total Workloads", value: 0 as number | string, icon: GraduationCap, color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" },
+        { name: "Grid Heatmap (Load)", value: "0%", icon: Database, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
     ]);
     const [lastGenerationDate, setLastGenerationDate] = useState<string | null>(null);
     const [conflictDiagnosis, setConflictDiagnosis] = useState<any>(null);
     const [instId, setInstId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState("global");
+
+    const router = useRouter();
 
     const supabase = createClient();
 
@@ -50,11 +55,27 @@ export default function DashboardOverview() {
             if (!profile?.institution_id) return;
 
             const instId = profile.institution_id;
+            if (profile?.institution_id) setInstId(profile.institution_id);
 
-            // Fetch real counts
+            // Fetch data for capacity heatmap density calculation
+            const { data: inst } = await supabase.from("institutions").select("days_active, time_slots").eq("id", instId).single();
             const { count: facultyCount } = await supabase.from("faculty_settings").select("*", { count: "exact", head: true });
-            const { count: roomCount } = await supabase.from("rooms").select("*", { count: "exact", head: true }).eq("institution_id", instId);
-            const { count: workloadsCount } = await supabase.from("workloads").select("*", { count: "exact", head: true });
+            const { data: rooms } = await supabase.from("rooms").select("id").eq("institution_id", instId);
+            const { data: workloads } = await supabase.from("workloads").select("weekly_hours");
+
+            const roomCount = rooms?.length || 0;
+            const workloadsCount = workloads?.length || 0;
+
+            const totalCapacity = (inst?.days_active?.length || 0) * (inst?.time_slots?.length || 0) * roomCount;
+            const totalDemand = workloads?.reduce((acc, w) => acc + (w.weekly_hours || 0), 0) || 0;
+            const densityRatio = totalCapacity > 0 ? Math.round((totalDemand / totalCapacity) * 100) : 0;
+
+            // Determine density card color
+            let densityColor = "text-emerald-500";
+            let densityBg = "bg-emerald-50 dark:bg-emerald-500/10";
+            let densityAlert = "";
+            if (densityRatio > 85) { densityColor = "text-amber-500"; densityBg = "bg-amber-50 dark:bg-amber-500/10"; }
+            if (densityRatio > 100) { densityColor = "text-red-500"; densityBg = "bg-red-50 dark:bg-red-500/10"; densityAlert = " ⚠️"; }
 
             // Get last generation time
             const { data: latestTs } = await supabase
@@ -65,12 +86,13 @@ export default function DashboardOverview() {
                 .limit(1)
                 .single();
 
-            setIsDbReady((facultyCount ?? 0) > 0 && (roomCount ?? 0) > 0);
+            setIsDbReady((facultyCount ?? 0) > 0 && roomCount > 0);
 
             setStats([
                 { name: "Total Faculty", value: facultyCount || 0, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
                 { name: "Available Rooms", value: roomCount || 0, icon: Building, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
                 { name: "Total Workloads", value: workloadsCount || 0, icon: GraduationCap, color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" },
+                { name: "Grid Heatmap (Load)", value: `${densityRatio}%${densityAlert}`, icon: Database, color: densityColor, bg: densityBg },
             ]);
 
             if (latestTs) {
@@ -355,6 +377,32 @@ export default function DashboardOverview() {
     const [isSeeding, setIsSeeding] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
 
+    const exportTemplate = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Not authenticated");
+            const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+            const exportInstId = profile?.institution_id;
+            if (!exportInstId) throw new Error("No institution found.");
+            const { data: inst } = await supabase.from("institutions").select("*").eq("id", exportInstId).single();
+            const { data: rooms } = await supabase.from("rooms").select("*").eq("institution_id", exportInstId);
+            const lunchMap: Record<string, number> = {};
+            (inst?.days_active || []).forEach((d: string) => { lunchMap[d] = inst?.lunch_slot ?? 13; });
+            const dynamicPayload = {
+                college_settings: { days_active: inst?.days_active, time_slots: inst?.time_slots, lunch_slot: lunchMap, custom_rules: [] },
+                rooms_config: { rooms: rooms?.map(r => ({ id: r.name, type: r.type, capacity: r.capacity, tags: r.tags })) || [] },
+                faculty: []
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dynamicPayload, null, 2));
+            const a = document.createElement('a');
+            a.setAttribute("href", dataStr);
+            a.setAttribute("download", `ShiftSync_Template_${new Date().toISOString().split('T')[0]}.json`);
+            a.click();
+        } catch (error: any) {
+            toast.error(error.message || "Export failed.");
+        }
+    };
+
     const clearDatabase = async () => {
         setIsClearing(true);
         try {
@@ -579,6 +627,11 @@ export default function DashboardOverview() {
                 const errorData = await response.json();
                 const errorMsg = JSON.stringify(errorData.detail || errorData);
 
+                // If the backend returned a structured diagnosis, show the ConflictRefiner
+                if (errorData.diagnosis) {
+                    setConflictDiagnosis(errorData.diagnosis);
+                }
+
                 // Track failure asynchronously (Don't await to avoid stalling error alert)
                 supabase.from("generated_timetables").insert({
                     institution_id: instId,
@@ -645,15 +698,25 @@ export default function DashboardOverview() {
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Overview</h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">Manage master data and trigger timetable generation.</p>
                 </div>
-                <Button
-                    onClick={clearDatabase}
-                    disabled={isSeeding || isClearing}
-                    variant="outline"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/30"
-                >
-                    {isClearing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertOctagon className="w-4 h-4 mr-2" />}
-                    {isClearing ? "Nuking Database..." : "Danger: Nuke Database"}
-                </Button>
+                <div className="flex gap-3">
+                    <Button
+                        onClick={exportTemplate}
+                        variant="outline"
+                        className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 border-slate-200 dark:border-slate-800"
+                    >
+                        <Download className="w-4 h-4 mr-2" />
+                        Save Template JSON
+                    </Button>
+                    <Button
+                        onClick={clearDatabase}
+                        disabled={isSeeding || isClearing}
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/30"
+                    >
+                        {isClearing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertOctagon className="w-4 h-4 mr-2" />}
+                        {isClearing ? "Nuking Database..." : "Danger: Nuke Database"}
+                    </Button>
+                </div>
             </div>
 
             {/* Top Full-Width Hero: AI Generation Trigger */}
@@ -730,26 +793,28 @@ export default function DashboardOverview() {
 
                                     <div className="space-y-2 flex-1 w-full max-w-xl">
                                         <h3 className="font-semibold text-xl text-slate-900 dark:text-slate-50">
-                                            {generationStep === 0 && "Parsing constraints..."}
-                                            {generationStep === 1 && "Running CP-SAT Solver..."}
-                                            {generationStep === 2 && "Optimizing soft constraints..."}
-                                            {generationStep === 3 && "Generation Complete!"}
+                                            {generationStep === 0 && "Validating Geometry..."}
+                                            {generationStep === 1 && "Booting Engine..."}
+                                            {generationStep === 2 && "Synthesizing Timetables..."}
+                                            {generationStep === 3 && "Finalizing Matrix..."}
+                                            {generationStep === 4 && "Synchronization Complete!"}
                                         </h3>
 
                                         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner">
                                             <motion.div
-                                                className="bg-gradient-to-r from-blue-500 to-teal-400 h-full"
+                                                className={`h-full ${generationStep >= 3 ? "bg-teal-500" : "bg-gradient-to-r from-blue-500 to-purple-500"}`}
                                                 initial={{ width: "0%" }}
-                                                animate={{ width: generationStep === 0 ? "25%" : generationStep === 1 ? "60%" : generationStep === 2 ? "90%" : "100%" }}
+                                                animate={{ width: generationStep === 0 ? "10%" : generationStep === 1 ? "40%" : generationStep === 2 ? "70%" : generationStep === 3 ? "90%" : "100%" }}
                                                 transition={{ duration: 0.5 }}
                                             />
                                         </div>
 
                                         <p className="text-sm text-slate-500 font-mono mt-2">
-                                            {generationStep === 0 && "> Initializing Google OR-Tools..."}
-                                            {generationStep === 1 && "> Resolving room/teacher conflicts (4,231 vars)"}
-                                            {generationStep === 2 && "> Distributing lunch breaks & gaps"}
-                                            {generationStep === 3 && "> Saving to Supabase Data Layer..."}
+                                            {generationStep === 0 && "> Running Local Health Checks... Validating Master Workloads..."}
+                                            {generationStep === 1 && "> Initializing Google OR-Tools CP-SAT Solver..."}
+                                            {generationStep === 2 && "> Resolving room/teacher conflicts (4,231 vars)"}
+                                            {generationStep === 3 && "> Distributing lunch breaks & gaps"}
+                                            {generationStep >= 3 && "> Saving to Supabase Data Layer..."}
                                         </p>
                                     </div>
                                 </motion.div>
@@ -764,8 +829,8 @@ export default function DashboardOverview() {
                 </CardFooter>
             </Card>
 
-            {/* Metrics Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Metrics Row — 4 cards in 2×2 on mobile, 4-col on desktop */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat) => (
                     <Card key={stat.name} className="border-slate-200/60 dark:border-slate-800/60 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-200 dark:hover:border-blue-800/50 cursor-default">
                         <CardContent className="p-6 flex items-center justify-between">
@@ -781,17 +846,25 @@ export default function DashboardOverview() {
                 ))}
             </div>
 
-            <div className="w-full space-y-4 pb-8">
+            {/* Constraint Templates — Phase 31 */}
+            {instId && (
+                <TemplateManager
+                    institutionId={instId}
+                    onTemplateLoaded={() => fetchDashboardStats()}
+                />
+            )}
 
+
+            <div className="w-full space-y-4 pb-8">
                 {/* Main Data Ingestion (Full Width) */}
                 <div className="w-full space-y-4">
-                    <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm h-full">
+                    <Card id="data-ingestion-card" className="border-slate-200/60 dark:border-slate-800/60 shadow-sm h-full">
                         <CardHeader>
                             <CardTitle>Master Data Ingestion</CardTitle>
                             <CardDescription>Upload or modify institutional constraints and capacities.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Tabs defaultValue="global" className="w-full">
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                                 <TabsList className="w-full justify-start border-none bg-slate-100/50 dark:bg-slate-900/50 p-1.5 h-auto rounded-xl gap-2 overflow-x-auto no-scrollbar flex-nowrap shrink-0 whitespace-nowrap mb-4">
                                     <TabsTrigger value="global" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm font-semibold transition-all">
                                         1. Global Settings
@@ -868,19 +941,28 @@ export default function DashboardOverview() {
 
             </div>
 
-            {/* Constraint Templates — Phase 31 */}
-            {instId && (
-                <TemplateManager
-                    institutionId={instId}
-                    onTemplateLoaded={() => fetchDashboardStats()}
-                />
-            )}
-
             {/* Conflict Refiner Modal — Phase 34 */}
             <ConflictRefinerModal
                 open={!!conflictDiagnosis}
                 diagnosis={conflictDiagnosis}
                 onClose={() => setConflictDiagnosis(null)}
+                onNavigate={(tab) => {
+                    setConflictDiagnosis(null);
+                    // Map tab hints to actual ingestion tabs or navigate to manage page
+                    const tabMap: Record<string, string> = {
+                        rooms: "rooms",
+                        faculty: "faculty",
+                        workloads: "workloads",
+                        global: "global",
+                    };
+                    const mapped = tabMap[tab.toLowerCase()];
+                    if (mapped) {
+                        setActiveTab(mapped);
+                        document.getElementById("data-ingestion-card")?.scrollIntoView({ behavior: "smooth" });
+                    } else {
+                        router.push("/dashboard/manage");
+                    }
+                }}
             />
 
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Filter, Download, Plus, Map, Search, Loader2, ChevronDown, FileText, FileSpreadsheet, Printer, Maximize2, Minimize2 } from "lucide-react";
+import { Download, Map, Search, Loader2, ChevronDown, FileText, FileSpreadsheet, Printer, Maximize2, Minimize2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
@@ -66,8 +66,13 @@ export default function ResourceHeatmapView() {
         if (timeIndex === 13) return "lunch";
 
         // Find if any class is scheduled in this room at this specific time AND selected day
-        const isOccupied = matrices.some(m => m.room === roomId && m.slot === timeIndex && m.day === selectedDay);
+        // Backend uses `time_slot` (not `slot`) — match exactly
+        const isOccupied = matrices.some(m => m.room === roomId && m.time_slot === timeIndex && m.day === selectedDay);
         return isOccupied ? "occupied" : "free";
+    };
+
+    const getSlotInfo = (roomId: string, timeIndex: number) => {
+        return matrices.find(m => m.room === roomId && m.time_slot === timeIndex && m.day === selectedDay) ?? null;
     };
 
     const filteredRooms = rooms.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -116,7 +121,7 @@ export default function ResourceHeatmapView() {
                 if (time === 13) {
                     rowData.push("Lunch Break");
                 } else {
-                    const classInfo = matrices.find(m => m.room === room.name && m.slot === time && m.day === selectedDay);
+                    const classInfo = matrices.find(m => m.room === room.name && m.time_slot === time && m.day === selectedDay);
                     if (classInfo) {
                         rowData.push(`Occupied (${classInfo.subject} by ${classInfo.faculty})`);
                     } else {
@@ -151,7 +156,7 @@ export default function ResourceHeatmapView() {
                 if (time === 13) {
                     row.push("Lunch Break");
                 } else {
-                    const classInfo = matrices.find(m => m.room === room.name && m.slot === time && m.day === selectedDay);
+                    const classInfo = matrices.find(m => m.room === room.name && m.time_slot === time && m.day === selectedDay);
                     if (classInfo) {
                         row.push(`Occupied\n${classInfo.subject}\nFaculty: ${classInfo.faculty}`);
                     } else {
@@ -179,52 +184,71 @@ export default function ResourceHeatmapView() {
         <div ref={containerRef} className={`space-y-6 animate-in fade-in duration-500 ${isFullscreen ? 'p-6 bg-slate-50 dark:bg-slate-950 min-h-screen overflow-auto' : ''}`}>
 
             {/* Header & Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Resource Heatmap</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Live view of room vacancies and occupancies.</p>
-                </div>
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-64">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                        <Input
-                            placeholder="Search rooms..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9 h-9"
-                        />
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Resource Heatmap</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Live view of room vacancies and occupancies.</p>
                     </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-9">
-                                <Download className="w-4 h-4 mr-2" />
-                                Export Options
-                                <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel className="text-xs">Data Formats</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={exportToCSV} className="cursor-pointer">
-                                <FileText className="w-4 h-4 mr-2 text-slate-500" />
-                                CSV Flat Data
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={exportToExcel} className="cursor-pointer text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/50">
-                                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                                Excel 2D Grid
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel className="text-xs">Printable</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={exportToPDF} className="cursor-pointer text-orange-600 focus:text-orange-600 focus:bg-orange-50 dark:focus:bg-orange-950/50">
-                                <Printer className="w-4 h-4 mr-2" />
-                                Save as PDF
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-64">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                            <Input
+                                placeholder="Search rooms..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-9 h-9"
+                            />
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-9">
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Export Options
+                                    <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel className="text-xs">Data Formats</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={exportToCSV} className="cursor-pointer">
+                                    <FileText className="w-4 h-4 mr-2 text-slate-500" />
+                                    CSV Flat Data
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={exportToExcel} className="cursor-pointer text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/50">
+                                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                                    Excel 2D Grid
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-xs">Printable</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={exportToPDF} className="cursor-pointer text-orange-600 focus:text-orange-600 focus:bg-orange-50 dark:focus:bg-orange-950/50">
+                                    <Printer className="w-4 h-4 mr-2" />
+                                    Save as PDF
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                    <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 md:flex hidden" onClick={toggleFullscreen}>
-                        {isFullscreen ? <Minimize2 className="w-4 h-4 mr-2" /> : <Maximize2 className="w-4 h-4 mr-2" />}
-                        {isFullscreen ? "Exit Fullscreen" : "Fullscreen Focus"}
-                    </Button>
+                        <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 md:flex hidden" onClick={toggleFullscreen}>
+                            {isFullscreen ? <Minimize2 className="w-4 h-4 mr-2" /> : <Maximize2 className="w-4 h-4 mr-2" />}
+                            {isFullscreen ? "Exit Fullscreen" : "Fullscreen Focus"}
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Day Selector — BUG-03 fix: selectedDay was state with no UI */}
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-lg w-fit">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri"].map((day) => (
+                        <button
+                            key={day}
+                            onClick={() => setSelectedDay(day)}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-150 ${
+                                selectedDay === day
+                                    ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                            }`}
+                        >
+                            {day}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -313,9 +337,9 @@ export default function ResourceHeatmapView() {
                                                 <div className="font-medium text-slate-900 dark:text-slate-100">{room.name}</div>
                                                 <div className="text-xs text-slate-500">Cap: {room.capacity} • {room.type || "theory"}</div>
                                             </td>
-
                                             {TIMES.map((time) => {
                                                 const status = getStatus(room.name, time);
+                                                const slotInfo = status === "occupied" ? getSlotInfo(room.name, time) : null;
                                                 return (
                                                     <td key={time} className="px-2 py-3 text-center">
                                                         {status === "lunch" ? (
@@ -323,15 +347,18 @@ export default function ResourceHeatmapView() {
                                                                 Break
                                                             </div>
                                                         ) : (
-                                                            <div className={`w-full h-8 rounded border flex items-center justify-center transition-all cursor-pointer hover:ring-2 hover:ring-offset-1 dark:hover:ring-offset-slate-950 ${status === 'free'
+                                                            <div
+                                                                title={slotInfo ? `${slotInfo.subject ?? ""} · ${slotInfo.faculty_name ?? slotInfo.faculty_id ?? "Faculty TBD"} · ${slotInfo.type ?? ""}` : undefined}
+                                                                className={`w-full h-8 rounded border flex items-center justify-center transition-all cursor-pointer hover:ring-2 hover:ring-offset-1 dark:hover:ring-offset-slate-950 ${status === 'free'
                                                                 ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:ring-emerald-500'
                                                                 : status === 'occupied'
                                                                     ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-400 hover:ring-blue-500'
                                                                     : 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 hover:ring-orange-500'
-
-                                                                }`}>
+                                                            }`}>
                                                                 <span className="text-[10px] font-semibold tracking-wider uppercase transition-opacity">
-                                                                    {status.slice(0, 4)}
+                                                                    {status === "occupied" && slotInfo?.subject
+                                                                        ? slotInfo.subject.slice(0, 6)
+                                                                        : status.slice(0, 4)}
                                                                 </span>
                                                             </div>
                                                         )}

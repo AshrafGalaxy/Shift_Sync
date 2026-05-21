@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { User, Lock, Save, Loader2, Key, ShieldCheck, Calendar } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -53,9 +54,9 @@ export default function SettingsPage() {
             const { error } = await supabase.from("profiles").update({ full_name: name }).eq("id", user.id);
             if (error) throw error;
 
-            alert("Admin Name updated successfully!");
+            toast.success("Admin Name updated successfully!");
         } catch (err: any) {
-            alert(err.message || "Failed to update profile.");
+            toast.error(err.message || "Failed to update profile.");
         }
         setIsSavingName(false);
     };
@@ -71,10 +72,10 @@ export default function SettingsPage() {
             const { error } = await supabase.auth.updateUser({ password: newPassword });
             if (error) throw error;
 
-            alert("Security password updated successfully!");
+            toast.success("Security password updated successfully!");
             setNewPassword("");
         } catch (err: any) {
-            alert(err.message || "Failed to update password.");
+            toast.error(err.message || "Failed to update password.");
         }
         setIsSavingPassword(false);
     };
@@ -221,7 +222,7 @@ export default function SettingsPage() {
                                                 queryParams: { access_type: 'offline', prompt: 'consent' },
                                             }
                                         });
-                                        if (error) { alert("Failed to connect: " + error.message); setIsConnectingCalendar(false); }
+                                        if (error) { toast.error("Failed to connect: " + error.message); setIsConnectingCalendar(false); }
                                     }}
                                 >
                                     {isConnectingCalendar ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : (

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Trash2, AlertTriangle, Loader2, CalendarDays, ExternalLink, Clock, History, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
@@ -36,7 +37,7 @@ export default function HistoryPage() {
                 .order("created_at", { ascending: false });
 
             if (error) {
-                alert("Database Schema Error: Ensure you have added the 'status' column via SQL Migration!\n\n" + error.message);
+                toast.error("DB Schema Error: Ensure 'status' column exists via SQL Migration.");
                 throw error;
             }
 
@@ -53,20 +54,20 @@ export default function HistoryPage() {
     }, []);
 
     const deleteTimetable = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this specific timetable generation?")) return;
+        if (!confirm("Delete this generation?")) return;
         setIsDeletingId(id);
         try {
             const { error } = await supabase.from("generated_timetables").delete().eq("id", id);
             if (error) throw error;
             setHistory(history.filter(t => t.id !== id));
         } catch (err: any) {
-            alert("Failed to delete: " + err.message);
+            toast.error("Failed to delete: " + err.message);
         }
         setIsDeletingId(null);
     };
 
     const clearAllHistory = async () => {
-        if (!confirm("WARNING: Are you absolutely sure you want to permanently delete ALL past timetable generations? This cannot be undone.")) return;
+        if (!confirm("Permanently delete ALL history? This cannot be undone.")) return;
         setIsClearingAll(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -78,7 +79,7 @@ export default function HistoryPage() {
 
             setHistory([]);
         } catch (err: any) {
-            alert("Failed to clear history: " + err.message);
+            toast.error("Failed to clear history: " + err.message);
         }
         setIsClearingAll(false);
     };

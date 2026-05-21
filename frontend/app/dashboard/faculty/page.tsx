@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────────────────────
 interface TimetableSlot {
@@ -56,7 +57,6 @@ interface SubRequest {
 
 // ── Helpers ────────────────────────────────────────────────────────────
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const TODAY_DAY = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ?? "Mon";
 
 function formatTime(slot: number) {
     const h = slot % 12 === 0 ? 12 : slot % 12;
@@ -76,6 +76,7 @@ export default function FacultyDashboard() {
     const [profile, setProfile] = useState<{ id: string; full_name: string; role: string } | null>(null);
     const [facultySetting, setFacultySetting] = useState<{ id: string; shift_hours: number[]; max_load_hrs: number } | null>(null);
     const [todaySlots, setTodaySlots] = useState<TimetableSlot[]>([]);
+    const [todayDay, setTodayDay] = useState("Mon");
     const [institutionId, setInstitutionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -98,6 +99,9 @@ export default function FacultyDashboard() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+            // Resolve today's day client-side only (SSR-safe)
+            const resolvedDay = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ?? "Mon";
+            setTodayDay(resolvedDay);
 
             // 1. Fetch profile
             const { data: prof } = await supabase
@@ -128,8 +132,12 @@ export default function FacultyDashboard() {
                 .maybeSingle();
 
             if (tt?.matrix_data && fac?.id) {
-                const matrix: TimetableSlot[] = Array.isArray(tt.matrix_data) ? tt.matrix_data : Object.values(tt.matrix_data);
-                const mySlots = matrix.filter((s) => s.faculty_id === fac.id && s.day === TODAY_DAY);
+                const rawData = tt.matrix_data;
+                const scheduleArray = Array.isArray(rawData)
+                    ? rawData
+                    : (rawData?.schedule ?? Object.values(rawData ?? {}));
+                const matrix: TimetableSlot[] = Array.isArray(scheduleArray) ? scheduleArray : [];
+                const mySlots = matrix.filter((s) => s.faculty_id === fac.id && s.day === todayDay);
                 setTodaySlots(mySlots.sort((a, b) => a.time_slot - b.time_slot));
             }
 
@@ -191,33 +199,26 @@ export default function FacultyDashboard() {
         if (!selectedSlot || !institutionId) return;
         setIsSearchingSub(true);
         try {
-            const res = await fetch(
-                `http://127.0.0.1:8000/api/v1/substitute-search?time_index=${selectedSlot.time_slot}&day=${selectedSlot.day}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ institution_id: institutionId }),
-                }
-            );
-            if (!res.ok) throw new Error("Search failed");
-            const data = await res.json();
-            setSubstitutes(data.available_substitutes ?? []);
-        } catch {
-            // Fallback: fetch any faculty from Supabase on the same shift slot
-            const { data: allFaculty } = await supabase
+            // Query Supabase directly: find all faculty whose shift covers the absent slot's time,
+            // excluding the faculty who is absent. This is reliable regardless of backend availability.
+            const { data: allFaculty, error } = await supabase
                 .from("faculty_settings")
-                .select("id, shift_hours, profiles(id, full_name)")
+                .select("id, shift_hours, max_load_hrs, profiles(id, full_name)")
                 .neq("id", facultySetting?.id ?? "");
+
+            if (error) throw error;
 
             const candidates = (allFaculty ?? [])
                 .filter((f: any) => (f.shift_hours as number[]).includes(selectedSlot.time_slot))
                 .map((f: any) => ({
                     faculty_id: f.id,
                     name: f.profiles?.full_name ?? "Unknown",
-                    current_load: 0,
+                    current_load: f.max_load_hrs ?? 0,
                     status: "Available & On Shift",
                 }));
             setSubstitutes(candidates);
+        } catch (err: any) {
+            toast.error("Could not load substitutes: " + (err?.message ?? "Unknown error"));
         } finally {
             setIsSearchingSub(false);
         }
@@ -271,7 +272,7 @@ export default function FacultyDashboard() {
 
             setSentRequests((prev) => new Set([...prev, candidate.faculty_id]));
         } catch (err: any) {
-            alert("Failed to send request: " + err.message);
+            toast.error("Failed to send request: " + err.message);
         } finally {
             setSendingRequestTo(null);
         }
@@ -311,7 +312,7 @@ export default function FacultyDashboard() {
 
             setInboundRequests((prev) => prev.filter((r) => r.id !== requestId));
         } catch (err: any) {
-            alert("Response failed: " + err.message);
+            toast.error("Response failed: " + err.message);
         } finally {
             setRespondingTo(null);
         }

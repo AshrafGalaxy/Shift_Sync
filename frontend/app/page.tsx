@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -63,10 +64,14 @@ function AnimatedTimetableGrid() {
     return cells;
   };
 
-  const [cells] = useState(generateCells());
+  const [cells, setCells] = useState<ReturnType<typeof generateCells>>([]);
   const [showBadge, setShowBadge] = useState(false);
 
   useEffect(() => {
+    // generateCells() uses Math.random() — must only run client-side to avoid
+    // an SSR/hydration mismatch where server and client produce different grids.
+    setCells(generateCells());
+
     const timer = setTimeout(() => setShowBadge(true), 2000);
     return () => clearTimeout(timer);
   }, []);
@@ -986,5 +991,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-import React from "react";
