@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Trash2, AlertTriangle, Loader2, CalendarDays, ExternalLink, Clock, History, TriangleAlert, ScrollText, Download, ChevronLeft } from "lucide-react";
+import { Trash2, AlertTriangle, Loader2, CalendarDays, ExternalLink, Clock, History, TriangleAlert, ScrollText, Download, CheckCircle2, Star, TrendingUp, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -113,6 +113,34 @@ export default function HistoryPage() {
     const getLogs = (record: any): string[] =>
         record?.matrix_data?.progress_log || [];
 
+    const getSlotCount = (record: any): number => {
+        const raw = record?.matrix_data;
+        if (!raw) return 0;
+        const arr = Array.isArray(raw) ? raw : (raw?.schedule ?? Object.values(raw ?? {}));
+        return Array.isArray(arr) ? arr.length : 0;
+    };
+
+    const setAsActive = async (recordId: string) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user!.id).single();
+            if (!profile?.institution_id) return;
+            // Deactivate all, then activate selected
+            await supabase.from("generated_timetables").update({ is_active: false }).eq("institution_id", profile.institution_id);
+            await supabase.from("generated_timetables").update({ is_active: true }).eq("id", recordId);
+            setHistory(prev => prev.map(r => ({ ...r, is_active: r.id === recordId })));
+            toast.success("Active timetable updated", { description: "Faculty portals and Master Timetable will now show this version." });
+        } catch (err: any) {
+            toast.error("Failed to set active: " + err.message);
+        }
+    };
+
+    // Analytics derived from history
+    const successRecords = history.filter(r => r.status === "success" || r.status === "success_with_overflow");
+    const scores = successRecords.map(r => r.matrix_data?.optimality_score).filter((s): s is number => s != null);
+    const avgScore = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+    const successRate = history.length ? Math.round((successRecords.length / history.length) * 100) : 0;
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
 
@@ -216,6 +244,28 @@ export default function HistoryPage() {
                 </DialogContent>
             </Dialog>
 
+            {/* Analytics Banner */}
+            {history.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                        { label: "Total Runs", value: history.length, icon: History, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-500/10" },
+                        { label: "Successful", value: successRecords.length, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
+                        { label: "Success Rate", value: `${successRate}%`, icon: TrendingUp, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
+                        { label: "Avg Score", value: avgScore != null ? `${avgScore}/100` : "—", icon: Star, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
+                    ].map(stat => (
+                        <div key={stat.label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center shrink-0`}>
+                                <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                            </div>
+                            <div>
+                                <p className="text-xl font-bold text-slate-900 dark:text-slate-50">{stat.value}</p>
+                                <p className="text-[11px] text-slate-500">{stat.label}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Header actions */}
             <div className="flex justify-end">
                 {history.length > 0 && (
@@ -295,6 +345,11 @@ export default function HistoryPage() {
                                                             : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                                                         }`}>Score {score}/100</span>
                                                     )}
+                                                    {getSlotCount(record) > 0 && (
+                                                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                                            <LayoutGrid className="w-2.5 h-2.5" />{getSlotCount(record)} slots
+                                                        </span>
+                                                    )}
                                                 </h4>
                                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                                     {format(new Date(record.created_at), "MMMM do, yyyy 'at' h:mm a")}
@@ -309,7 +364,19 @@ export default function HistoryPage() {
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 shrink-0 justify-end">
+                                        <div className="flex items-center gap-2 shrink-0 justify-end flex-wrap">
+                                            {/* Set as Active — only for successful non-active records */}
+                                            {record.status !== "failed" && !record.is_active && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-xs border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                                    onClick={() => setAsActive(record.id)}
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                                                    Set Active
+                                                </Button>
+                                            )}
                                             {/* View Logs button — always visible */}
                                             <Button
                                                 variant="outline"
