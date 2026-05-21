@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useEffect } from "react";
 import { Plus, Loader2, Server, Info } from "lucide-react";
@@ -52,14 +53,14 @@ export default function RoomForm({ onSuccess }: { onSuccess: () => void }) {
 
             if (error) throw error;
 
-            alert(`Room ${name} added successfully!`);
+            toast.success("Room added", { description: `${name} added to the database.` });
             setName("");
             setCapacity("");
             setTags("");
             fetchRooms();
             onSuccess();
         } catch (err: any) {
-            alert(err.message || "Failed to add room");
+            toast.error("Failed to add room", { description: err.message });
         }
         setIsSubmitting(false);
     };

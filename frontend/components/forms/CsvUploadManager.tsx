@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState } from "react";
 import Papa from "papaparse";
@@ -58,7 +59,7 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
                     await processData(results.data as any[]);
 
                 } catch (err: any) {
-                    alert(err.message || "Failed to process CSV.");
+                    toast.error("CSV processing failed", { description: err.message });
                     setStatusText("Upload failed.");
                 } finally {
                     setIsParsing(false);
@@ -67,7 +68,7 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
                 }
             },
             error: (err) => {
-                alert("CSV Parsing Error: " + err.message);
+                toast.error("CSV parse error", { description: err.message });
                 setIsParsing(false);
             }
         });
@@ -149,7 +150,7 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
             if (error) throw error;
         }
 
-        alert(`Successfully injected ${data.length} ${uploadType} records into the Database!`);
+        toast.success(`Imported ${data.length} ${uploadType} records`);
         setStatusText("Ready");
         if (onSuccess) onSuccess();
     };

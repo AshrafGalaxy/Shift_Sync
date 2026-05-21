@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useEffect } from "react";
 import { Plus, Loader2, Server, Info } from "lucide-react";
@@ -70,7 +71,7 @@ export default function WorkloadForm({ onSuccess }: { onSuccess: () => void }) {
 
             if (error) throw error;
 
-            alert(`Workload for ${subjectCode} added successfully!`);
+            toast.success("Workload added", { description: `${subjectCode} workload saved.` });
             setSubjectCode("");
             setTargetGroups("");
             setWeeklyHours("");
@@ -79,7 +80,7 @@ export default function WorkloadForm({ onSuccess }: { onSuccess: () => void }) {
             fetchData();
             onSuccess();
         } catch (err: any) {
-            alert(err.message || "Failed to add workload");
+            toast.error("Failed to add workload", { description: err.message });
         }
         setIsSubmitting(false);
     };

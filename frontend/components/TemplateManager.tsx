@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -94,7 +95,7 @@ export default function TemplateManager({ institutionId, onTemplateLoaded }: Pro
             fetchTemplates();
             showToast(`✓ Template "${templateName.trim()}" saved`);
         } catch (err: any) {
-            alert("Save failed: " + err.message);
+            toast.error("Save failed", { description: err.message });
         } finally {
             setIsSaving(false);
         }
@@ -132,7 +133,7 @@ export default function TemplateManager({ institutionId, onTemplateLoaded }: Pro
             onTemplateLoaded();
             showToast(`✓ Template "${selectedTemplate.name}" applied`);
         } catch (err: any) {
-            alert("Apply failed: " + err.message);
+            toast.error("Apply failed", { description: err.message });
         } finally {
             setIsApplying(false);
         }

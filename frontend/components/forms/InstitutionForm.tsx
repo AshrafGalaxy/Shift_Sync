@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useEffect } from "react";
 import { Plus, Loader2, Save, Info } from "lucide-react";
@@ -113,10 +114,10 @@ export default function InstitutionForm({ onSuccess }: { onSuccess: () => void }
                 }
             }
 
-            alert(`Global College Settings saved successfully!`);
+            toast.success("Global settings saved");
             onSuccess();
         } catch (err: any) {
-            alert(err.message || "Failed to save settings");
+            toast.error("Save failed", { description: err.message });
         }
         setIsSubmitting(false);
     };

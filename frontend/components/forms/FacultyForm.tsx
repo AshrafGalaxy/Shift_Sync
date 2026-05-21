@@ -1,4 +1,5 @@
 "use client";
+import { toast } from "sonner";
 
 import { useState, useEffect, useRef } from "react";
 import { Plus, Loader2, Server, Info, Sun, Ban } from "lucide-react";
@@ -98,7 +99,7 @@ export default function FacultyForm({ onSuccess }: { onSuccess: () => void }) {
             });
             if (error) throw error;
 
-            alert("Faculty constraints saved!");
+            toast.success("Faculty constraints saved");
             setMaxHours("");
             setClassTeacher("");
             setBlockedSlots([]);
@@ -106,7 +107,7 @@ export default function FacultyForm({ onSuccess }: { onSuccess: () => void }) {
             fetchFaculty();
             onSuccess();
         } catch (err: any) {
-            alert(err.message || "Failed to save faculty settings");
+            toast.error("Save failed", { description: err.message });
         }
         setIsSubmitting(false);
     };
