@@ -197,6 +197,12 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                                             </div>
                                         </div>
 
+                                        <div className="text-xs font-medium text-center mt-1">
+                                            {(score ?? 0) >= 90 && <span className="text-emerald-600 dark:text-emerald-400">✓ Optimal — No manual intervention needed</span>}
+                                            {(score ?? 0) >= 70 && (score ?? 0) < 90 && <span className="text-amber-600 dark:text-amber-400">⚠️ Good — Minor overflow, review amber slots</span>}
+                                            {(score ?? 0) < 70 && <span className="text-red-500 dark:text-red-400">⚠️ Partial — Several constraints relaxed, review required</span>}
+                                        </div>
+
                                         <Button
                                             onClick={() => { if (onSuccess) onSuccess(); }}
                                             className="mt-4 h-12 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25 text-base flex items-center gap-2"
@@ -221,6 +227,10 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                                         <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl w-full max-w-xs text-left">
                                             <span className="font-semibold text-amber-900 dark:text-amber-200 text-sm">Manual Assignment Needed</span>
                                             <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-1">{overflowCount} slot(s) are marked TBD — assign physical rooms in the timetable view.</p>
+                                        </div>
+
+                                        <div className="text-xs font-medium text-center text-amber-600 dark:text-amber-400 mt-1">
+                                            {overflowCount} ghost-room slot(s) need manual room assignment
                                         </div>
 
                                         <Button
@@ -279,8 +289,15 @@ export default function SolverConsoleModal({ isOpen, onClose, payload, onRouting
                                             ))}
 
                                             {issues.critical.length === 0 && issues.warnings.length === 0 && (
-                                                <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm">
-                                                    Unknown error occurred. Please check the logs.
+                                                <div className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/40 rounded-xl text-sm space-y-3">
+                                                    <p className="font-semibold text-red-700 dark:text-red-300">🔍 No specific constraint identified</p>
+                                                    <p className="text-red-600 dark:text-red-400 text-xs leading-relaxed">The solver returned INFEASIBLE without a specific constraint breakdown. Common causes:</p>
+                                                    <ul className="text-xs text-red-600 dark:text-red-400 space-y-1 list-disc list-inside">
+                                                        <li>A faculty member has more weekly hours than their shift allows</li>
+                                                        <li>Two workloads target the same group at the same time</li>
+                                                        <li>No rooms match a workload’s required tags</li>
+                                                    </ul>
+                                                    <p className="text-xs text-red-500">Check the engine logs on the left for more details, or download them for analysis.</p>
                                                 </div>
                                             )}
                                         </div>

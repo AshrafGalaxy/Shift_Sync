@@ -426,9 +426,12 @@ export default function DashboardOverview() {
             toast.error("Cannot generate timetable", { description: "Your database is empty! Add at least 1 Room and 1 Faculty member to continue." });
             return;
         }
-        if (readiness && !readiness.ready) {
-            toast.error("Generation Halted", { description: "You have critical unresolved constraints. Please fix them in the Readiness Dashboard first." });
-            return;
+        // Warn but do NOT block — ghost-room layer will handle overflows
+        if (readiness && !readiness.ready && readiness.critical?.length > 0) {
+            toast.warning("Generating with issues detected", {
+                description: `${readiness.critical.length} critical constraint(s) found. Ghost-room fallback will handle unresolvable slots. Review after generation.`,
+                duration: 6000,
+            });
         }
         setLiveLogs([]);
         setIsLiveStreaming(true);
@@ -606,6 +609,22 @@ export default function DashboardOverview() {
                                         <span className="relative z-10 tracking-wide">{isDbReady ? "Generate Timetable" : "Setup Required"}</span>
                                     </Button>
                                 </div>
+
+                                {/* Smart Suggestions — from readiness data */}
+                                {readiness && readiness.warnings && readiness.warnings.length > 0 && (
+                                    <div className="rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50/60 dark:bg-amber-900/10 p-3 space-y-1.5">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+                                            <span>💡</span> Smart Suggestions
+                                        </p>
+                                        {readiness.warnings.slice(0, 3).map((w: any, i: number) => (
+                                            <div key={i} className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
+                                                <span className="shrink-0 mt-0.5">›</span>
+                                                <span>{w.message ?? JSON.stringify(w)}</span>
+                                            </div>
+                                        ))}
+                                        <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-1">Ghost-room fallback will handle unresolvable slots automatically.</p>
+                                    </div>
+                                )}
 
                                 {/* Compact hint row */}
                                 <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 px-0.5">
