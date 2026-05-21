@@ -1,20 +1,56 @@
 "use client";
 
-import { BookOpen, Key, AlertTriangle, TableProperties, Workflow, CheckCircle2 } from "lucide-react";
+import { BookOpen, Key, AlertTriangle, TableProperties, Workflow, CheckCircle2, Rocket, ArrowRight, Building, Users, Database, Cpu, Eye, Settings } from "lucide-react";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import Link from "next/link";
+
+const STEPS = [
+    { icon: Settings, color: "text-violet-500 bg-violet-50 dark:bg-violet-500/10", title: "1. Configure Institution", desc: "Set your working days, time slots, and lunch break in Settings.", href: "/dashboard/settings" },
+    { icon: Building, color: "text-purple-500 bg-purple-50 dark:bg-purple-500/10", title: "2. Add Rooms", desc: "Register classrooms and labs with capacity and tags (e.g. Projector, Linux_Lab).", href: "/dashboard/manage" },
+    { icon: Users, color: "text-blue-500 bg-blue-50 dark:bg-blue-500/10", title: "3. Add Faculty", desc: "Invite faculty members and configure their shift hours and max load.", href: "/dashboard/manage" },
+    { icon: Database, color: "text-teal-500 bg-teal-50 dark:bg-teal-500/10", title: "4. Define Workloads", desc: "Assign subjects to faculty — set type, hours, batches, and required room tags.", href: "/dashboard/manage" },
+    { icon: Cpu, color: "text-amber-500 bg-amber-50 dark:bg-amber-500/10", title: "5. Generate Timetable", desc: "Run the AI Solver Engine from the Overview dashboard. Watch real-time logs.", href: "/dashboard" },
+    { icon: Eye, color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10", title: "6. Review & Export", desc: "View the Master Timetable, filter by faculty/batch, and export to Excel or iCal.", href: "/dashboard/timetable" },
+];
 
 export default function GuidePage() {
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto pb-12">
+        <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-12">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 flex items-center gap-3">
                     <BookOpen className="w-8 h-8 text-blue-600" />
-                    Constraints & Requirements Guide
+                    Documentation &amp; Guide
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
-                    A comprehensive technical overview of how the ShiftSync AI Solver operates, required naming conventions, and constraints currently enforced.
+                    Everything you need to go from zero to a fully generated timetable.
                 </p>
+            </div>
+
+            {/* ── Quick Start ── */}
+            <div>
+                <div className="flex items-center gap-2 mb-4">
+                    <Rocket className="w-5 h-5 text-violet-500" />
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">Quick Start — 6 Steps</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {STEPS.map((step, i) => (
+                        <Link href={step.href} key={i}>
+                            <div className="group flex flex-col gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-md transition-all cursor-pointer">
+                                <div className={`w-9 h-9 rounded-lg ${step.color} flex items-center justify-center shrink-0`}>
+                                    <step.icon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-violet-700 dark:group-hover:text-violet-400 transition-colors">{step.title}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{step.desc}</p>
+                                </div>
+                                <div className="mt-auto flex items-center gap-1 text-[11px] text-violet-500 opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                                    Go there <ArrowRight className="w-3 h-3" />
+                                </div>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
             </div>
 
             <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/50 shadow-sm">
