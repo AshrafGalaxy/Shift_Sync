@@ -25,6 +25,9 @@ export default function ResourceHeatmapView() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedDay, setSelectedDay] = useState("Mon");
 
+    const [facultyStats, setFacultyStats] = useState<{name: string; slots: number; maxLoad: number}[]>([]);
+    const [days, setDays] = useState<string[]>(["Mon","Tue","Wed","Thu","Fri"]);
+
     const supabase = createClient();
 
     useEffect(() => {
@@ -41,18 +44,56 @@ export default function ResourceHeatmapView() {
                 const { data: dbRooms } = await supabase.from("rooms").select("*").eq("institution_id", profile.institution_id);
                 setRooms(dbRooms || []);
 
-                // Fetch live schedule
-                const { data: latestTimetable } = await supabase
+                // Fetch active timetable (prefer is_active, fallback to latest success)
+                const { data: activeTT } = await supabase
                     .from("generated_timetables")
                     .select("matrix_data")
                     .eq("institution_id", profile.institution_id)
+                    .eq("is_active", true)
+                    .maybeSingle();
+
+                const { data: latestTT } = !activeTT ? await supabase
+                    .from("generated_timetables")
+                    .select("matrix_data")
+                    .eq("institution_id", profile.institution_id)
+                    .in("status", ["success", "success_with_overflow"])
                     .order("created_at", { ascending: false })
                     .limit(1)
-                    .single();
+                    .single() : { data: null };
 
-                if (latestTimetable?.matrix_data?.schedule) {
-                    setMatrices(latestTimetable.matrix_data.schedule);
-                }
+                const timetable = activeTT ?? latestTT;
+                const raw = timetable?.matrix_data;
+
+                // Handle both {schedule: [...]} and flat array formats
+                let slots: any[] = [];
+                if (Array.isArray(raw)) slots = raw;
+                else if (raw?.schedule && Array.isArray(raw.schedule)) slots = raw.schedule;
+                else if (raw && typeof raw === "object") slots = Object.values(raw).filter(Array.isArray).flat();
+                setMatrices(slots);
+
+                // Extract unique days from slots
+                const uniqueDays = [...new Set(slots.map((s: any) => s.day))].filter(Boolean);
+                if (uniqueDays.length > 0) setDays(uniqueDays as string[]);
+                if (uniqueDays.length > 0) setSelectedDay(uniqueDays[0] as string);
+
+                // Build faculty utilisation stats
+                const facMap: Record<string, { slots: number; maxLoad: number; name: string }> = {};
+                slots.forEach((s: any) => {
+                    const key = s.faculty_id ?? s.faculty ?? "Unknown";
+                    if (!facMap[key]) facMap[key] = { name: s.faculty ?? key, slots: 0, maxLoad: 40 };
+                    facMap[key].slots++;
+                });
+                // Fetch max loads
+                const { data: facSettings } = await supabase.from("faculty_settings").select("id, max_load_hrs, profiles(full_name)").eq("institution_id", profile.institution_id);
+                (facSettings ?? []).forEach((f: any) => {
+                    const key = f.id;
+                    if (facMap[key]) {
+                        facMap[key].maxLoad = f.max_load_hrs;
+                        facMap[key].name = f.profiles?.full_name ?? facMap[key].name;
+                    }
+                });
+                setFacultyStats(Object.values(facMap).sort((a, b) => b.slots - a.slots));
+
             } catch (err) {
                 console.warn("Heatmap fetch warning:", err);
             } finally {
@@ -232,9 +273,9 @@ export default function ResourceHeatmapView() {
                     </div>
 
 
-                {/* Day Selector — BUG-03 fix: selectedDay was state with no UI */}
+                {/* Day Selector — dynamic days from active timetable */}
                 <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-lg w-fit">
-                    {["Mon", "Tue", "Wed", "Thu", "Fri"].map((day) => (
+                    {days.map((day) => (
                         <button
                             key={day}
                             onClick={() => setSelectedDay(day)}
@@ -294,6 +335,35 @@ export default function ResourceHeatmapView() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Faculty Utilisation Card */}
+                    {facultyStats.length > 0 && (
+                        <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium">Faculty Load</CardTitle>
+                                <CardDescription className="text-[11px]">Weekly slots vs max load</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3 pt-0">
+                                {facultyStats.slice(0, 8).map((f, i) => {
+                                    const pct = Math.min(100, Math.round((f.slots / Math.max(f.maxLoad, 1)) * 100));
+                                    return (
+                                        <div key={i}>
+                                            <div className="flex justify-between text-[11px] mb-1">
+                                                <span className="text-slate-700 dark:text-slate-300 truncate max-w-[120px]" title={f.name}>{f.name}</span>
+                                                <span className={`font-semibold shrink-0 ${pct >= 90 ? "text-red-500" : pct >= 70 ? "text-amber-500" : "text-emerald-500"}`}>{f.slots}/{f.maxLoad}h</span>
+                                            </div>
+                                            <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                <div className={`h-full rounded-full transition-all ${pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {facultyStats.length > 8 && (
+                                    <p className="text-[10px] text-slate-400 text-center">+{facultyStats.length - 8} more faculty</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 {/* Right Heatmap Grid */}
