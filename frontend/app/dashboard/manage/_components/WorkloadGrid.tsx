@@ -73,7 +73,10 @@ export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) 
             render: (w: Workload) => (
                 <div>
                     <p className="font-semibold text-slate-900 dark:text-slate-100 font-mono text-sm">{w.subject_code}</p>
-                    <p className="text-xs text-slate-400">{w.faculty_name}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                        <span className="inline-block w-3 h-3 rounded-full bg-gradient-to-tr from-blue-400 to-violet-500 shrink-0" />
+                        {w.faculty_name ?? "—"}
+                    </p>
                 </div>
             ),
         },
@@ -114,6 +117,21 @@ export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) 
                         <p className="text-slate-400">{w.consecutive_hours} consec.</p>
                     )}
                 </div>
+            ),
+        },
+        {
+            key: "required_tags",
+            header: "Room Tags",
+            render: (w: Workload) => (
+                (w.required_tags ?? []).length === 0
+                    ? <span className="text-xs text-slate-400 italic">Any room</span>
+                    : <div className="flex flex-wrap gap-1">
+                        {(w.required_tags ?? []).map((tag: string) => (
+                            <span key={tag} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20">
+                                {tag}
+                            </span>
+                        ))}
+                    </div>
             ),
         },
         {
