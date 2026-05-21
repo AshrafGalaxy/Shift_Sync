@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Download, Map, Search, Loader2, ChevronDown, FileText, FileSpreadsheet, Printer, Maximize2, Minimize2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -112,7 +113,7 @@ export default function ResourceHeatmapView() {
     };
 
     const exportToCSV = () => {
-        if (filteredRooms.length === 0) return alert("No rooms to export.");
+        if (filteredRooms.length === 0) { toast.warning("Nothing to export", { description: "No rooms match the current filter." }); return; }
 
         const headers = ["Resource", ...TIMES.map(t => mapMilitaryTo12Hour(t))];
         const rows = filteredRooms.map(room => {
@@ -145,7 +146,7 @@ export default function ResourceHeatmapView() {
     };
 
     const exportToExcel = () => {
-        if (filteredRooms.length === 0) return alert("No rooms to export.");
+        if (filteredRooms.length === 0) { toast.warning("Nothing to export", { description: "No rooms match the current filter." }); return; }
         const gridRows: any[][] = [];
         const headers = ["Resource", ...TIMES.map(t => mapMilitaryTo12Hour(t))];
         gridRows.push(headers);

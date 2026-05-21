@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Filter, Download, Plus, ChevronLeft, ChevronRight, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, FileText, ChevronDown, Lock, Unlock, Send, AlertTriangle, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -152,7 +153,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     }, []);
 
     const exportToCSV = () => {
-        if (!slots || slots.length === 0) return alert("No timetable data to export.");
+        if (!slots || slots.length === 0) { toast.warning("Nothing to export", { description: "Generate a timetable first." }); return; }
 
         const headers = ["Day", "Time", "Subject", "Faculty", "Room", "Type", "Divisions/Batches"];
         const rows = slots.map(slot => [
@@ -178,7 +179,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     };
 
     const exportToExcel = () => {
-        if (!slots || slots.length === 0) return alert("No timetable data to export.");
+        if (!slots || slots.length === 0) { toast.warning("Nothing to export", { description: "Generate a timetable first." }); return; }
 
         const gridRows: any[][] = [];
 
@@ -217,7 +218,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     };
 
     const exportToICS = () => {
-        if (!slots || slots.length === 0) return alert("No timetable data to export.");
+        if (!slots || slots.length === 0) { toast.warning("Nothing to export", { description: "Generate a timetable first." }); return; }
 
         // Define a base fake Monday for the generator to anchor dates to.
         const dayMap: Record<string, string> = { "Mon": "20240304", "Tue": "20240305", "Wed": "20240306", "Thu": "20240307", "Fri": "20240308" };
@@ -259,23 +260,22 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     };
 
     const pushToGoogleCalendar = async () => {
-        if (!slots || slots.length === 0) return alert("No timetable data to push.");
-        const confirmed = window.confirm(`Push ${slots.length} class slots to your Google Calendar as weekly recurring events?\n\nMake sure you have connected your Google account in Settings first.`);
-        if (!confirmed) return;
+        if (!slots || slots.length === 0) { toast.warning("Nothing to push", { description: "Generate a timetable first." }); return; }
+        toast.loading("Pushing to Google Calendar...");
         try {
             const res = await fetch("/api/calendar/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error ?? "Push failed");
-            alert(`✅ ${data.message}${data.failed > 0 ? `\n⚠️ ${data.failed} events failed.` : ""}`);
+            toast.success("Calendar synced", { description: `${data.message}${data.failed > 0 ? ` (${data.failed} events failed)` : ""}` });
         } catch (err: any) {
-            alert("Google Calendar push failed: " + err.message);
+            toast.error("Calendar push failed", { description: err.message });
         }
     };
 
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
             gridRef.current?.requestFullscreen().catch(err => {
-                alert(`Error attempting to enable fullscreen mode: ${err.message}`);
+                toast.error("Fullscreen failed", { description: err.message });
             });
         } else {
             document.exitFullscreen();
