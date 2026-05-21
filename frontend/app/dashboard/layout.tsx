@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Bell, Menu, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bell, Menu, ChevronRight, AlertTriangle, CheckCircle2, AlertCircle, X, ExternalLink } from "lucide-react";
+import { format } from "date-fns";
 
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Sidebar } from "@/components/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Admin-only routes — faculty gets redirected away from these
 const ADMIN_ONLY_ROUTES = [
@@ -37,6 +39,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [userEmail, setUserEmail] = useState("admin@institution.edu");
     const [userRole, setUserRole] = useState<string>("admin");
     const [userName, setUserName] = useState<string>("Admin");
+    const [notifications, setNotifications] = useState<{id: string; type: "error"|"warning"|"success"; title: string; body: string; ts?: string; link?: string}[]>([]);
+    const [notifOpen, setNotifOpen] = useState(false);
+    const [notifRead, setNotifRead] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
     const supabase = createClient();
@@ -81,6 +86,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         };
 
         fetchUserData();
+    }, [pathname]);
+
+    // Fetch notifications from live data
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
+                if (!profile?.institution_id) return;
+                const instId = profile.institution_id;
+
+                const notifs: typeof notifications = [];
+
+                // 1. Check latest generation status
+                const { data: latest } = await supabase
+                    .from("generated_timetables")
+                    .select("id, status, created_at, matrix_data")
+                    .eq("institution_id", instId)
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (latest) {
+                    const ts = format(new Date(latest.created_at), "MMM d, h:mm a");
+                    if (latest.status === "failed") {
+                        notifs.push({ id: "gen-fail", type: "error", title: "Last generation failed", body: "Check the engine logs for diagnostics.", ts, link: "/dashboard/history" });
+                    } else if (latest.status === "success_with_overflow") {
+                        const raw = latest.matrix_data;
+                        const schedule = Array.isArray(raw) ? raw : (raw?.schedule ?? []);
+                        const overflowCount = schedule.filter((s: any) => s.needs_room_assignment).length;
+                        notifs.push({ id: "overflow", type: "warning", title: `${overflowCount} ghost-room slot(s)`, body: "Some classes have no matching room. Assign rooms in Data Manager.", ts, link: "/dashboard/timetable" });
+                    } else if (latest.status === "success") {
+                        notifs.push({ id: "gen-ok", type: "success", title: "Timetable ready", body: `Generated ${ts} — all constraints satisfied.`, ts, link: "/dashboard/timetable" });
+                    }
+                }
+
+                // 2. Check data readiness issues
+                const { count: roomCount } = await supabase.from("rooms").select("*", { count: "exact", head: true }).eq("institution_id", instId);
+                const { count: facCount } = await supabase.from("faculty_settings").select("*", { count: "exact", head: true }).eq("institution_id", instId);
+
+                if (!roomCount || roomCount === 0) notifs.push({ id: "no-rooms", type: "error", title: "No rooms configured", body: "Add at least one room before generating.", link: "/dashboard/manage" });
+                if (!facCount || facCount === 0) notifs.push({ id: "no-fac", type: "error", title: "No faculty configured", body: "Add at least one faculty member before generating.", link: "/dashboard/manage" });
+
+                setNotifications(notifs);
+                setNotifRead(false);
+            } catch { /* silent */ }
+        };
+        fetchNotifications();
     }, [pathname]);
 
     const pageMeta = pageMetaMap[pathname] ?? { title: "Dashboard", sub: "ShiftSync" };
@@ -131,21 +185,72 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                     </div>
 
-                    {/* Right — theme toggle + bell */}
+                    {/* Right — theme toggle + notification bell */}
                     <div className="flex items-center gap-2 shrink-0">
                         <ThemeToggle />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="relative h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-50"
-                        >
-                            <Bell className="w-4 h-4" />
-                            <motion.span
-                                animate={{ scale: [1, 1.3, 1] }}
-                                transition={{ repeat: Infinity, duration: 2.5 }}
-                                className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"
-                            />
-                        </Button>
+
+                        <Popover open={notifOpen} onOpenChange={(o: boolean) => { setNotifOpen(o); if (o) setNotifRead(true); }}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="relative h-8 w-8 text-slate-500 hover:text-slate-900 dark:hover:text-slate-50"
+                                >
+                                    <Bell className="w-4 h-4" />
+                                    {!notifRead && notifications.length > 0 && (
+                                        <motion.span
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border-2 border-white dark:border-slate-950"
+                                        />
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-80 p-0 shadow-xl border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                                {/* Header */}
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                                    <div className="flex items-center gap-2">
+                                        <Bell className="w-4 h-4 text-slate-500" />
+                                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">Notifications</span>
+                                        {notifications.length > 0 && (
+                                            <span className="text-[10px] font-bold bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded-full">{notifications.length}</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Items */}
+                                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                                    {notifications.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
+                                            <CheckCircle2 className="w-8 h-8 opacity-40" />
+                                            <p className="text-sm font-medium">All clear — no issues</p>
+                                        </div>
+                                    ) : notifications.map(n => (
+                                        <div
+                                            key={n.id}
+                                            className={`flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${
+                                                n.type === "error" ? "border-l-2 border-red-400" :
+                                                n.type === "warning" ? "border-l-2 border-amber-400" :
+                                                "border-l-2 border-emerald-400"
+                                            }`}
+                                            onClick={() => { if (n.link) { router.push(n.link); setNotifOpen(false); } }}
+                                        >
+                                            <div className="mt-0.5 shrink-0">
+                                                {n.type === "error" && <AlertCircle className="w-4 h-4 text-red-500" />}
+                                                {n.type === "warning" && <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                                                {n.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-tight">{n.title}</p>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{n.body}</p>
+                                                {n.ts && <p className="text-[10px] text-slate-400 dark:text-slate-600 mt-1">{n.ts}</p>}
+                                            </div>
+                                            {n.link && <ExternalLink className="w-3 h-3 text-slate-400 shrink-0 mt-0.5" />}
+                                        </div>
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </header>
 
