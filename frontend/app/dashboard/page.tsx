@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -38,7 +38,7 @@ export default function DashboardOverview() {
     const [isLiveStreaming, setIsLiveStreaming] = useState(false);
     const liveLogsEndRef = useRef<HTMLDivElement | null>(null);
 
-    const [stats, setStats] = useState([
+    const [stats, setStats] = useState<{ name: string; value: number | string; icon: any; color: string; bg: string; sub?: string }[]>([
         { name: "Total Faculty", value: 0 as number | string, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
         { name: "Available Rooms", value: 0 as number | string, icon: Building, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
         { name: "Total Workloads", value: 0 as number | string, icon: GraduationCap, color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" },
@@ -213,7 +213,7 @@ export default function DashboardOverview() {
             setStats([
                 { name: "Total Faculty", value: facultyCount || 0, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
                 { name: "Available Rooms", value: roomCount || 0, icon: Building, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
-                { name: "Total Workloads", value: workloadsCount || 0, icon: GraduationCap, color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" },
+                { name: "Weekly Demand", value: `${totalDemand} hrs`, sub: `${workloadsCount} workload${workloadsCount !== 1 ? 's' : ''} configured`, icon: GraduationCap, color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" },
                 { name: "Grid Heatmap (Load)", value: `${densityRatio}%${densityAlert}`, icon: Database, color: densityColor, bg: densityBg },
             ]);
 
@@ -870,11 +870,26 @@ export default function DashboardOverview() {
                                     <div className="flex-1 min-w-0">
                                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">{stat.name}</p>
                                         <h3 className={`text-3xl font-black mt-1.5 leading-none ${stat.color}`}>{stat.value}</h3>
+                                        {stat.sub && (
+                                            <p className="text-[11px] text-slate-400 mt-0.5">{stat.sub}</p>
+                                        )}
                                         <p className={`text-[11px] font-medium mt-1.5 flex items-center gap-1 ${status.color}`}>
                                             {numVal === 0
                                                 ? <><AlertCircle className="w-3 h-3" />{status.label}</>
                                                 : <><CheckCircle2 className="w-3 h-3" />{status.label}</>}
                                         </p>
+                                        {/* Completion bar for Weekly Demand card */}
+                                        {stat.name === "Weekly Demand" && lastGenSummary && lastGenSummary.slots > 0 && numVal > 0 && (
+                                            <div className="mt-2">
+                                                <div className="flex justify-between text-[9px] text-slate-400 mb-0.5">
+                                                    <span>Scheduled</span>
+                                                    <span>{Math.min(100, Math.round((lastGenSummary.slots / numVal) * 100))}%</span>
+                                                </div>
+                                                <div className="w-full h-1 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                                    <div className="h-full rounded-full bg-teal-500 transition-all" style={{ width: `${Math.min(100, Math.round((lastGenSummary.slots / numVal) * 100))}%` }} />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className={`w-11 h-11 rounded-2xl ${stat.bg} flex items-center justify-center shadow-inner shrink-0`}>
                                         <stat.icon className={`w-5 h-5 ${stat.color}`} />
