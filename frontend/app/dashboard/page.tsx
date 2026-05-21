@@ -496,8 +496,11 @@ export default function DashboardOverview() {
                 const { data: facData, error: facErr } = await supabase
                     .from("faculty_settings")
                     .insert({
+                        institution_id: instId,
                         profile_id: profileId,
+                        name: f.name || `Faculty ${f.id}`,
                         max_load_hrs: f.max_load_hrs,
+                        max_continuous_hrs: f.max_continuous_hrs || 3,
                         shift_hours: f.shift,
                         blocked_slots: f.blocked_slots,
                         class_teacher_for: f.class_teacher_for
@@ -509,13 +512,15 @@ export default function DashboardOverview() {
                 // 4. Workloads
                 for (const w of f.workload) {
                     await supabase.from("workloads").insert({
+                        institution_id: instId,
                         faculty_id: facId,
                         subject_code: w.subject,
                         type: w.type,
                         target_groups: w.target_groups,
                         weekly_hours: w.hours,
                         consecutive_hours: w.consecutive_hours,
-                        required_tags: w.required_tags
+                        required_tags: w.required_tags,
+                        is_online: w.is_online || false
                     });
                 }
             }
