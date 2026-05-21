@@ -60,7 +60,11 @@ export async function POST(req: NextRequest) {
         const { error: insertErr } = await supabase.from("generated_timetables").insert({
             institution_id: instId,
             is_active: true,
-            matrix_data: data,
+            matrix_data: {
+                ...data,
+                progress_log: data.progress_log || [],
+                optimality_score: data.optimality_score ?? null,
+            },
             status: data.status || 'success'
         });
 
