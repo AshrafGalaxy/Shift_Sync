@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, FileText, CheckCircle2, Clock, Upload, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download } from "lucide-react";
+import { Play, FileText, CheckCircle2, Clock, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download, Settings, UploadCloud, FlaskConical, BookOpen, ChevronRight, BarChart3, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { createClient } from "@/utils/supabase/client";
@@ -21,12 +21,19 @@ import CsvUploadManager from "@/components/forms/CsvUploadManager";
 import SpreadsheetEditor from "@/components/SpreadsheetEditor";
 import TemplateManager from "@/components/TemplateManager";
 import { ConflictRefinerModal } from "@/components/ConflictRefinerModal";
+import SolverConsoleModal from "@/components/SolverConsoleModal";
 
 export default function DashboardOverview() {
     const [isMounted, setIsMounted] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isSolverModalOpen, setIsSolverModalOpen] = useState(false);
+    const [readiness, setReadiness] = useState<{ready: boolean, score: number, critical: any[], warnings: any[], total_issues: number} | null>(null);
+    const [currentPayload, setCurrentPayload] = useState<any>(null);
     const [generationStep, setGenerationStep] = useState(0);
     const [isDbReady, setIsDbReady] = useState<boolean>(false);
+    const [lastRunLogs, setLastRunLogs] = useState<string[]>([]);
+    const [lastRunScore, setLastRunScore] = useState<number | null>(null);
+    const [showAllLogs, setShowAllLogs] = useState(false);
 
     const [stats, setStats] = useState([
         { name: "Total Faculty", value: 0 as number | string, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
@@ -46,6 +53,103 @@ export default function DashboardOverview() {
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    
+    const buildDynamicPayload = async (instId: string) => {
+        const { data: inst } = await supabase.from("institutions").select("*").eq("id", instId).single();
+        const { data: rooms } = await supabase.from("rooms").select("*").eq("institution_id", instId).eq("is_archived", false);
+        const { data: facSettings } = await supabase.from("faculty_settings").select("*").eq("institution_id", instId).eq("is_archived", false);
+        
+        if (!facSettings || facSettings.length === 0) return null;
+
+        const mappedFaculties = await Promise.all(facSettings.map(async (facSetting) => {
+            const { data: workloads } = await supabase.from("workloads").select("*").eq("faculty_id", facSetting.id);
+            const realName = facSetting.name || facSetting.faculty_csv_id || `Faculty ${facSetting.id.slice(0, 8)}`;
+            return {
+                id: facSetting.id,
+                name: realName,
+                shift: (!facSetting.shift_hours || facSetting.shift_hours.length === 0) ? (inst?.time_slots || []) : facSetting.shift_hours,
+                max_load_hrs: facSetting.max_load_hrs,
+                max_continuous_hrs: facSetting.max_continuous_hrs || 3,
+                blocked_slots: (facSetting.blocked_slots || []).filter((s: any) => s.day && s.time !== undefined),
+                class_teacher_for: facSetting.class_teacher_for,
+                workload: (workloads || []).map(w => ({
+                    id: w.id,
+                    type: w.type || "Theory",
+                    subject: w.subject_code || "Unknown Subject",
+                    target_groups: Array.isArray(w.target_groups) ? w.target_groups : [],
+                    hours: w.weekly_hours || 1,
+                    consecutive_hours: w.consecutive_hours || 1,
+                    required_tags: Array.isArray(w.required_tags) ? w.required_tags : [],
+                    is_online: w.is_online || false
+                }))
+            };
+        }));
+
+        let customRules: any[] = [];
+        const storedPins = localStorage.getItem(`pinned_classes_${instId}`);
+        if (storedPins) {
+            try {
+                const pins = JSON.parse(storedPins);
+                customRules = pins.map((pin: string, index: number) => {
+                    const parts = pin.split("|");
+                    const w_id = parts[0];
+                    return {
+                        id: `PIN_${index}`,
+                        condition_field: "workload_id",
+                        condition_operator: "EQUALS",
+                        condition_value: w_id,
+                        action_type: "FORCE_PIN",
+                        action_value: `${parts[1]}|${parts[2]}|${parts[3]}`
+                    };
+                });
+            } catch (e) {}
+        }
+
+        const lunchMap: Record<string, number> = {};
+        const rawLunch = inst?.lunch_slot;
+        if (rawLunch && typeof rawLunch === 'object' && !Array.isArray(rawLunch)) {
+            Object.assign(lunchMap, rawLunch);
+        } else {
+            const lunchHour = typeof rawLunch === 'number' ? rawLunch : 13;
+            (inst?.days_active || []).forEach((day: string) => { lunchMap[day] = lunchHour; });
+        }
+        (inst?.days_active || []).forEach((day: string) => {
+            if (!(day in lunchMap)) lunchMap[day] = 13;
+        });
+
+        return {
+            college_settings: {
+                days_active: inst?.days_active || [],
+                time_slots: inst?.time_slots || [],
+                lunch_slot: lunchMap,
+                custom_rules: customRules
+            },
+            rooms_config: {
+                rooms: rooms?.map(r => ({ id: r.name, type: r.type, capacity: r.capacity, tags: r.tags })) || []
+            },
+            faculty: mappedFaculties
+        };
+    };
+
+    const fetchReadiness = async (instId: string) => {
+        try {
+            const payload = await buildDynamicPayload(instId);
+            if (!payload) return;
+            setCurrentPayload(payload);
+            const res = await fetch("/api/readiness", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setReadiness(data);
+            }
+        } catch (e) {
+            console.error("Failed to fetch readiness", e);
+        }
+    };
 
     const fetchDashboardStats = async () => {
         try {
@@ -88,6 +192,7 @@ export default function DashboardOverview() {
                 .single();
 
             setIsDbReady((facultyCount ?? 0) > 0 && roomCount > 0);
+            if ((facultyCount ?? 0) > 0 && roomCount > 0) fetchReadiness(instId);
 
             setStats([
                 { name: "Total Faculty", value: facultyCount || 0, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
@@ -318,184 +423,11 @@ export default function DashboardOverview() {
             toast.error("Cannot generate timetable", { description: "Your database is empty! Add at least 1 Room and 1 Faculty member to continue." });
             return;
         }
-
-        setIsGenerating(true);
-        setGenerationStep(0); // Initialize
-
-        try {
-            // STEP 1: Fetching dynamically from Supabase Pipeline
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("Not authenticated");
-
-            const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
-            const instId = profile?.institution_id;
-            if (!instId) throw new Error("No institution data seeded yet! Run Seed Database first.");
-
-            const { data: inst } = await supabase.from("institutions").select("*").eq("id", instId).single();
-            const { data: rooms } = await supabase.from("rooms").select("*").eq("institution_id", instId).eq("is_archived", false);
-
-            // Fetch ALL faculty for this institution (not just profile_id — CSV imports have no profile_id)
-            const { data: facSettings } = await supabase.from("faculty_settings").select("*").eq("institution_id", instId).eq("is_archived", false);
-            if (!facSettings || facSettings.length === 0) throw new Error("No Faculty Configuration found! Please complete the 'Faculty' tab setup before generating.");
-
-            // Build dynamic payload mapping all faculties
-            const mappedFaculties = await Promise.all(facSettings.map(async (facSetting) => {
-                const { data: workloads } = await supabase.from("workloads").select("*").eq("faculty_id", facSetting.id);
-                // Use stored name directly; fall back to faculty_csv_id or UUID prefix
-                const realName = facSetting.name || facSetting.faculty_csv_id || `Faculty ${facSetting.id.slice(0, 8)}`;
-                return {
-                    id: facSetting.id,          // ← full UUID, NO truncation
-                    name: realName,
-                    shift: (!facSetting.shift_hours || facSetting.shift_hours.length === 0) ? (inst?.time_slots || []) : facSetting.shift_hours,
-                    max_load_hrs: facSetting.max_load_hrs,
-                    max_continuous_hrs: facSetting.max_continuous_hrs || 3,
-                    blocked_slots: (facSetting.blocked_slots || []).filter((s: any) => s.day && s.time !== undefined),
-                    class_teacher_for: facSetting.class_teacher_for,
-                    workload: (workloads || []).map(w => ({
-                        id: w.id,               // ← full UUID, NO truncation
-                        type: w.type || "Theory",
-                        subject: w.subject_code || "Unknown Subject",
-                        target_groups: Array.isArray(w.target_groups) ? w.target_groups : [],
-                        hours: w.weekly_hours || 1,
-                        consecutive_hours: w.consecutive_hours || 1,
-                        required_tags: Array.isArray(w.required_tags) ? w.required_tags : [],
-                        is_online: w.is_online || false
-                    }))
-                };
-            }));
-
-            // Retrieve pinned classes to send back as FORCE_PIN rules
-            let customRules: any[] = [];
-            const storedPins = localStorage.getItem(`pinned_classes_${instId}`);
-            if (storedPins) {
-                try {
-                    const pins = JSON.parse(storedPins);
-                    customRules = pins.map((pin: string, index: number) => {
-                        const parts = pin.split("|"); // w_id|room|day|time
-                        const w_id = parts[0];
-                        return {
-                            id: `PIN_${index}`,
-                            condition_field: "workload_id",
-                            condition_operator: "EQUALS",
-                            condition_value: w_id,
-                            action_type: "FORCE_PIN",
-                            action_value: `${parts[1]}|${parts[2]}|${parts[3]}`
-                        };
-                    });
-                } catch (e) {
-                    console.warn("Could not parse pinned class preferences:", e);
-                }
-            }
-
-            // Build per-day lunch_slot map — backend requires Dict[str, int]
-            const lunchMap: Record<string, number> = {};
-            const rawLunch = inst?.lunch_slot;
-            if (rawLunch && typeof rawLunch === 'object' && !Array.isArray(rawLunch)) {
-                // Already a dict — copy as-is
-                Object.assign(lunchMap, rawLunch);
-            } else {
-                // Legacy: stored as a single integer — broadcast to all days
-                const lunchHour = typeof rawLunch === 'number' ? rawLunch : 13;
-                (inst?.days_active || []).forEach((day: string) => { lunchMap[day] = lunchHour; });
-            }
-            // Ensure every active day has a lunch entry
-            (inst?.days_active || []).forEach((day: string) => {
-                if (!(day in lunchMap)) lunchMap[day] = 13;
-            });
-
-            // Construct the Python Engine Payload dynamically from SQL Result!
-            const dynamicPayload = {
-                college_settings: {
-                    days_active: inst.days_active,
-                    time_slots: inst.time_slots,
-                    lunch_slot: lunchMap,
-                    custom_rules: customRules
-                },
-                rooms_config: {
-                    rooms: rooms?.map(r => ({ id: r.name, type: r.type, capacity: r.capacity, tags: r.tags }))
-                },
-                faculty: mappedFaculties
-            };
-
-            setGenerationStep(1); // Calling API
-
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-            const response = await fetch(`${apiUrl}/api/v1/generate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(dynamicPayload)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const detail = errorData.detail || errorData;
-
-                // Extract human-readable error
-                let errorMsg = "Unknown error";
-                if (typeof detail === "string") errorMsg = detail;
-                else if (detail?.message) errorMsg = detail.message;
-                else if (detail?.validation_errors) errorMsg = (detail.validation_errors as string[]).join(" | ");
-                else errorMsg = JSON.stringify(detail);
-
-                // Extract diagnosis if available
-                const diagnosis = detail?.diagnosis || null;
-                if (diagnosis) setConflictDiagnosis(diagnosis);
-
-                // Track failure
-                supabase.from("generated_timetables").insert({
-                    institution_id: instId,
-                    is_active: false,
-                    matrix_data: { error: errorMsg },
-                    status: 'failed',
-                    error_message: errorMsg
-                }).then();
-
-                toast.error("Generation failed", { description: errorMsg });
-                setIsGenerating(false);
-                return;
-            }
-
-            const data = await response.json();
-            console.log("Timetable Matrix:", data);
-
-            setGenerationStep(2);
-
-            // Show optimality score in toast
-            const score = data.optimality_score ?? null;
-            const scoreStr = score !== null ? ` (Optimality: ${score}/100)` : "";
-
-            const { error: insertErr } = await supabase.from("generated_timetables").insert({
-                institution_id: instId,
-                is_active: true,
-                matrix_data: data,
-                status: data.status || 'success'
-            });
-
-            if (insertErr) {
-                console.error("Supabase Insert Error:", insertErr);
-                toast.error("Database save failed", { description: insertErr.message });
-                setIsGenerating(false);
-                return;
-            }
-
-            setTimeout(() => {
-                setGenerationStep(3);
-                setTimeout(() => {
-                    setIsGenerating(false);
-                    fetchDashboardStats();
-                    if (data.status === 'success_with_overflow') {
-                        toast.warning("Generated with overflow", { description: `${data.overflow_count} slot(s) need manual room assignment.${scoreStr}` });
-                    } else {
-                        toast.success("Timetable generated!", { description: `${data.total_classes} classes scheduled.${scoreStr}` });
-                    }
-                }, 1500);
-            }, 1000);
-
-        } catch (error: any) {
-            console.warn("Pipeline Validation:", error.message);
-            toast.error("Generation error", { description: error.message || "Failed to connect to Python backend engine." });
-            setIsGenerating(false);
+        if (readiness && !readiness.ready) {
+            toast.error("Generation Halted", { description: "You have critical unresolved constraints. Please fix them in the Readiness Dashboard first." });
+            return;
         }
+        setIsSolverModalOpen(true);
     };
 
     if (!isMounted) {
@@ -507,159 +439,325 @@ export default function DashboardOverview() {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            {/* Page Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Overview</h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Manage master data and trigger timetable generation.</p>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Overview</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage institutional data and trigger timetable generation.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                     <Button
                         onClick={exportTemplate}
                         variant="outline"
-                        className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 border-slate-200 dark:border-slate-800"
+                        size="sm"
+                        className="h-9 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 border-slate-200 dark:border-slate-800"
                     >
-                        <Download className="w-4 h-4 mr-2" />
-                        Save Template JSON
+                        <Download className="w-3.5 h-3.5 mr-1.5" />
+                        Export JSON
                     </Button>
                     <Button
                         onClick={clearDatabase}
                         disabled={isSeeding || isClearing}
                         variant="outline"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/30"
+                        size="sm"
+                        className="h-9 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 border-red-200 dark:border-red-900/30"
                     >
-                        {isClearing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertOctagon className="w-4 h-4 mr-2" />}
-                        {isClearing ? "Nuking Database..." : "Danger: Nuke Database"}
+                        {isClearing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <AlertOctagon className="w-3.5 h-3.5 mr-1.5" />}
+                        {isClearing ? "Clearing..." : "Nuke Database"}
                     </Button>
                 </div>
             </div>
 
-            {/* Top Full-Width Hero: AI Generation Trigger */}
-            <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-xl shadow-blue-500/5 dark:shadow-blue-500/10 relative overflow-hidden flex flex-col transition-all duration-500 hover:shadow-blue-500/20 hover:border-blue-300 dark:hover:border-blue-700/50">
-                {/* Background glowing orb */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 dark:bg-blue-600/20 blur-[80px] rounded-full pointer-events-none transition-transform duration-700 hover:scale-150" />
+            {/* ── AI Solver Engine Card (redesigned) ───────────────────────────── */}
+            <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-violet-200 dark:hover:border-violet-800/40">
+                {/* Ambient glow */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-500/6 to-transparent blur-[80px] rounded-full pointer-events-none" />
 
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-2xl">
-                        <div className="w-3 h-3 rounded-full bg-teal-500 animate-pulse" />
-                        AI Solver Engine
-                    </CardTitle>
-                    <CardDescription className="text-base text-slate-500 dark:text-slate-400">Generate an optimal collision-free timetable conforming to all hard and soft constraints.</CardDescription>
-                </CardHeader>
+                <CardHeader className="pb-4">
+                    {/* Title row with inline refresh */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="relative">
+                                <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center shadow-md shadow-violet-500/30">
+                                    <BarChart3 className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900 animate-pulse" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-lg font-bold leading-tight">AI Solver Engine</CardTitle>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Generate a collision-free timetable conforming to all constraints</p>
+                            </div>
+                        </div>
+                        {/* Small icon-only refresh button */}
+                        <button
+                            onClick={fetchDashboardStats}
+                            title="Re-run pre-flight checks"
+                            className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700 transition-all hover:shadow-sm shrink-0"
+                        >
+                            <RefreshCcw className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
 
-                <CardContent className="flex flex-col md:flex-row items-center justify-between gap-8 py-6">
-                    <div className="w-full md:w-auto flex-1 flex flex-col justify-center items-start">
-                        <AnimatePresence mode="wait">
-                            {!isGenerating ? (
-                                <motion.div
-                                    key="idle"
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    className="w-full"
-                                >
-                                    <div className="flex flex-col sm:flex-row gap-4 w-full">
-                                        <Button
-                                            size="lg"
-                                            onClick={startGeneration}
-                                            className={`flex-1 min-h-[4rem] h-auto py-3 px-6 text-sm sm:text-base lg:text-lg rounded-2xl text-white shadow-xl transition-all duration-300 group hover:scale-[1.02] active:scale-95 flex-col sm:flex-row items-center justify-center text-center whitespace-normal leading-tight ${isDbReady ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-blue-600/25 hover:shadow-blue-600/40" : "bg-slate-400 dark:bg-slate-800 hover:bg-slate-500 dark:hover:bg-slate-700 shadow-none"}`}
-                                        >
-                                            <Play className={`w-5 h-5 sm:mr-3 mb-1 sm:mb-0 shrink-0 transition-all ${isDbReady ? "fill-white/20 group-hover:fill-white/40" : "fill-white/10"}`} />
-                                            <span>{isDbReady ? "Generate Timetable / Shuffle" : "Setup Required (Click for details)"}</span>
-                                        </Button>
-                                        <Button
-                                            size="lg"
-                                            variant="outline"
-                                            onClick={() => window.location.reload()}
-                                            disabled={!isDbReady}
-                                            className="min-h-[4rem] h-auto rounded-2xl border-slate-200 dark:border-slate-800 shrink-0 px-8"
-                                        >
-                                            <RefreshCcw className="w-5 h-5 mr-3 text-slate-500" />
-                                            Refresh Sync
-                                        </Button>
+                    {/* Pre-flight readiness panel */}
+                    <div className="mt-4">
+                        {readiness ? (
+                            <div className={`rounded-xl border p-3.5 ${
+                                readiness.ready
+                                    ? 'bg-emerald-50/80 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/40'
+                                    : 'bg-red-50/80 border-red-200 dark:bg-red-900/10 dark:border-red-800/40'
+                            }`}>
+                                <div className="flex items-center gap-2.5">
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                        readiness.ready
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
+                                            : 'bg-red-100 dark:bg-red-900/30 text-red-600'
+                                    }`}>
+                                        {readiness.ready
+                                            ? <CheckCircle2 className="w-4 h-4" />
+                                            : <AlertCircle className="w-4 h-4" />}
                                     </div>
-                                    <p className="text-sm text-slate-500 mt-4 flex items-center justify-between transition-opacity w-full">
-                                        <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> Estimated solving time: ~45s</span>
-                                    </p>
-                                    <p className="text-sm text-purple-600 dark:text-purple-400 mt-2 font-medium bg-purple-50 dark:bg-purple-900/20 px-4 py-2 rounded-lg border border-purple-100 dark:border-purple-800/50">
-                                        Don't like this layout? Click generate again to see alternative valid arrangements! Locked classes stay pinned.
-                                    </p>
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="generating"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="w-full flex items-center gap-8 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/30"
-                                >
-                                    <div className="relative w-24 h-24 flex justify-center items-center shrink-0">
-                                        {generationStep < 3 ? (
-                                            <SolverLoadingGear className="w-full h-full drop-shadow-lg" />
-                                        ) : (
-                                            <motion.div
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="w-20 h-20 bg-teal-500 rounded-full flex justify-center items-center shadow-lg shadow-teal-500/30"
-                                            >
-                                                <CheckCircle2 className="w-10 h-10 text-white" />
-                                            </motion.div>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-2 flex-1 w-full max-w-xl">
-                                        <h3 className="font-semibold text-xl text-slate-900 dark:text-slate-50">
-                                            {generationStep === 0 && "Validating Geometry..."}
-                                            {generationStep === 1 && "Booting Engine..."}
-                                            {generationStep === 2 && "Synthesizing Timetables..."}
-                                            {generationStep === 3 && "Finalizing Matrix..."}
-                                            {generationStep === 4 && "Synchronization Complete!"}
-                                        </h3>
-
-                                        <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner">
-                                            <motion.div
-                                                className={`h-full ${generationStep >= 3 ? "bg-teal-500" : "bg-gradient-to-r from-blue-500 to-purple-500"}`}
-                                                initial={{ width: "0%" }}
-                                                animate={{ width: generationStep === 0 ? "10%" : generationStep === 1 ? "40%" : generationStep === 2 ? "70%" : generationStep === 3 ? "90%" : "100%" }}
-                                                transition={{ duration: 0.5 }}
-                                            />
-                                        </div>
-
-                                        <p className="text-sm text-slate-500 font-mono mt-2">
-                                            {generationStep === 0 && "> Running Local Health Checks... Validating Master Workloads..."}
-                                            {generationStep === 1 && "> Initializing Google OR-Tools CP-SAT Solver..."}
-                                            {generationStep === 2 && "> Resolving room/teacher conflicts (4,231 vars)"}
-                                            {generationStep === 3 && "> Distributing lunch breaks & gaps"}
-                                            {generationStep >= 3 && "> Saving to Supabase Data Layer..."}
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-sm font-semibold ${
+                                            readiness.ready ? 'text-emerald-800 dark:text-emerald-200' : 'text-red-800 dark:text-red-200'
+                                        }`}>
+                                            {readiness.ready ? 'Pre-Flight Checks Passed' : `${readiness.total_issues} issue(s) detected`}
+                                        </p>
+                                        <p className={`text-xs mt-0.5 ${
+                                            readiness.ready ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                            {readiness.ready ? `100% ready · Score ${readiness.score}/100` : `Score ${readiness.score}/100 — fix issues below before generating`}
                                         </p>
                                     </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                                </div>
+
+                                {/* Issues list — wraps on mobile */}
+                                {!readiness.ready && readiness.critical && readiness.critical.length > 0 && (
+                                    <div className="mt-3 space-y-1.5">
+                                        {readiness.critical.map((iss: any, i: number) => (
+                                            <div key={i} className="bg-white dark:bg-slate-800/80 rounded-lg border border-red-100 dark:border-red-900/30 p-2.5">
+                                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                                    <p className="text-xs text-slate-700 dark:text-slate-300 flex-1 min-w-0">
+                                                        <span className="font-bold text-red-600 dark:text-red-400 mr-1">[{iss.constraint}]</span>
+                                                        {iss.message}
+                                                    </p>
+                                                    {iss.tab_hint && (
+                                                        <button
+                                                            className="shrink-0 text-[11px] font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-md px-2 py-0.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-1"
+                                                            onClick={() => {
+                                                                const m: Record<string, string> = { rooms: "rooms", faculty: "faculty", workloads: "workloads", global: "global" };
+                                                                if (m[iss.tab_hint]) {
+                                                                    setActiveTab(m[iss.tab_hint]);
+                                                                    document.getElementById("data-ingestion-card")?.scrollIntoView({ behavior: "smooth" });
+                                                                } else router.push("/dashboard/manage");
+                                                            }}
+                                                        >
+                                                            Fix <ChevronRight className="w-3 h-3" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="p-3 rounded-xl border bg-slate-50 border-slate-200 dark:bg-slate-900/30 dark:border-slate-800/50 flex items-center gap-2.5">
+                                <div className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-blue-500 animate-spin shrink-0" />
+                                <span className="text-sm text-slate-500">Running pre-flight diagnostics...</span>
+                            </div>
+                        )}
                     </div>
+                </CardHeader>
+
+                <CardContent className="pt-0 pb-5 px-6">
+                    <AnimatePresence mode="wait">
+                        {!isGenerating ? (
+                            <motion.div
+                                key="idle"
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                className="space-y-3"
+                            >
+                                {/* Compact single-row action bar */}
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={startGeneration}
+                                        className={`flex-1 h-11 rounded-xl text-sm font-bold text-white shadow-lg transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] overflow-hidden relative ${
+                                            isDbReady
+                                                ? "bg-violet-600 hover:bg-violet-700 shadow-violet-500/30 hover:shadow-violet-500/50"
+                                                : "bg-slate-400 dark:bg-slate-700 shadow-none cursor-not-allowed"
+                                        }`}
+                                    >
+                                        {isDbReady && (
+                                            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer pointer-events-none" />
+                                        )}
+                                        <Play className={`w-4 h-4 mr-2 shrink-0 relative z-10 ${isDbReady ? "fill-white/20" : "fill-white/10"}`} />
+                                        <span className="relative z-10">{isDbReady ? "Generate Timetable" : "Setup Required"}</span>
+                                    </Button>
+                                </div>
+
+                                {/* Compact hint row */}
+                                <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 px-0.5">
+                                    <span className="flex items-center gap-1">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        Solving time varies with dataset size
+                                    </span>
+                                    <span className="text-blue-500 dark:text-blue-400 font-medium">Pinned slots stay fixed on shuffle</span>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="generating"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-5 bg-slate-50 dark:bg-slate-900/50 p-5 rounded-xl border border-blue-100 dark:border-blue-900/30"
+                            >
+                                <div className="relative w-16 h-16 flex justify-center items-center shrink-0">
+                                    {generationStep < 3 ? (
+                                        <SolverLoadingGear className="w-full h-full drop-shadow-lg" />
+                                    ) : (
+                                        <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="w-14 h-14 bg-teal-500 rounded-full flex justify-center items-center shadow-lg shadow-teal-500/30"
+                                        >
+                                            <CheckCircle2 className="w-7 h-7 text-white" />
+                                        </motion.div>
+                                    )}
+                                </div>
+                                <div className="space-y-2 flex-1 min-w-0">
+                                    <h3 className="font-semibold text-base text-slate-900 dark:text-slate-50">
+                                        {generationStep === 0 && "Validating Geometry..."}
+                                        {generationStep === 1 && "Booting Engine..."}
+                                        {generationStep === 2 && "Synthesizing Timetable..."}
+                                        {generationStep === 3 && "Finalizing Matrix..."}
+                                        {generationStep === 4 && "Synchronization Complete!"}
+                                    </h3>
+                                    <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                                        <motion.div
+                                            className={`h-full ${generationStep >= 3 ? "bg-teal-500" : "bg-gradient-to-r from-blue-500 to-indigo-500"}`}
+                                            initial={{ width: "0%" }}
+                                            animate={{ width: ["10%","40%","70%","90%","100%"][generationStep] ?? "100%" }}
+                                            transition={{ duration: 0.5 }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-slate-500 font-mono truncate">
+                                        {generationStep === 0 && "> Validating workloads & constraints..."}
+                                        {generationStep === 1 && "> Initializing CP-SAT Solver..."}
+                                        {generationStep === 2 && "> Resolving room/teacher conflicts..."}
+                                        {generationStep === 3 && "> Distributing lunch breaks & gaps..."}
+                                        {generationStep >= 4 && "> Saving to database..."}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </CardContent>
 
-                <CardFooter className="bg-slate-50/50 dark:bg-slate-900/20 border-t border-slate-100 dark:border-slate-800/50 text-sm text-slate-600 dark:text-slate-400 p-4 font-medium flex gap-2 items-center">
-                    <FileText className="w-4 h-4 ml-2" />
-                    {lastGenerationDate ? `Last solved on ${lastGenerationDate} via Cloud Engine.` : "No timetable has been generated yet."}
-                </CardFooter>
+                {/* Last Engine Trace — persists after modal closes */}
+                {lastRunLogs.length > 0 && (
+                    <div className="mx-6 mb-5 rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                        {/* Trace header */}
+                        <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800">
+                            <div className="flex items-center gap-2">
+                                <div className="flex gap-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
+                                </div>
+                                <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">Last Engine Trace</span>
+                                {lastRunScore !== null && (
+                                    <span className={`ml-2 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                                        lastRunScore >= 90 ? 'bg-emerald-900/50 text-emerald-400' :
+                                        lastRunScore >= 70 ? 'bg-amber-900/50 text-amber-400' :
+                                        'bg-red-900/50 text-red-400'
+                                    }`}>Score {lastRunScore}/100</span>
+                                )}
+                            </div>
+                            <span className="text-[10px] text-slate-600 font-mono">{lastGenerationDate}</span>
+                        </div>
+                        {/* Trace lines */}
+                        <div className="px-4 py-3 font-mono text-xs space-y-1 text-slate-400">
+                            {(showAllLogs ? lastRunLogs : lastRunLogs.slice(-5)).map((line, i) => (
+                                <div key={i} className={`
+                                    ${line.includes('[STEP') ? 'text-violet-400 font-semibold' : ''}
+                                    ${line.includes('OPTIMAL') || line.includes('FEASIBLE') ? 'text-emerald-400 font-semibold' : ''}
+                                    ${line.includes('[ERROR]') || line.includes('INFEASIBLE') ? 'text-red-400' : ''}
+                                `}>{line}</div>
+                            ))}
+                        </div>
+                        {lastRunLogs.length > 5 && (
+                            <button
+                                onClick={() => setShowAllLogs(!showAllLogs)}
+                                className="w-full text-center text-[11px] text-slate-500 hover:text-slate-300 font-mono py-2 border-t border-slate-800 transition-colors"
+                            >
+                                {showAllLogs ? '▲ collapse' : `▼ show all ${lastRunLogs.length} lines`}
+                            </button>
+                        )}
+                    </div>
+                )}
             </Card>
 
-            {/* Metrics Row — 4 cards in 2×2 on mobile, 4-col on desktop */}
+            {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map((stat) => (
-                    <Card key={stat.name} className="border-slate-200/60 dark:border-slate-800/60 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-blue-200 dark:hover:border-blue-800/50 cursor-default">
-                        <CardContent className="p-6 flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{stat.name}</p>
-                                <h3 className="text-3xl font-bold mt-1 text-slate-900 dark:text-slate-50">{stat.value}</h3>
-                            </div>
-                            <div className={`w-12 h-12 rounded-full ${stat.bg} flex items-center justify-center`}>
-                                <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                {stats.map((stat) => {
+                    const numVal = typeof stat.value === 'number' ? stat.value : parseFloat(String(stat.value));
+                    const isPercent = String(stat.value).includes('%');
+                    const status: { label: string; color: string } =
+                        isPercent
+                            ? numVal > 100
+                                ? { label: "Over capacity", color: "text-red-500" }
+                                : numVal > 85
+                                    ? { label: "High load", color: "text-amber-500" }
+                                    : { label: "Healthy", color: "text-emerald-500" }
+                            : numVal === 0
+                                ? { label: "Not configured", color: "text-amber-500" }
+                                : { label: "Configured", color: "text-emerald-500" };
+
+                    // left-border color per card
+                    const borderColor =
+                        stat.color.includes('blue') ? 'border-l-blue-500'
+                        : stat.color.includes('purple') ? 'border-l-purple-500'
+                        : stat.color.includes('teal') ? 'border-l-teal-500'
+                        : stat.color.includes('emerald') ? 'border-l-emerald-500'
+                        : stat.color.includes('amber') ? 'border-l-amber-500'
+                        : 'border-l-red-500';
+
+                    const gradientFrom =
+                        stat.color.includes('blue') ? 'from-blue-50/70 dark:from-blue-900/10'
+                        : stat.color.includes('purple') ? 'from-purple-50/70 dark:from-purple-900/10'
+                        : stat.color.includes('teal') ? 'from-teal-50/70 dark:from-teal-900/10'
+                        : stat.color.includes('emerald') ? 'from-emerald-50/70 dark:from-emerald-900/10'
+                        : stat.color.includes('amber') ? 'from-amber-50/70 dark:from-amber-900/10'
+                        : 'from-red-50/70 dark:from-red-900/10';
+
+                    return (
+                        <Card
+                            key={stat.name}
+                            className={`border-l-4 ${borderColor} bg-white dark:bg-slate-900 bg-gradient-to-br ${gradientFrom} dark:to-slate-900 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-default overflow-hidden`}
+                        >
+                            <CardContent className="p-5">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">{stat.name}</p>
+                                        <h3 className={`text-3xl font-black mt-1.5 leading-none ${stat.color}`}>{stat.value}</h3>
+                                        <p className={`text-[11px] font-medium mt-1.5 flex items-center gap-1 ${status.color}`}>
+                                            {numVal === 0
+                                                ? <><AlertCircle className="w-3 h-3" />{status.label}</>
+                                                : <><CheckCircle2 className="w-3 h-3" />{status.label}</>}
+                                        </p>
+                                    </div>
+                                    <div className={`w-11 h-11 rounded-2xl ${stat.bg} flex items-center justify-center shadow-inner shrink-0`}>
+                                        <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
 
             {/* Constraint Templates — Phase 31 */}
@@ -674,87 +772,125 @@ export default function DashboardOverview() {
             <div className="w-full space-y-4 pb-8">
                 {/* Main Data Ingestion (Full Width) */}
                 <div className="w-full space-y-4">
-                    <Card id="data-ingestion-card" className="border-slate-200/60 dark:border-slate-800/60 shadow-sm h-full">
+                    <Card id="data-ingestion-card" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm h-full">
                         <CardHeader>
                             <CardTitle>Master Data Ingestion</CardTitle>
                             <CardDescription>Upload or modify institutional constraints and capacities.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                <TabsList className="w-full justify-start border-none bg-slate-100/50 dark:bg-slate-900/50 p-1.5 h-auto rounded-xl gap-2 overflow-x-auto no-scrollbar flex-nowrap shrink-0 whitespace-nowrap mb-4">
-                                    <TabsTrigger value="global" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm font-semibold transition-all">
-                                        1. Global Settings
-                                    </TabsTrigger>
-                                    <TabsTrigger value="csv" className="data-[state=active]:bg-emerald-50 dark:data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm font-semibold text-slate-500 hover:text-emerald-600 transition-all flex items-center gap-2">
-                                        <Database className="w-4 h-4" />
-                                        Upload CSV
-                                    </TabsTrigger>
-                                    <TabsTrigger value="rooms" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm font-semibold transition-all">
-                                        2. Rooms
-                                    </TabsTrigger>
-                                    <TabsTrigger value="faculty" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm font-semibold transition-all">
-                                        3. Faculty
-                                    </TabsTrigger>
-                                    <TabsTrigger value="workloads" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm font-semibold transition-all">
-                                        4. Workloads
-                                    </TabsTrigger>
-                                    <TabsTrigger value="demo_data" className="data-[state=active]:bg-teal-50 dark:data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm font-semibold text-slate-500 hover:text-teal-600 transition-all flex items-center gap-2">
-                                        <AlertOctagon className="w-4 h-4" />
-                                        Demo Environment
-
-                                    </TabsTrigger>
+                                {/* ── Startup-grade tab navigation ─────────────────────────── */}
+                                <TabsList className="w-full h-auto p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-x-auto flex-nowrap whitespace-nowrap flex gap-0.5 mb-5">
+                                    {[
+                                        { value: "global", icon: <Settings className="w-3.5 h-3.5" />, label: "Global Settings", activeClass: "data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600" },
+                                        { value: "csv", icon: <UploadCloud className="w-3.5 h-3.5" />, label: "Upload CSV", activeClass: "data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600" },
+                                        { value: "rooms", icon: <Building className="w-3.5 h-3.5" />, label: "Rooms", activeClass: "data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600" },
+                                        { value: "faculty", icon: <Users className="w-3.5 h-3.5" />, label: "Faculty", activeClass: "data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600" },
+                                        { value: "workloads", icon: <BookOpen className="w-3.5 h-3.5" />, label: "Workloads", activeClass: "data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600" },
+                                        { value: "demo_data", icon: <FlaskConical className="w-3.5 h-3.5" />, label: "Demo Environment", activeClass: "data-[state=active]:from-teal-600 data-[state=active]:to-emerald-600" },
+                                    ].map(tab => (
+                                        <TabsTrigger
+                                            key={tab.value}
+                                            value={tab.value}
+                                            className={`
+                                                flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0
+                                                text-slate-500 dark:text-slate-400
+                                                hover:text-slate-700 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60
+                                                data-[state=active]:bg-gradient-to-r ${tab.activeClass}
+                                                data-[state=active]:text-white
+                                                data-[state=active]:shadow-md
+                                            `}
+                                        >
+                                            {tab.icon}
+                                            <span>{tab.label}</span>
+                                        </TabsTrigger>
+                                    ))}
                                 </TabsList>
 
-                                <TabsContent value="global" className="pt-6">
-                                    <InstitutionForm onSuccess={() => { toast.success("Global constraints set!"); fetchDashboardStats(); }} />
+                                {/* ── Form content areas — consistent min-height prevents layout jump ── */}
+                                <TabsContent value="global" className="mt-0">
+                                    <div className="min-h-[420px]">
+                                        <InstitutionForm onSuccess={() => { toast.success("Global constraints saved!"); fetchDashboardStats(); }} />
+                                    </div>
                                 </TabsContent>
 
-                                <TabsContent value="csv" className="pt-6">
-                                    <CsvUploadManager onSuccess={() => fetchDashboardStats()} />
+                                <TabsContent value="csv" className="mt-0">
+                                    <div className="min-h-[420px]">
+                                        <CsvUploadManager onSuccess={() => fetchDashboardStats()} />
+                                    </div>
                                 </TabsContent>
 
-                                <TabsContent value="rooms" className="pt-6">
-                                    <SpreadsheetEditor type="rooms" onSuccess={() => { toast.success("Room added!"); fetchDashboardStats(); }}>
-                                        <RoomForm onSuccess={() => { toast.success("Room added successfully!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
-                                    </SpreadsheetEditor>
+                                <TabsContent value="rooms" className="mt-0">
+                                    <div className="min-h-[420px]">
+                                        <SpreadsheetEditor type="rooms" onSuccess={() => { toast.success("Room added!"); fetchDashboardStats(); }}>
+                                            <RoomForm onSuccess={() => { toast.success("Room added!"); fetchDashboardStats(); }} />
+                                        </SpreadsheetEditor>
+                                    </div>
                                 </TabsContent>
 
-                                <TabsContent value="faculty" className="pt-6">
-                                    <SpreadsheetEditor type="faculty" onSuccess={() => { toast.success("Faculty saved!"); fetchDashboardStats(); }}>
-                                        <FacultyForm onSuccess={() => { toast.success("Faculty settings saved!", { description: "Check the top dashboard stats to verify." }); fetchDashboardStats(); }} />
-                                    </SpreadsheetEditor>
+                                <TabsContent value="faculty" className="mt-0">
+                                    <div className="min-h-[420px]">
+                                        <SpreadsheetEditor type="faculty" onSuccess={() => { toast.success("Faculty saved!"); fetchDashboardStats(); }}>
+                                            <FacultyForm onSuccess={() => { toast.success("Faculty settings saved!"); fetchDashboardStats(); }} />
+                                        </SpreadsheetEditor>
+                                    </div>
                                 </TabsContent>
 
-                                <TabsContent value="workloads" className="pt-6">
-                                    <SpreadsheetEditor type="workloads" onSuccess={() => { toast.success("Workload saved!"); fetchDashboardStats(); }}>
-                                        <WorkloadForm onSuccess={() => { toast.success("Workload mapped successfully!"); fetchDashboardStats(); }} />
-                                    </SpreadsheetEditor>
+                                <TabsContent value="workloads" className="mt-0">
+                                    <div className="min-h-[420px]">
+                                        <SpreadsheetEditor type="workloads" onSuccess={() => { toast.success("Workload saved!"); fetchDashboardStats(); }}>
+                                            <WorkloadForm onSuccess={() => { toast.success("Workload mapped successfully!"); fetchDashboardStats(); }} />
+                                        </SpreadsheetEditor>
+                                    </div>
                                 </TabsContent>
 
-                                <TabsContent value="demo_data" className="pt-6">
-                                    <div className="flex flex-col space-y-2">
-                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-                                            Import Pre-configured Demo Environment
-                                        </label>
-                                        <p className="text-xs text-slate-500 mb-2">
-                                            To easily test the AI System, you can inject this pre-written block of constraints describing a complex &quot;Computer Science&quot; schedule directly into the blank Database.
-                                            Press <strong className="text-teal-600">Step 1</strong> below, and then press the large <strong>Generate Smart Timetable</strong> button on the right!
-                                        </p>
+                                <TabsContent value="demo_data" className="mt-0">
+                                    <div className="min-h-[420px] rounded-xl border border-teal-200 dark:border-teal-800/40 bg-teal-50/30 dark:bg-teal-900/5 p-5 flex flex-col gap-4">
+                                        {/* Header */}
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-9 h-9 rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                                                <FlaskConical className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                                                    Demo Environment
+                                                    <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                                                </h3>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                    Inject a pre-built Computer Science schedule into the database, then click <span className="font-semibold text-teal-600 dark:text-teal-400">Generate Timetable</span> above to test the solver instantly.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* JSON editor */}
                                         <textarea
                                             value={jsonPayload}
                                             onChange={(e) => setJsonPayload(e.target.value)}
-                                            className="w-full h-80 p-4 font-mono text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-inner"
+                                            className="flex-1 w-full min-h-[280px] p-4 font-mono text-xs rounded-xl border-2 border-teal-200 dark:border-teal-800/50 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-inner resize-y"
                                             spellCheck="false"
+                                            placeholder="Paste your JSON configuration here..."
                                         />
-                                        <Button
-                                            onClick={seedDatabase}
-                                            disabled={isSeeding || isClearing}
-                                            className="w-full mt-4 bg-teal-600 hover:bg-teal-700 text-white"
-                                        >
-                                            <Database className="w-4 h-4 mr-2" />
-                                            {isSeeding ? "Importing to SQL..." : "Step 1: Save Demo Configuration to Database"}
-                                        </Button>
+
+                                        {/* Actions */}
+                                        <div className="flex gap-3">
+                                            <Button
+                                                onClick={seedDatabase}
+                                                disabled={isSeeding || isClearing}
+                                                className="flex-1 h-10 bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-500/20 rounded-xl text-sm font-semibold"
+                                            >
+                                                {isSeeding
+                                                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Importing...</>
+                                                    : <><Database className="w-4 h-4 mr-2" />Save to Database</>}
+                                            </Button>
+                                            <Button
+                                                onClick={clearDatabase}
+                                                disabled={isSeeding || isClearing}
+                                                variant="outline"
+                                                className="h-10 px-4 border-red-200 dark:border-red-900/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-sm"
+                                            >
+                                                {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertOctagon className="w-4 h-4" />}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </TabsContent>
                             </Tabs>
@@ -788,6 +924,35 @@ export default function DashboardOverview() {
                 }}
             />
 
+
+            <SolverConsoleModal 
+                isOpen={isSolverModalOpen} 
+                onClose={() => { setIsSolverModalOpen(false); fetchDashboardStats(); }} 
+                payload={currentPayload} 
+                onRoutingRequest={(tab) => {
+                    setIsSolverModalOpen(false);
+                    const tabMap: Record<string, string> = {
+                        rooms: "rooms",
+                        faculty: "faculty",
+                        workloads: "workloads",
+                        global: "global",
+                    };
+                    const mapped = tabMap[tab.toLowerCase()];
+                    if (mapped) {
+                        setActiveTab(mapped);
+                        document.getElementById("data-ingestion-card")?.scrollIntoView({ behavior: "smooth" });
+                    } else {
+                        router.push("/dashboard/manage");
+                    }
+                }}
+                onLogsComplete={(logs, score) => {
+                    setLastRunLogs(logs);
+                    setLastRunScore(score);
+                    setShowAllLogs(false);
+                    setLastGenerationDate(new Date().toLocaleString());
+                }}
+                onSuccess={() => { fetchDashboardStats(); router.push('/dashboard/timetable'); }}
+            />
         </div>
     );
 }
