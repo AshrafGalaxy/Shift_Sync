@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu, ChevronRight } from "lucide-react";
 
 import { createClient } from "@/utils/supabase/client";
 
@@ -93,14 +93,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <Menu className="w-4 h-4" />
                         </Button>
 
-                        {/* Page title area (replaces the search bar) */}
-                        <div className="hidden md:flex flex-col justify-center min-w-0">
-                            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 leading-tight truncate">
+                        {/* Breadcrumb navigation */}
+                        <div className="hidden md:flex items-center gap-1.5 min-w-0">
+                            <Link
+                                href="/dashboard"
+                                className="text-sm font-semibold text-slate-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors shrink-0"
+                            >
+                                ShiftSync
+                            </Link>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-700 shrink-0" />
+                            <span className="text-sm font-semibold text-slate-900 dark:text-slate-50 truncate">
                                 {pageMeta.title}
-                            </h2>
-                            <p className="text-xs text-slate-400 dark:text-slate-500 leading-tight truncate">
-                                {pageMeta.sub}
-                            </p>
+                            </span>
                         </div>
                     </div>
 
