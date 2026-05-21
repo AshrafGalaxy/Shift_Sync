@@ -126,7 +126,6 @@ export function Sidebar({ isOpen, onToggle, institutionName = "ShiftSync", userE
                             <Link
                                 key={link.name}
                                 href={link.href}
-                                onClick={() => onToggle(false)}
                             >
                                 <motion.div
                                     whileHover={{ x: 4 }}
