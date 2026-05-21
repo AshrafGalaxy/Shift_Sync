@@ -124,30 +124,56 @@
   }
 }
 
-/* 
- * Premium Thin Custom Scrollbar 
- * Targeted for tight spaces like Timetable Cards and Sidebars
- */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+/* ─────────────────────────────────────────────────────────────
+ * Global Thin Scrollbar — applied to ALL scrollable elements
+ * 3px track, violet-tinted thumb, transparent track
+ * ───────────────────────────────────────────────────────────── */
+
+/* Light mode — all elements */
+*::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: oklch(0.8 0 0); /* subtle slate */
-  border-radius: 4px;
+*::-webkit-scrollbar-thumb {
+  background: oklch(0.75 0.05 280); /* slate-violet tint */
+  border-radius: 100px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.6 0 0); /* darker on hover */
+*::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.55 0.12 280); /* violet on hover */
 }
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: oklch(0.4 0 0); /* darker slate for dark mode */
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.5 0 0);
+
+/* Dark mode — all elements */
+.dark *::-webkit-scrollbar-track {
+  background: transparent;
 }
+.dark *::-webkit-scrollbar-thumb {
+  background: oklch(0.35 0.06 280); /* muted violet for dark */
+  border-radius: 100px;
+}
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0.14 280); /* brighter violet on hover in dark */
+}
+
+/* Firefox — thin scrollbar everywhere */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.75 0.05 280) transparent;
+}
+.dark * {
+  scrollbar-color: oklch(0.35 0.06 280) transparent;
+}
+
+/* Utility class still available for explicit use */
+.custom-scrollbar::-webkit-scrollbar { width: 3px; height: 3px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: oklch(0.75 0.05 280); border-radius: 100px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: oklch(0.35 0.06 280); }
 
 /* Premium Dashboard Loading Animation */
 @keyframes gradient {
