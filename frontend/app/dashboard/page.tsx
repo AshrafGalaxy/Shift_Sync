@@ -117,7 +117,7 @@ export default function DashboardOverview() {
             "time_slots": [
                 8, 9, 10, 11, 12, 13, 14, 15
             ],
-            "lunch_slot": 13,
+            "lunch_slot": { "Mon": 13, "Tue": 13, "Wed": 13, "Thu": 13, "Fri": 13 },
             "max_continuous_lectures": 2,
             "custom_rules": []
         },
@@ -413,15 +413,12 @@ export default function DashboardOverview() {
             const instId = profile?.institution_id;
 
             if (instId) {
+                // Delete all rooms for this institution
                 await supabase.from("rooms").delete().eq("institution_id", instId);
-            }
-
-            const { data: faculties } = await supabase.from("faculty_settings").select("id").eq("profile_id", user.id);
-            if (faculties && faculties.length > 0) {
-                for (const f of faculties) {
-                    await supabase.from("workloads").delete().eq("faculty_id", f.id);
-                }
-                await supabase.from("faculty_settings").delete().eq("profile_id", user.id);
+                // Delete all workloads for this institution
+                await supabase.from("workloads").delete().eq("institution_id", instId);
+                // Delete all faculty for this institution (covers CSV-imported faculty with no profile_id)
+                await supabase.from("faculty_settings").delete().eq("institution_id", instId);
             }
 
             toast.success("Database cleared successfully", { description: "All testing records have been erased." });
@@ -554,20 +551,17 @@ export default function DashboardOverview() {
             if (!instId) throw new Error("No institution data seeded yet! Run Seed Database first.");
 
             const { data: inst } = await supabase.from("institutions").select("*").eq("id", instId).single();
-            const { data: rooms } = await supabase.from("rooms").select("*").eq("institution_id", instId);
+            const { data: rooms } = await supabase.from("rooms").select("*").eq("institution_id", instId).eq("is_archived", false);
 
-            // Fetch ALL faculty linked to this user's simulated environment
-            const { data: facSettings } = await supabase.from("faculty_settings").select("*").eq("profile_id", user.id);
+            // Fetch ALL faculty for this institution (not just profile_id — CSV imports have no profile_id)
+            const { data: facSettings } = await supabase.from("faculty_settings").select("*").eq("institution_id", instId).eq("is_archived", false);
             if (!facSettings || facSettings.length === 0) throw new Error("No Faculty Configuration found! Please complete the 'Faculty' tab setup before generating.");
 
             // Build dynamic payload mapping all faculties
             const mappedFaculties = await Promise.all(facSettings.map(async (facSetting) => {
                 const { data: workloads } = await supabase.from("workloads").select("*").eq("faculty_id", facSetting.id);
-                // Resolve real faculty name from _csv_id metadata if present
-                let realName = `Faculty ${facSetting.id.slice(0, 4)}`;
-                if (facSetting.blocked_slots?.length > 0 && facSetting.blocked_slots[0]._csv_id) {
-                    realName = facSetting.blocked_slots[0]._csv_id;
-                }
+                // Use stored name directly; fall back to id slice only if blank
+                const realName = facSetting.name || `Faculty ${facSetting.id.slice(0, 4)}`;
                 return {
                     id: facSetting.id.slice(0, 8),
                     name: realName,
@@ -638,7 +632,8 @@ export default function DashboardOverview() {
 
             setGenerationStep(1); // Calling API
 
-            const response = await fetch("http://localhost:8000/api/v1/generate", {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const response = await fetch(`${apiUrl}/api/v1/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(dynamicPayload)
@@ -648,8 +643,11 @@ export default function DashboardOverview() {
                 const errorData = await response.json();
                 const errorMsg = JSON.stringify(errorData.detail || errorData);
 
-                // If the backend returned a structured diagnosis, show the ConflictRefiner
-                if (errorData.diagnosis) {
+                // FastAPI wraps the body in { detail: {...} } — diagnosis lives inside .detail
+                if (errorData.detail?.diagnosis) {
+                    setConflictDiagnosis(errorData.detail.diagnosis);
+                } else if (errorData.diagnosis) {
+                    // Fallback for non-FastAPI wrappers
                     setConflictDiagnosis(errorData.diagnosis);
                 }
 
