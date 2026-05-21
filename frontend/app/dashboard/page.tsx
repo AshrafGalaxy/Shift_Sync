@@ -558,11 +558,17 @@ export default function DashboardOverview() {
             // Build dynamic payload mapping all faculties
             const mappedFaculties = await Promise.all(facSettings.map(async (facSetting) => {
                 const { data: workloads } = await supabase.from("workloads").select("*").eq("faculty_id", facSetting.id);
+                // Resolve real faculty name from _csv_id metadata if present
+                let realName = `Faculty ${facSetting.id.slice(0, 4)}`;
+                if (facSetting.blocked_slots?.length > 0 && facSetting.blocked_slots[0]._csv_id) {
+                    realName = facSetting.blocked_slots[0]._csv_id;
+                }
                 return {
                     id: facSetting.id.slice(0, 8),
-                    name: `Faculty ${facSetting.id.slice(0, 4)}`, // Temporarily use ID mapping
-                    shift: facSetting.shift_hours,
+                    name: realName,
+                    shift: (!facSetting.shift_hours || facSetting.shift_hours.length === 0) ? (inst?.time_slots || []) : facSetting.shift_hours,
                     max_load_hrs: facSetting.max_load_hrs,
+                    max_continuous_hrs: facSetting.max_continuous_hrs || 3,
                     blocked_slots: (facSetting.blocked_slots || []).filter((s: any) => s.day && s.time !== undefined),
                     class_teacher_for: facSetting.class_teacher_for,
                     workload: workloads?.map(w => ({
@@ -572,7 +578,8 @@ export default function DashboardOverview() {
                         target_groups: w.target_groups,
                         hours: w.weekly_hours,
                         consecutive_hours: w.consecutive_hours,
-                        required_tags: w.required_tags
+                        required_tags: w.required_tags,
+                        is_online: w.is_online || false
                     })) || []
                 };
             }));
@@ -600,13 +607,22 @@ export default function DashboardOverview() {
                 }
             }
 
+            // Build per-day lunch_slot map — backend schema requires Dict[str, int]
+            const lunchMap: Record<string, number> = {};
+            if (inst && typeof inst.lunch_slot === 'object' && inst.lunch_slot !== null && !Array.isArray(inst.lunch_slot)) {
+                Object.assign(lunchMap, inst.lunch_slot);
+            } else {
+                (inst?.days_active || []).forEach((day: string) => {
+                    lunchMap[day] = typeof inst?.lunch_slot === 'number' ? inst.lunch_slot : 13;
+                });
+            }
+
             // Construct the Python Engine Payload dynamically from SQL Result!
             const dynamicPayload = {
                 college_settings: {
                     days_active: inst.days_active,
                     time_slots: inst.time_slots,
-                    lunch_slot: inst.lunch_slot,
-                    max_continuous_lectures: inst.max_continuous_lectures,
+                    lunch_slot: lunchMap,
                     custom_rules: customRules
                 },
                 rooms_config: {
