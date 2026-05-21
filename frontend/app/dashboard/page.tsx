@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, FileText, CheckCircle2, Clock, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download, Settings, UploadCloud, FlaskConical, BookOpen, ChevronRight, BarChart3, AlertCircle } from "lucide-react";
+import { Play, FileText, CheckCircle2, Clock, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download, Settings, UploadCloud, FlaskConical, BookOpen, ChevronRight, BarChart3, AlertCircle, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 
 import { createClient } from "@/utils/supabase/client";
@@ -666,6 +666,18 @@ export default function DashboardOverview() {
                                                 className="w-full py-1.5 text-[10px] font-mono text-slate-600 hover:text-slate-400 hover:bg-slate-900/60 transition-colors border-t border-slate-800"
                                             >
                                                 {showAllLogs ? '▲ Collapse' : `▼ Show all ${lastRunLogs.length} lines`}
+                                            </button>
+                                        )}
+
+                                        {/* View in History shortcut */}
+                                        {!isLiveStreaming && lastRunLogs.length > 0 && (
+                                            <button
+                                                onClick={() => router.push('/dashboard/history')}
+                                                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-mono text-violet-500 hover:text-violet-400 hover:bg-violet-950/30 transition-colors border-t border-slate-800"
+                                            >
+                                                <ScrollText className="w-3 h-3" />
+                                                View Full Logs in Generation History
+                                                <ChevronRight className="w-3 h-3" />
                                             </button>
                                         )}
                                     </div>
