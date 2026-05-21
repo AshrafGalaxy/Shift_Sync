@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, BookOpen, Wifi } from "lucide-react";
+import { Loader2, BookOpen, Wifi, Filter } from "lucide-react";
 
 interface WorkloadGridProps {
     data: Workload[];
@@ -20,7 +20,13 @@ interface WorkloadGridProps {
 export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) {
     const [editingWorkload, setEditingWorkload] = useState<Workload | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [typeFilter, setTypeFilter] = useState<string>("All");
     const supabase = createClient();
+
+    const TYPE_FILTERS = ["All", "Theory", "Practical", "Tutorial"];
+    const filteredData = typeFilter === "All" ? data : data.filter(w =>
+        typeFilter === "Online" ? w.is_online : w.type === typeFilter
+    );
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase.from("workloads").delete().eq("id", id);
@@ -149,13 +155,38 @@ export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) 
 
     return (
         <>
+            {/* Type filter pills */}
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                {TYPE_FILTERS.map(f => (
+                    <button
+                        key={f}
+                        onClick={() => setTypeFilter(f)}
+                        className={`text-xs px-3 py-1 rounded-full border font-medium transition-all ${
+                            typeFilter === f
+                                ? "bg-violet-600 border-violet-600 text-white shadow-sm shadow-violet-500/20"
+                                : "border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400"
+                        }`}
+                    >
+                        {f}
+                        {f !== "All" && (
+                            <span className="ml-1.5 opacity-60">
+                                ({f === "Online" ? data.filter(w => w.is_online).length : data.filter(w => w.type === f).length})
+                            </span>
+                        )}
+                    </button>
+                ))}
+                {typeFilter !== "All" && (
+                    <span className="text-[10px] text-slate-400 ml-1">Showing {filteredData.length} of {data.length}</span>
+                )}
+            </div>
             <DataGrid
-                data={data}
+                data={filteredData}
                 columns={columns}
                 onDelete={handleDelete}
                 onEdit={handleEdit}
                 searchKeys={["subject_code", "type", "faculty_name"] as any}
-                emptyMessage="No workloads configured yet. Add workloads in the Overview tab."
+                emptyMessage="No workloads match this filter."
             />
 
             {/* Edit Modal */}
