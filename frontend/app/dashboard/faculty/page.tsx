@@ -631,11 +631,15 @@ function FacultyPersonalPortal({
             const { data: reqRecord, error: reqErr } = await supabase.from("substitute_requests").insert({
                 institution_id: institutionId,
                 requester_id: profile.id,
-                substitute_id: candidate.profile_id ?? candidate.faculty_id,
+                // substitute_id → profiles.id (null for demo faculty with no auth account)
+                substitute_id: candidate.profile_id ?? null,
+                // substitute_faculty_id → faculty_settings.id (always set — the canonical reference)
+                substitute_faculty_id: candidate.faculty_id,
                 subject_code: selectedSlot.subject, room: selectedSlot.room, day: selectedSlot.day,
                 time_slot: selectedSlot.time_slot, status: "pending",
             }).select().single();
             if (reqErr) throw reqErr;
+
 
             // In-app notification — only if substitute has a real auth profile
             if (candidate.profile_id) {
