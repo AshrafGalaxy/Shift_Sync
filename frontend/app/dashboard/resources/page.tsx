@@ -80,16 +80,16 @@ export default function ResourceHeatmapView() {
                 const facMap: Record<string, { slots: number; maxLoad: number; name: string }> = {};
                 slots.forEach((s: any) => {
                     const key = s.faculty_id ?? s.faculty ?? "Unknown";
-                    if (!facMap[key]) facMap[key] = { name: s.faculty ?? key, slots: 0, maxLoad: 40 };
+                    if (!facMap[key]) facMap[key] = { name: s.faculty_name ?? s.faculty ?? key, slots: 0, maxLoad: 40 };
                     facMap[key].slots++;
                 });
-                // Fetch max loads
-                const { data: facSettings } = await supabase.from("faculty_settings").select("id, max_load_hrs, profiles(full_name)").eq("institution_id", profile.institution_id);
+                // Fetch max loads + real names (name field for CSV faculty, profiles.full_name for registered users)
+                const { data: facSettings } = await supabase.from("faculty_settings").select("id, name, max_load_hrs, profiles(full_name)").eq("institution_id", profile.institution_id);
                 (facSettings ?? []).forEach((f: any) => {
                     const key = f.id;
                     if (facMap[key]) {
                         facMap[key].maxLoad = f.max_load_hrs;
-                        facMap[key].name = f.profiles?.full_name ?? facMap[key].name;
+                        facMap[key].name = f.profiles?.full_name ?? f.name ?? facMap[key].name;
                     }
                 });
                 setFacultyStats(Object.values(facMap).sort((a, b) => b.slots - a.slots));
