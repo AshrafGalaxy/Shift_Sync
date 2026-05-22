@@ -49,6 +49,7 @@ export default function ManagePage() {
     const [rooms, setRooms] = useState<Room[]>([]);
     const [faculty, setFaculty] = useState<Faculty[]>([]);
     const [workloads, setWorkloads] = useState<Workload[]>([]);
+    const [assignedLoadMap, setAssignedLoadMap] = useState<Record<string, number>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [institutionId, setInstitutionId] = useState<string | null>(null);
     const supabase = createClient();
@@ -73,7 +74,7 @@ export default function ManagePage() {
                 supabase.from("rooms").select("*").eq("institution_id", instId).order("name"),
                 supabase
                     .from("faculty_settings")
-                    .select("*, name, profiles(full_name)")
+                    .select("*, name, profiles(full_name, role)")
                     .eq("institution_id", instId)
                     .order("created_at"),
                 supabase
@@ -86,15 +87,40 @@ export default function ManagePage() {
             setFaculty(
                 (facultyRes.data || []).map((f: any) => ({
                     ...f,
-                    full_name: (f.profiles?.full_name) ?? f.name ?? "Unknown",
+                    // Only use profiles.full_name for real registered faculty users; use faculty_settings.name for CSV/demo faculty
+                    full_name: (f.profiles?.role === "faculty" && f.profiles?.full_name)
+                        ? f.profiles.full_name
+                        : (f.name ?? "Unknown"),
                 }))
             );
             setWorkloads(
                 (workloadsRes.data || []).map((w: any) => ({
                     ...w,
-                    faculty_name: w.faculty_settings?.profiles?.full_name ?? w.faculty_settings?.name ?? "Unknown",
+                    faculty_name: (w.faculty_settings?.profiles?.role === "faculty" && w.faculty_settings?.profiles?.full_name)
+                        ? w.faculty_settings.profiles.full_name
+                        : (w.faculty_settings?.name ?? "Unknown"),
                 }))
             );
+
+            // Fetch active timetable for assigned load computation
+            const { data: activeTT } = await supabase
+                .from('generated_timetables')
+                .select('matrix_data')
+                .eq('institution_id', instId)
+                .eq('is_active', true)
+                .maybeSingle();
+
+            // Compute per-faculty slot count from active timetable
+            const computedLoadMap: Record<string, number> = {};
+            if (activeTT?.matrix_data) {
+                const raw = activeTT.matrix_data;
+                const slots: any[] = Array.isArray(raw) ? raw : (raw?.schedule ?? []);
+                slots.forEach((s: any) => {
+                    const fid = s.faculty_id ?? s.faculty ?? null;
+                    if (fid) computedLoadMap[fid] = (computedLoadMap[fid] ?? 0) + 1;
+                });
+            }
+            setAssignedLoadMap(computedLoadMap);
         } catch (err) {
             console.error("Manage page fetch error:", err);
         } finally {
@@ -272,6 +298,7 @@ export default function ManagePage() {
                         data={faculty}
                         onDataChange={fetchAll}
                         workloads={workloads}
+                        assignedLoadMap={assignedLoadMap}
                     />
                 </TabsContent>
 

@@ -441,7 +441,7 @@ export default function DashboardOverview() {
                     .from("faculty_settings")
                     .insert({
                         institution_id: instId,
-                        profile_id: profileId,
+                        profile_id: null, // Demo faculty are not registered auth users — must not inherit admin profile
                         name: f.name || `Faculty ${f.id}`,
                         max_load_hrs: f.max_load_hrs,
                         max_continuous_hrs: f.max_continuous_hrs || 3,

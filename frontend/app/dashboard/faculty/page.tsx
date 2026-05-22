@@ -148,7 +148,7 @@ function AdminFacultyDirectory() {
             // Fetch all faculty for this institution using institution_id directly
             const { data: allFacData } = await supabase
                 .from("faculty_settings")
-                .select("id, name, profile_id, shift_hours, max_load_hrs, class_teacher_for, profiles(id, full_name)")
+                .select("id, name, profile_id, shift_hours, max_load_hrs, class_teacher_for, profiles(id, full_name, role)")
                 .eq("institution_id", profile.institution_id)
                 .eq("is_archived", false);
 
@@ -159,10 +159,14 @@ function AdminFacultyDirectory() {
 
             const enriched: FacultyRecord[] = (allFacData ?? []).map((f: any) => ({
                 ...f,
-                // Prefer linked profile name, fall back to CSV-ingested name field
+                // Only use profiles.full_name if this is a real registered faculty user (role = 'faculty').
+                // For demo/CSV-imported faculty (profile_id is null OR profile role is admin),
+                // always use faculty_settings.name which is the actual CSV name.
                 profiles: {
                     ...(f.profiles ?? {}),
-                    full_name: (f.profiles as any)?.full_name ?? f.name ?? `Faculty ${f.id.slice(0, 6)}`,
+                    full_name: (f.profiles?.role === "faculty" && f.profiles?.full_name)
+                        ? f.profiles.full_name  // Real registered faculty user
+                        : (f.name ?? `Faculty ${f.id.slice(0, 6)}`), // CSV / demo faculty
                 },
                 workload_count: wMap[f.id] || 0,
             }));
@@ -447,6 +451,7 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
     const [facultySetting, setFacultySetting] = useState<{ id: string; shift_hours: number[]; max_load_hrs: number } | null>(null);
     const [allSlots, setAllSlots] = useState<TimetableSlot[]>([]);
     const [todayDay, setTodayDay] = useState("Mon");
+    const [isWeekend, setIsWeekend] = useState(false);
     const [activeTab, setActiveTab] = useState<"today" | "week">("today");
     const [institutionId, setInstitutionId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -471,8 +476,11 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const resolvedDay = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ?? "Mon";
+            const jsDay = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+            const jsIsWeekend = jsDay === 0 || jsDay === 6;
+            const resolvedDay = jsIsWeekend ? "Mon" : (DAYS[jsDay - 1] ?? "Mon");
             setTodayDay(resolvedDay);
+            setIsWeekend(jsIsWeekend);
 
             const { data: prof } = await supabase.from("profiles").select("institution_id").eq("id", profile.id).single();
             if (!prof?.institution_id) return;
@@ -715,20 +723,6 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
                     </div>
                 </div>
                 <div className="flex items-center gap-2 relative z-10 flex-wrap">
-                    {generations.length > 0 && (
-                        <select
-                            className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1.5 text-slate-600 dark:text-slate-400"
-                            value={selectedGenId}
-                            onChange={e => handleGenChange(e.target.value)}
-                        >
-                            {generations.map((g, i) => (
-                                <option key={g.id} value={g.id}>
-                                    {g.is_active ? "● " : ""}{format(new Date(g.created_at), "MMM d · h:mm a")}
-                                    {i === 0 ? " (Latest)" : ""}
-                                </option>
-                            ))}
-                        </select>
-                    )}
                     <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900" onClick={fetchData}>
                         <RefreshCw className="w-4 h-4 mr-1.5" /> Refresh
                     </Button>
@@ -751,6 +745,11 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
 
                         {/* Today tab */}
                         <TabsContent value="today" className="mt-4">
+                            {isWeekend && (
+                                <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 mb-3 flex items-center gap-2">
+                                    <span>Weekend — showing Monday schedule</span>
+                                </div>
+                            )}
                             {todaySlots.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400 bg-white dark:bg-slate-950 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                                     <BookOpen className="w-10 h-10 mb-3 text-slate-300" />
