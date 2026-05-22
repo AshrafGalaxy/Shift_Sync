@@ -20,6 +20,7 @@ import { format } from "date-fns";
 // ── Types ──────────────────────────────────────────────────────────────
 interface TimetableSlot {
     faculty_id: string;
+    faculty_name?: string;
     workload_id: string;
     subject: string;
     room: string;
@@ -32,7 +33,8 @@ interface TimetableSlot {
 }
 
 interface SubstituteCandidate {
-    faculty_id: string;
+    faculty_id: string;  // faculty_settings.id (DB UUID)
+    profile_id?: string | null; // profiles.id — null for demo/CSV faculty
     name: string;
     email: string;
     current_load: number;
@@ -526,7 +528,9 @@ function FacultyPersonalPortal({
             const activeGen = (gens ?? []).find((g: any) => g.is_active) ?? (gens ?? [])[0];
             if (activeGen && fac?.id) {
                 setSelectedGenId(activeGen.id);
-                await loadSlots(activeGen.id, fac.id);
+                // Pass faculty name for fallback matching (solver uses shortcode, not UUID)
+                const displayName = overrideName ?? undefined;
+                await loadSlots(activeGen.id, fac.id, displayName);
             }
 
             // Inbound substitute requests
@@ -546,15 +550,25 @@ function FacultyPersonalPortal({
         }
     }, [supabase, profile.id]);
 
-    const loadSlots = async (genId: string, facId: string) => {
+    const loadSlots = async (genId: string, facId: string, facName?: string) => {
         const { data } = await supabase.from("generated_timetables").select("matrix_data").eq("id", genId).single();
-        const slots = extractSlots(data?.matrix_data).filter(s => s.faculty_id === facId);
+        const allExtracted = extractSlots(data?.matrix_data);
+
+        // The solver stores faculty_id as the payload shortcode (e.g. "F001"),
+        // NOT the DB UUID. Match by UUID first; if nothing found, fall back to
+        // matching by faculty_name (which is set from the preset's f.name field).
+        let slots = allExtracted.filter(s => s.faculty_id === facId);
+        if (slots.length === 0 && facName) {
+            slots = allExtracted.filter(
+                s => (s.faculty_name ?? "").toLowerCase().trim() === facName.toLowerCase().trim()
+            );
+        }
         setAllSlots(slots);
     };
 
     const handleGenChange = async (genId: string) => {
         setSelectedGenId(genId);
-        if (facultySetting?.id) await loadSlots(genId, facultySetting.id);
+        if (facultySetting?.id) await loadSlots(genId, facultySetting.id, overrideName);
     };
 
     useEffect(() => { fetchData(); }, [fetchData]);
@@ -570,17 +584,38 @@ function FacultyPersonalPortal({
     const todaySlots = allSlots.filter(s => s.day === todayDay).sort((a, b) => a.time_slot - b.time_slot);
 
     const findSubstitutes = async () => {
-        if (!selectedSlot) return;
+        if (!selectedSlot || !institutionId) return;
         setIsSearchingSub(true);
         try {
-            const { data: allFac } = await supabase.from("faculty_settings").select("id, name, shift_hours, max_load_hrs, profiles(id, full_name, email)").neq("id", facultySetting?.id ?? "");
-            const candidates = (allFac ?? []).filter((f: any) => (f.shift_hours as number[]).includes(selectedSlot.time_slot)).map((f: any) => ({
-                faculty_id: f.id,
-                name: f.profiles?.full_name ?? f.name ?? "Unknown Faculty",
+            // Fetch all non-archived faculty in the SAME institution, excluding self
+            const { data: allFac } = await supabase
+                .from("faculty_settings")
+                .select("id, name, shift_hours, max_load_hrs, profiles(id, full_name, email)")
+                .eq("institution_id", institutionId)
+                .eq("is_archived", false)
+                .neq("id", facultySetting?.id ?? "");
+
+            const candidates = (allFac ?? []).filter((f: any) => {
+                const hours: number[] = f.shift_hours ?? [];
+                // Check if faculty is available at the requested time slot
+                return hours.includes(Number(selectedSlot.time_slot));
+            }).map((f: any) => ({
+                faculty_id: f.id, // DB UUID (faculty_settings.id)
+                name: (f.profiles?.role === "faculty" && f.profiles?.full_name)
+                    ? f.profiles.full_name
+                    : (f.name ?? "Unknown Faculty"),
+                // Demo faculty have no profile → use placeholder email for display
                 email: f.profiles?.email ?? "",
+                profile_id: f.profiles?.id ?? null, // may be null for demo/CSV faculty
                 current_load: f.max_load_hrs ?? 0,
                 status: "Available & On Shift",
             }));
+
+            if (candidates.length === 0) {
+                toast.info("No substitutes available", {
+                    description: `No other faculty are scheduled during ${selectedSlot.day} at ${formatTime(selectedSlot.time_slot)}.`
+                });
+            }
             setSubstitutes(candidates);
         } catch (err: any) {
             toast.error("Could not load substitutes: " + err?.message);
@@ -594,20 +629,25 @@ function FacultyPersonalPortal({
         setSendingRequestTo(candidate.faculty_id);
         try {
             const { data: reqRecord, error: reqErr } = await supabase.from("substitute_requests").insert({
-                institution_id: institutionId, requester_id: profile.id, substitute_id: candidate.faculty_id,
-                subject_code: selectedSlot.subject, room: selectedSlot.room, day: selectedSlot.day, time_slot: selectedSlot.time_slot, status: "pending",
+                institution_id: institutionId,
+                requester_id: profile.id,
+                substitute_id: candidate.profile_id ?? candidate.faculty_id,
+                subject_code: selectedSlot.subject, room: selectedSlot.room, day: selectedSlot.day,
+                time_slot: selectedSlot.time_slot, status: "pending",
             }).select().single();
             if (reqErr) throw reqErr;
 
-            // In-app notification
-            const { data: facData } = await supabase.from("faculty_settings").select("profile_id").eq("id", candidate.faculty_id).single();
-            if (facData?.profile_id) {
+            // In-app notification — only if substitute has a real auth profile
+            if (candidate.profile_id) {
                 await supabase.from("notifications").insert({
-                    recipient_id: facData.profile_id, sender_id: profile.id, type: "substitute_request",
-                    message: `${profile.full_name} is requesting you to substitute for "${selectedSlot.subject}" on ${selectedSlot.day} at ${formatTime(selectedSlot.time_slot)}.`,
+                    recipient_id: candidate.profile_id, sender_id: profile.id, type: "substitute_request",
+                    message: `${overrideName ?? profile.full_name} is requesting you to substitute for "${selectedSlot.subject}" on ${selectedSlot.day} at ${formatTime(selectedSlot.time_slot)}.`,
                     metadata: { request_id: reqRecord.id, subject_code: selectedSlot.subject, room: selectedSlot.room, day: selectedSlot.day, time_slot: selectedSlot.time_slot }, is_read: false,
                 });
+            } else {
+                toast.info(`Note: ${candidate.name} has no app account — in-app notification skipped.`, { duration: 3000 });
             }
+
 
             // Email notification to the substitute candidate
             if (candidate.email) {
