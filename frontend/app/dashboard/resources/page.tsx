@@ -24,6 +24,7 @@ export default function ResourceHeatmapView() {
     const [matrices, setMatrices] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedDay, setSelectedDay] = useState("Mon");
+    const [lunchSlot, setLunchSlot] = useState<number>(13);
 
     const [facultyStats, setFacultyStats] = useState<{name: string; slots: number; maxLoad: number}[]>([]);
     const [days, setDays] = useState<string[]>(["Mon","Tue","Wed","Thu","Fri"]);
@@ -39,6 +40,12 @@ export default function ResourceHeatmapView() {
 
                 const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
                 if (!profile?.institution_id) throw new Error("No institution");
+
+                // Fetch institution lunch slot setting
+                const { data: inst } = await supabase.from("institutions").select("lunch_slot").eq("id", profile.institution_id).single();
+                if (inst?.lunch_slot != null) {
+                    setLunchSlot(typeof inst.lunch_slot === "object" ? (Object.values(inst.lunch_slot)[0] as number) : inst.lunch_slot);
+                }
 
                 // Fetch physical rooms
                 const { data: dbRooms } = await supabase.from("rooms").select("*").eq("institution_id", profile.institution_id);
@@ -80,7 +87,7 @@ export default function ResourceHeatmapView() {
                 const facMap: Record<string, { slots: number; maxLoad: number; name: string }> = {};
                 slots.forEach((s: any) => {
                     const key = s.faculty_id ?? s.faculty ?? "Unknown";
-                    if (!facMap[key]) facMap[key] = { name: s.faculty_name ?? s.faculty ?? key, slots: 0, maxLoad: 40 };
+                    if (!facMap[key]) facMap[key] = { name: s.faculty_name ?? s.faculty ?? key, slots: 0, maxLoad: 0 };
                     facMap[key].slots++;
                 });
                 // Fetch max loads + real names (name field for CSV faculty, profiles.full_name for registered users)
@@ -88,8 +95,16 @@ export default function ResourceHeatmapView() {
                 (facSettings ?? []).forEach((f: any) => {
                     const key = f.id;
                     if (facMap[key]) {
-                        facMap[key].maxLoad = f.max_load_hrs;
+                        facMap[key].maxLoad = f.max_load_hrs ?? 0;
                         facMap[key].name = f.profiles?.full_name ?? f.name ?? facMap[key].name;
+                    }
+                });
+                // Secondary pass: match unresolved entries (maxLoad still 0) by faculty_settings.name
+                (facSettings ?? []).forEach((f: any) => {
+                    const nameKey = Object.keys(facMap).find(k => facMap[k].name === (f.name ?? ""));
+                    if (nameKey && facMap[nameKey].maxLoad === 0) {
+                        facMap[nameKey].maxLoad = f.max_load_hrs ?? 0;
+                        facMap[nameKey].name = f.profiles?.full_name ?? f.name ?? facMap[nameKey].name;
                     }
                 });
                 setFacultyStats(Object.values(facMap).sort((a, b) => b.slots - a.slots));
@@ -105,7 +120,7 @@ export default function ResourceHeatmapView() {
     }, []);
 
     const getStatus = (roomId: string, timeIndex: number) => {
-        if (timeIndex === 13) return "lunch";
+        if (timeIndex === lunchSlot) return "lunch";
 
         // Find if any class is scheduled in this room at this specific time AND selected day
         // Backend uses `time_slot` (not `slot`) — match exactly
@@ -120,7 +135,7 @@ export default function ResourceHeatmapView() {
     const filteredRooms = rooms.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Analytics Calculation for Legend
-    const workingTimes = TIMES.filter(t => t !== 13);
+    const workingTimes = TIMES.filter(t => t !== lunchSlot);
     const totalSlots = filteredRooms.length * workingTimes.length;
     let occupiedCount = 0;
 
@@ -345,16 +360,22 @@ export default function ResourceHeatmapView() {
                             </CardHeader>
                             <CardContent className="space-y-3 pt-0">
                                 {facultyStats.slice(0, 8).map((f, i) => {
-                                    const pct = Math.min(100, Math.round((f.slots / Math.max(f.maxLoad, 1)) * 100));
+                                    const pct = f.maxLoad > 0 ? Math.min(100, Math.round((f.slots / f.maxLoad) * 100)) : null;
                                     return (
                                         <div key={i}>
                                             <div className="flex justify-between text-[11px] mb-1">
                                                 <span className="text-slate-700 dark:text-slate-300 truncate max-w-[120px]" title={f.name}>{f.name}</span>
-                                                <span className={`font-semibold shrink-0 ${pct >= 90 ? "text-red-500" : pct >= 70 ? "text-amber-500" : "text-emerald-500"}`}>{f.slots}/{f.maxLoad}h</span>
+                                                <span className={`font-semibold shrink-0 ${pct == null ? "text-slate-400" : pct >= 90 ? "text-red-500" : pct >= 70 ? "text-amber-500" : "text-emerald-500"}`}>
+                                                    {pct == null ? `${f.slots}h / —` : `${f.slots}/${f.maxLoad}h`}
+                                                </span>
                                             </div>
-                                            <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                <div className={`h-full rounded-full transition-all ${pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
-                                            </div>
+                                            {pct != null ? (
+                                                <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className={`h-full rounded-full transition-all ${pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
+                                                </div>
+                                            ) : (
+                                                <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full" />
+                                            )}
                                         </div>
                                     );
                                 })}

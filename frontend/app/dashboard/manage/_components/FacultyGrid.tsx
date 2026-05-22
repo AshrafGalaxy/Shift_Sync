@@ -16,9 +16,10 @@ interface FacultyGridProps {
     data: Faculty[];
     onDataChange: () => void;
     workloads?: { faculty_id: string; weekly_hours: number }[];
+    assignedLoadMap?: Record<string, number>;
 }
 
-export default function FacultyGrid({ data, onDataChange, workloads = [] }: FacultyGridProps) {
+export default function FacultyGrid({ data, onDataChange, workloads = [], assignedLoadMap }: FacultyGridProps) {
     const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [archivingId, setArchivingId] = useState<string | null>(null);
@@ -123,19 +124,28 @@ export default function FacultyGrid({ data, onDataChange, workloads = [] }: Facu
         },
         {
             key: "load",
-            header: "Load",
+            header: "Assigned Load",
             render: (f: Faculty) => {
-                const assigned = assignedMap[f.id] || 0;
-                const max = f.max_load_hrs || 1;
-                const pct = Math.min(100, Math.round((assigned / max) * 100));
-                const color = pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-emerald-500";
-                const textColor = pct >= 100 ? "text-red-600 dark:text-red-400" : pct >= 80 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+                // Prefer real timetable slot counts; fall back to workload weekly_hours
+                const hasTimetableData = assignedLoadMap !== undefined;
+                const assigned = hasTimetableData
+                    ? (assignedLoadMap?.[f.id] ?? 0)
+                    : (assignedMap[f.id] || 0);
+                const max = f.max_load_hrs ?? 0;
+                const pct = max > 0 ? Math.min(100, Math.round((assigned / max) * 100)) : 0;
+
+                if (hasTimetableData && assigned === 0 && Object.keys(assignedLoadMap ?? {}).length === 0) {
+                    return <span className="text-xs text-slate-400">No timetable</span>;
+                }
+
+                const color = pct > 90 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : "bg-emerald-500";
+                const textColor = pct > 90 ? "text-red-600 dark:text-red-400" : pct > 70 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
                 return (
-                    <div className="w-28 space-y-1">
-                        <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+                    <div className="flex flex-col gap-1 min-w-[80px]">
+                        <span className={`text-xs font-semibold ${textColor}`}>{assigned} / {max} hrs</span>
+                        <div className="h-1 rounded-full bg-slate-200 dark:bg-slate-700">
+                            <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
                         </div>
-                        <p className={`text-[10px] font-mono font-semibold ${textColor}`}>{assigned}/{max} hrs</p>
                     </div>
                 );
             },
