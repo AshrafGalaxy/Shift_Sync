@@ -99,7 +99,14 @@ function shiftRange(hours: number[]) {
 function extractSlots(matrixData: any): TimetableSlot[] {
     if (!matrixData) return [];
     const raw = Array.isArray(matrixData) ? matrixData : (matrixData?.schedule ?? Object.values(matrixData ?? {}));
-    return Array.isArray(raw) ? raw : [];
+    if (!Array.isArray(raw)) return [];
+    // Normalise field names from solver output
+    return raw.map((s: any) => ({
+        ...s,
+        target_groups: Array.isArray(s.target_groups) ? s.target_groups
+            : Array.isArray(s.targets) ? s.targets
+            : [],
+    }));
 }
 
 // ── Slot type colour ────────────────────────────────────────────────────
@@ -138,36 +145,25 @@ function AdminFacultyDirectory() {
             const { data: profile } = await supabase.from("profiles").select("institution_id").eq("id", user.id).single();
             if (!profile?.institution_id) return;
 
-            // Fetch all faculty with their profile names
-            const { data: facData } = await supabase
-                .from("faculty_settings")
-                .select("id, profile_id, shift_hours, max_load_hrs, class_teacher_for, profiles(id, full_name)")
-                .eq("profile_id", user.id) // scoped to institution via profile
-                ;
-
-            // Fetch workload counts
-            const { data: workloadData } = await supabase
-                .from("workloads")
-                .select("faculty_id");
-
-            // Fetch all faculty for this institution by matching profiles
-            const { data: institutionProfiles } = await supabase
-                .from("profiles")
-                .select("id")
-                .eq("institution_id", profile.institution_id);
-
-            const profileIds = (institutionProfiles ?? []).map((p: any) => p.id);
-
+            // Fetch all faculty for this institution using institution_id directly
             const { data: allFacData } = await supabase
                 .from("faculty_settings")
-                .select("id, profile_id, shift_hours, max_load_hrs, class_teacher_for, profiles(id, full_name)")
-                .in("profile_id", profileIds);
+                .select("id, name, profile_id, shift_hours, max_load_hrs, class_teacher_for, profiles(id, full_name)")
+                .eq("institution_id", profile.institution_id)
+                .eq("is_archived", false);
+
+            const { data: workloadData } = await supabase.from("workloads").select("faculty_id");
 
             const wMap: Record<string, number> = {};
             (workloadData ?? []).forEach((w: any) => { wMap[w.faculty_id] = (wMap[w.faculty_id] || 0) + 1; });
 
             const enriched: FacultyRecord[] = (allFacData ?? []).map((f: any) => ({
                 ...f,
+                // Prefer linked profile name, fall back to CSV-ingested name field
+                profiles: {
+                    ...(f.profiles ?? {}),
+                    full_name: (f.profiles as any)?.full_name ?? f.name ?? `Faculty ${f.id.slice(0, 6)}`,
+                },
                 workload_count: wMap[f.id] || 0,
             }));
             setFaculty(enriched);
@@ -210,7 +206,7 @@ function AdminFacultyDirectory() {
     };
 
     const filtered = faculty.filter(f => {
-        const name = (f.profiles as any)?.full_name?.toLowerCase() ?? "";
+        const name = ((f.profiles as any)?.full_name ?? "").toLowerCase();
         const div = f.class_teacher_for?.toLowerCase() ?? "";
         const q = searchQuery.toLowerCase();
         return name.includes(q) || div.includes(q);
@@ -419,7 +415,7 @@ function AdminFacultyDirectory() {
                                                                         <p className="font-bold text-[10px] text-slate-800 dark:text-slate-100 truncate leading-tight">{s.subject}</p>
                                                                         <div className="flex items-center justify-between mt-0.5">
                                                                             <span className="text-[9px] text-slate-500 truncate">{s.room}</span>
-                                                                            <span className="text-[9px] text-slate-400 shrink-0 ml-1">{s.target_groups[0]}</span>
+                                                                            <span className="text-[9px] text-slate-400 shrink-0 ml-1">{s.target_groups?.[0] ?? ""}</span>
                                                                         </div>
                                                                     </div>
                                                                 ) : (
