@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -129,6 +129,9 @@ export default function HistoryPage() {
             await supabase.from("generated_timetables").update({ is_active: false }).eq("institution_id", profile.institution_id);
             await supabase.from("generated_timetables").update({ is_active: true }).eq("id", recordId);
             setHistory(prev => prev.map(r => ({ ...r, is_active: r.id === recordId })));
+            // Bust timetable cache so Master Timetable reloads this version
+            sessionStorage.removeItem(`tt_cache_${profile.institution_id}`);
+            localStorage.setItem("force_tt_refresh", "1");
             toast.success("Active timetable updated", { description: "Faculty portals and Master Timetable will now show this version." });
         } catch (err: any) {
             toast.error("Failed to set active: " + err.message);
