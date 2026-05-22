@@ -27,12 +27,14 @@ interface TimetableSlot {
     day: string;
     time_slot: number;
     target_groups: string[];
+    division?: string;
     is_online: boolean;
 }
 
 interface SubstituteCandidate {
     faculty_id: string;
     name: string;
+    email: string;
     current_load: number;
     status: string;
 }
@@ -543,9 +545,9 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
         if (!selectedSlot) return;
         setIsSearchingSub(true);
         try {
-            const { data: allFac } = await supabase.from("faculty_settings").select("id, shift_hours, max_load_hrs, profiles(id, full_name)").neq("id", facultySetting?.id ?? "");
+            const { data: allFac } = await supabase.from("faculty_settings").select("id, shift_hours, max_load_hrs, profiles(id, full_name, email)").neq("id", facultySetting?.id ?? "");
             const candidates = (allFac ?? []).filter((f: any) => (f.shift_hours as number[]).includes(selectedSlot.time_slot)).map((f: any) => ({
-                faculty_id: f.id, name: f.profiles?.full_name ?? "Unknown", current_load: f.max_load_hrs ?? 0, status: "Available & On Shift",
+                faculty_id: f.id, name: f.profiles?.full_name ?? "Unknown", email: f.profiles?.email ?? "", current_load: f.max_load_hrs ?? 0, status: "Available & On Shift",
             }));
             setSubstitutes(candidates);
         } catch (err: any) {
@@ -564,6 +566,8 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
                 subject_code: selectedSlot.subject, room: selectedSlot.room, day: selectedSlot.day, time_slot: selectedSlot.time_slot, status: "pending",
             }).select().single();
             if (reqErr) throw reqErr;
+
+            // In-app notification
             const { data: facData } = await supabase.from("faculty_settings").select("profile_id").eq("id", candidate.faculty_id).single();
             if (facData?.profile_id) {
                 await supabase.from("notifications").insert({
@@ -572,7 +576,31 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
                     metadata: { request_id: reqRecord.id, subject_code: selectedSlot.subject, room: selectedSlot.room, day: selectedSlot.day, time_slot: selectedSlot.time_slot }, is_read: false,
                 });
             }
+
+            // Email notification to the substitute candidate
+            if (candidate.email) {
+                await fetch("/api/email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        to: candidate.email,
+                        subject: `Substitute Request — ${selectedSlot.subject} (${selectedSlot.day})`,
+                        recipientName: candidate.name,
+                        type: "substitute_request",
+                        payload: {
+                            requesterName: profile.full_name ?? "A colleague",
+                            subject: selectedSlot.subject,
+                            day: selectedSlot.day,
+                            timeSlot: formatTime(selectedSlot.time_slot),
+                            room: selectedSlot.room ?? "TBD",
+                            division: (selectedSlot.division ?? selectedSlot.target_groups?.join(", ") ?? ""),
+                        },
+                    }),
+                });
+            }
+
             setSentRequests(prev => new Set([...prev, candidate.faculty_id]));
+            toast.success(`Request sent to ${candidate.name}`);
         } catch (err: any) { toast.error("Failed to send request: " + err.message); }
         finally { setSendingRequestTo(null); }
     };
@@ -585,15 +613,39 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
             if (req) {
                 const { data: reqRecord } = await supabase.from("substitute_requests").select("requester_id").eq("id", requestId).single();
                 if (reqRecord?.requester_id) {
+                    // In-app notification
                     await supabase.from("notifications").insert({
                         recipient_id: reqRecord.requester_id, sender_id: profile.id,
                         type: accept ? "substitute_accepted" : "substitute_declined",
                         message: `${profile.full_name} has ${accept ? "accepted" : "declined"} your substitution request for "${req.subject_code}" on ${req.day} at ${formatTime(req.time_slot)}.`,
                         metadata: { request_id: requestId }, is_read: false,
                     });
+
+                    // Email notification to requester
+                    const { data: requesterProfile } = await supabase.from("profiles").select("email, full_name").eq("id", reqRecord.requester_id).single();
+                    if (requesterProfile?.email) {
+                        await fetch("/api/email", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                to: requesterProfile.email,
+                                subject: `Substitute ${accept ? "Accepted" : "Declined"} — ${req.subject_code} (${req.day})`,
+                                recipientName: requesterProfile.full_name ?? "Faculty",
+                                type: accept ? "substitute_accepted" : "substitute_declined",
+                                payload: {
+                                    substituteName: profile.full_name ?? "Your substitute",
+                                    subject: req.subject_code,
+                                    day: req.day,
+                                    timeSlot: formatTime(req.time_slot),
+                                    room: req.room ?? "TBD",
+                                },
+                            }),
+                        });
+                    }
                 }
             }
             setInboundRequests(prev => prev.filter(r => r.id !== requestId));
+            toast.success(accept ? "Request accepted" : "Request declined");
         } catch (err: any) { toast.error("Response failed: " + err.message); }
         finally { setRespondingTo(null); }
     };
