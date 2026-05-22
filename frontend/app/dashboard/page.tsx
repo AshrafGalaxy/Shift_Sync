@@ -256,13 +256,13 @@ export default function DashboardOverview() {
                     { id:"F004", name:"Dr. Sharma", shift:[9,10,11,12,13,14,15,16], max_load_hrs:12, max_continuous_hrs:2, blocked_slots:[{day:"Wed",time:9},{day:"Wed",time:10}], class_teacher_for:"",
                       workload:[ {id:"W7",type:"Theory",subject:"OS Concepts",target_groups:["SY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W8",type:"Theory",subject:"OS Concepts",target_groups:["SY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] },
                     { id:"F005", name:"Ms. Verma", shift:[8,9,10,11,12,13,14], max_load_hrs:10, max_continuous_hrs:2, blocked_slots:[], class_teacher_for:"",
-                      workload:[ {id:"W9",type:"Theory",subject:"Math-III",target_groups:["SY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W10",type:"Theory",subject:"Math-III",target_groups:["SY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] }
+                       workload:[ {id:"W9",type:"Theory",subject:"Math-III",target_groups:["SY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W10",type:"Theory",subject:"Math-III",target_groups:["SY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] }
                 ]
             }
         },
         {
-            label: "🟡 Preset B — Overflow (Ghost-Room: lab shortage)",
-            description: "6 faculty · only 1 lab room · 3 lab workloads competing. Solver can't assign all labs to real rooms → 'success_with_overflow'. Demonstrates the overflow banner and room utilization strip. Faculty substitution still works.",
+            label: "🟡 Preset B — Overflow (Ghost-Room: missing lab type)",
+            description: "5 faculty · 3 lab workloads require 'Dual_Screen' tag · NO room has that tag → solver assigns them to GHOST_ROOM (TBD) → 'success_with_overflow'. Yellow overflow banner appears on the timetable showing slots needing manual room assignment.",
             json: {
                 college_settings: { days_active: ["Mon","Tue","Wed","Thu","Fri"], time_slots: [8,9,10,11,12,13,14,15,16], lunch_slot: {"Mon":13,"Tue":13,"Wed":13,"Thu":13,"Fri":13}, max_continuous_lectures: 3, custom_rules: [] },
                 rooms_config: { rooms: [
@@ -271,21 +271,31 @@ export default function DashboardOverview() {
                     {id:"LabX",type:"practical",capacity:30,tags:["Computer_Lab"]}
                 ]},
                 faculty: [
-                    { id:"F001", name:"Dr. Mehra", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"TY-A",
-                      workload:[ {id:"W1",type:"Theory",subject:"Networks",target_groups:["TY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W2",type:"Theory",subject:"Networks",target_groups:["TY-B"],hours:4,consecutive_hours:1,required_tags:[],is_online:false} ] },
+                    { id:"F001", name:"Dr. Mehra", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:16, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"TY-A",
+                      workload:[
+                        {id:"W1",type:"Theory",subject:"Networks",target_groups:["TY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false},
+                        {id:"W2",type:"Theory",subject:"Networks",target_groups:["TY-B"],hours:4,consecutive_hours:1,required_tags:[],is_online:false},
+                        {id:"W3",type:"Practical",subject:"Networks Lab (Overflow)",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
+                      ] },
                     { id:"F002", name:"Prof. Khan", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:16, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"TY-B",
-                      workload:[ {id:"W3",type:"Theory",subject:"Algorithms",target_groups:["TY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W4",type:"Theory",subject:"Algorithms",target_groups:["TY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] },
+                      workload:[
+                        {id:"W4",type:"Theory",subject:"Algorithms",target_groups:["TY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false},
+                        {id:"W5",type:"Theory",subject:"Algorithms",target_groups:["TY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false},
+                        {id:"W6",type:"Practical",subject:"Algo Lab (Overflow)",target_groups:["TY-B"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
+                      ] },
                     { id:"F003", name:"Dr. Patel", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
-                      workload:[ {id:"W5",type:"Practical",subject:"Networks Lab",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
-                    { id:"F004", name:"Dr. Sharma", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
-                      workload:[ {id:"W6",type:"Practical",subject:"Algo Lab",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
-                    { id:"F005", name:"Ms. Verma", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
-                      workload:[ {id:"W7",type:"Practical",subject:"Project Lab",target_groups:["TY-B"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
-                    { id:"F006", name:"Mr. Joshi", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:10, max_continuous_hrs:2, blocked_slots:[], class_teacher_for:"",
-                      workload:[ {id:"W8",type:"Theory",subject:"Elective",target_groups:["TY-A","TY-B"],hours:2,consecutive_hours:1,required_tags:[],is_online:false} ] }
+                      workload:[
+                        {id:"W7",type:"Practical",subject:"CS Lab",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false},
+                        {id:"W8",type:"Practical",subject:"Project Lab (Overflow)",target_groups:["TY-B"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
+                      ] },
+                    { id:"F004", name:"Dr. Sharma", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:12, max_continuous_hrs:2, blocked_slots:[], class_teacher_for:"",
+                      workload:[{id:"W9",type:"Theory",subject:"OS Concepts",target_groups:["TY-A","TY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}] },
+                    { id:"F005", name:"Ms. Verma", shift:[8,9,10,11,12,13,14], max_load_hrs:10, max_continuous_hrs:2, blocked_slots:[], class_teacher_for:"",
+                      workload:[{id:"W10",type:"Theory",subject:"Math-III",target_groups:["TY-A","TY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}] }
                 ]
             }
         },
+
         {
             label: "🔴 Preset C — Infeasible (Conflict Diagnosis Demo)",
             description: "1 faculty · 16 hours of workload · only 20 available slots · mathematically impossible. Solver returns INFEASIBLE → ConflictRefinerModal opens with human-readable bottleneck analysis.",
