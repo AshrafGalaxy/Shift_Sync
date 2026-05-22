@@ -644,6 +644,21 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
                     }
                 }
             }
+            // Insert substitution overlay row on accept
+            if (accept && req && institutionId) {
+                await supabase.from("substitutions").insert({
+                    institution_id: institutionId,
+                    day: req.day,
+                    time_slot: String(req.time_slot),
+                    room: req.room ?? "",
+                    subject_code: req.subject_code,
+                    original_faculty_name: req.requester?.full_name ?? "",
+                    substitute_faculty_id: facultySetting?.id ?? null,
+                    substitute_faculty_name: profile.full_name ?? "",
+                    substitute_request_id: requestId,
+                    status: "active",
+                });
+            }
             setInboundRequests(prev => prev.filter(r => r.id !== requestId));
             toast.success(accept ? "Request accepted" : "Request declined");
         } catch (err: any) { toast.error("Response failed: " + err.message); }
