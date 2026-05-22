@@ -231,47 +231,84 @@ export default function DashboardOverview() {
         fetchDashboardStats();
     }, []);
 
-    const [jsonPayload, setJsonPayload] = useState(JSON.stringify({
-  "college_settings": {
-    "days_active": ["Mon", "Tue", "Wed", "Thu", "Fri"],
-    "time_slots": [8, 9, 10, 11, 12, 13, 14, 15, 16],
-    "lunch_slot": {"Mon": 13, "Tue": 13, "Wed": 13, "Thu": 13, "Fri": 13},
-    "max_continuous_lectures": 3,
-    "custom_rules": []
-  },
-  "rooms_config": {
-    "rooms": [
-      {"id": "D201", "type": "theory", "capacity": 80, "tags": []},
-      {"id": "D205", "type": "theory", "capacity": 80, "tags": []},
-      {"id": "D207", "type": "theory", "capacity": 80, "tags": []},
-      {"id": "Lab1", "type": "practical", "capacity": 40, "tags": ["Computer_Lab"]},
-      {"id": "Lab2", "type": "practical", "capacity": 40, "tags": ["Computer_Lab"]}
-    ]
-  },
-  "faculty": [
-    {
-      "id": "F001", "name": "Dr. Smith", "shift": [8, 9, 10, 11, 12, 13, 14, 15, 16], "max_load_hrs": 12, "max_continuous_hrs": 3, "blocked_slots": [], "class_teacher_for": "SY-A",
-      "workload": [
-        {"id": "W1", "type": "Theory", "subject": "Math", "target_groups": ["SY-A"], "hours": 4, "consecutive_hours": 1, "required_tags": [], "is_online": false},
-        {"id": "W2", "type": "Theory", "subject": "Math", "target_groups": ["SY-B"], "hours": 4, "consecutive_hours": 1, "required_tags": [], "is_online": false}
-      ]
-    },
-    {
-      "id": "F002", "name": "Prof. Jones", "shift": [8, 9, 10, 11, 12, 13, 14, 15, 16], "max_load_hrs": 17, "max_continuous_hrs": 3, "blocked_slots": [], "class_teacher_for": "SY-B",
-      "workload": [
-        {"id": "W3", "type": "Theory", "subject": "Physics", "target_groups": ["SY-A"], "hours": 3, "consecutive_hours": 1, "required_tags": [], "is_online": false},
-        {"id": "W4", "type": "Theory", "subject": "Physics", "target_groups": ["SY-B"], "hours": 3, "consecutive_hours": 1, "required_tags": [], "is_online": false}
-      ]
-    },
-    {
-      "id": "F003", "name": "Dr. Davis", "shift": [8, 9, 10, 11, 12, 13, 14, 15, 16], "max_load_hrs": 14, "max_continuous_hrs": 3, "blocked_slots": [], "class_teacher_for": "",
-      "workload": [
-        {"id": "W5", "type": "Practical", "subject": "CS Lab", "target_groups": ["SY-A"], "hours": 4, "consecutive_hours": 2, "required_tags": ["Computer_Lab"], "is_online": false},
-        {"id": "W6", "type": "Practical", "subject": "CS Lab", "target_groups": ["SY-B"], "hours": 4, "consecutive_hours": 2, "required_tags": ["Computer_Lab"], "is_online": false}
-      ]
-    }
-  ]
-}, null, 2));
+
+    // ── Demo Presets ──────────────────────────────────────────────────────────
+    const DEMO_PRESETS = [
+        {
+            label: "🟢 Preset A — Perfect Fit (CS Dept, 100% solvable)",
+            description: "5 faculty · 5 rooms · 2 divisions · all constraints satisfiable. Generates a clean timetable with optimality score ≥ 85. Use to demo the full timetable grid, Google Calendar export, and faculty substitution flow.",
+            json: {
+                college_settings: { days_active: ["Mon","Tue","Wed","Thu","Fri"], time_slots: [8,9,10,11,12,13,14,15,16], lunch_slot: {"Mon":13,"Tue":13,"Wed":13,"Thu":13,"Fri":13}, max_continuous_lectures: 3, custom_rules: [] },
+                rooms_config: { rooms: [
+                    {id:"D201",type:"theory",capacity:80,tags:[]},
+                    {id:"D205",type:"theory",capacity:80,tags:[]},
+                    {id:"D207",type:"theory",capacity:80,tags:[]},
+                    {id:"Lab1",type:"practical",capacity:40,tags:["Computer_Lab"]},
+                    {id:"Lab2",type:"practical",capacity:40,tags:["Computer_Lab"]}
+                ]},
+                faculty: [
+                    { id:"F001", name:"Dr. Mehra", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"SY-A",
+                      workload:[ {id:"W1",type:"Theory",subject:"Data Structures",target_groups:["SY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W2",type:"Theory",subject:"Data Structures",target_groups:["SY-B"],hours:4,consecutive_hours:1,required_tags:[],is_online:false} ] },
+                    { id:"F002", name:"Prof. Khan", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:16, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"SY-B",
+                      workload:[ {id:"W3",type:"Theory",subject:"DBMS",target_groups:["SY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W4",type:"Theory",subject:"DBMS",target_groups:["SY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] },
+                    { id:"F003", name:"Dr. Patel", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
+                      workload:[ {id:"W5",type:"Practical",subject:"CS Lab",target_groups:["SY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false}, {id:"W6",type:"Practical",subject:"CS Lab",target_groups:["SY-B"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
+                    { id:"F004", name:"Dr. Sharma", shift:[9,10,11,12,13,14,15,16], max_load_hrs:12, max_continuous_hrs:2, blocked_slots:[{day:"Wed",time:9},{day:"Wed",time:10}], class_teacher_for:"",
+                      workload:[ {id:"W7",type:"Theory",subject:"OS Concepts",target_groups:["SY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W8",type:"Theory",subject:"OS Concepts",target_groups:["SY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] },
+                    { id:"F005", name:"Ms. Verma", shift:[8,9,10,11,12,13,14], max_load_hrs:10, max_continuous_hrs:2, blocked_slots:[], class_teacher_for:"",
+                      workload:[ {id:"W9",type:"Theory",subject:"Math-III",target_groups:["SY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W10",type:"Theory",subject:"Math-III",target_groups:["SY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] }
+                ]
+            }
+        },
+        {
+            label: "🟡 Preset B — Overflow (Ghost-Room: lab shortage)",
+            description: "6 faculty · only 1 lab room · 3 lab workloads competing. Solver can't assign all labs to real rooms → 'success_with_overflow'. Demonstrates the overflow banner and room utilization strip. Faculty substitution still works.",
+            json: {
+                college_settings: { days_active: ["Mon","Tue","Wed","Thu","Fri"], time_slots: [8,9,10,11,12,13,14,15,16], lunch_slot: {"Mon":13,"Tue":13,"Wed":13,"Thu":13,"Fri":13}, max_continuous_lectures: 3, custom_rules: [] },
+                rooms_config: { rooms: [
+                    {id:"A101",type:"theory",capacity:80,tags:[]},
+                    {id:"A102",type:"theory",capacity:80,tags:[]},
+                    {id:"LabX",type:"practical",capacity:30,tags:["Computer_Lab"]}
+                ]},
+                faculty: [
+                    { id:"F001", name:"Dr. Mehra", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"TY-A",
+                      workload:[ {id:"W1",type:"Theory",subject:"Networks",target_groups:["TY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W2",type:"Theory",subject:"Networks",target_groups:["TY-B"],hours:4,consecutive_hours:1,required_tags:[],is_online:false} ] },
+                    { id:"F002", name:"Prof. Khan", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:16, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"TY-B",
+                      workload:[ {id:"W3",type:"Theory",subject:"Algorithms",target_groups:["TY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W4",type:"Theory",subject:"Algorithms",target_groups:["TY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] },
+                    { id:"F003", name:"Dr. Patel", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
+                      workload:[ {id:"W5",type:"Practical",subject:"Networks Lab",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
+                    { id:"F004", name:"Dr. Sharma", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
+                      workload:[ {id:"W6",type:"Practical",subject:"Algo Lab",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
+                    { id:"F005", name:"Ms. Verma", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
+                      workload:[ {id:"W7",type:"Practical",subject:"Project Lab",target_groups:["TY-B"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
+                    { id:"F006", name:"Mr. Joshi", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:10, max_continuous_hrs:2, blocked_slots:[], class_teacher_for:"",
+                      workload:[ {id:"W8",type:"Theory",subject:"Elective",target_groups:["TY-A","TY-B"],hours:2,consecutive_hours:1,required_tags:[],is_online:false} ] }
+                ]
+            }
+        },
+        {
+            label: "🔴 Preset C — Infeasible (Conflict Diagnosis Demo)",
+            description: "1 faculty · 16 hours of workload · only 20 available slots · mathematically impossible. Solver returns INFEASIBLE → ConflictRefinerModal opens with human-readable bottleneck analysis.",
+            json: {
+                college_settings: { days_active: ["Mon","Tue","Wed","Thu","Fri"], time_slots: [8,9,10,11,12], lunch_slot: {"Mon":12,"Tue":12,"Wed":12,"Thu":12,"Fri":12}, max_continuous_lectures: 2, custom_rules: [] },
+                rooms_config: { rooms: [
+                    {id:"R1",type:"theory",capacity:60,tags:[]}
+                ]},
+                faculty: [
+                    { id:"F001", name:"Dr. Overloaded", shift:[8,9,10,11], max_load_hrs:8, max_continuous_hrs:2, blocked_slots:[{day:"Mon",time:8},{day:"Mon",time:9},{day:"Tue",time:8},{day:"Tue",time:9},{day:"Wed",time:8}], class_teacher_for:"FY-A",
+                      workload:[
+                        {id:"W1",type:"Theory",subject:"Subject-A",target_groups:["FY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false},
+                        {id:"W2",type:"Theory",subject:"Subject-B",target_groups:["FY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false},
+                        {id:"W3",type:"Theory",subject:"Subject-C",target_groups:["FY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false},
+                        {id:"W4",type:"Theory",subject:"Subject-D",target_groups:["FY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false}
+                      ] }
+                ]
+            }
+        }
+    ];
+    const [selectedPreset, setSelectedPreset] = useState(0);
+    const [jsonPayload, setJsonPayload] = useState(JSON.stringify(DEMO_PRESETS[0].json, null, 2));
+
 
     // JSON parsing bypass code left unchanged below 
     const [isSeeding, setIsSeeding] = useState(false);
@@ -998,18 +1035,35 @@ export default function DashboardOverview() {
                                                     <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
                                                 </h3>
                                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                                    Inject a pre-built Computer Science schedule into the database, then click <span className="font-semibold text-teal-600 dark:text-teal-400">Generate Timetable</span> above to test the solver instantly.
+                                                    Select a preset scenario, click <span className="font-semibold text-teal-600 dark:text-teal-400">Save to Database</span>, then <span className="font-semibold text-teal-600 dark:text-teal-400">Generate Timetable</span> above.
                                                 </p>
                                             </div>
+                                        </div>
+
+                                        {/* Preset selector */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                            {DEMO_PRESETS.map((p, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => { setSelectedPreset(i); setJsonPayload(JSON.stringify(p.json, null, 2)); }}
+                                                    className={`text-left p-3 rounded-xl border-2 transition-all text-xs font-semibold ${selectedPreset === i ? "border-teal-500 bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 shadow-md shadow-teal-500/10" : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-teal-300"}`}
+                                                >
+                                                    {p.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Description */}
+                                        <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-600 dark:text-slate-400">
+                                            {DEMO_PRESETS[selectedPreset].description}
                                         </div>
 
                                         {/* JSON editor */}
                                         <textarea
                                             value={jsonPayload}
                                             onChange={(e) => setJsonPayload(e.target.value)}
-                                            className="flex-1 w-full min-h-[280px] p-4 font-mono text-xs rounded-xl border-2 border-teal-200 dark:border-teal-800/50 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-inner resize-y"
+                                            className="flex-1 w-full min-h-[200px] p-4 font-mono text-xs rounded-xl border-2 border-teal-200 dark:border-teal-800/50 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-inner resize-y"
                                             spellCheck="false"
-                                            placeholder="Paste your JSON configuration here..."
                                         />
 
                                         {/* Actions */}
