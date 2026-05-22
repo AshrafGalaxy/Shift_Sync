@@ -541,9 +541,13 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
         if (!selectedSlot) return;
         setIsSearchingSub(true);
         try {
-            const { data: allFac } = await supabase.from("faculty_settings").select("id, shift_hours, max_load_hrs, profiles(id, full_name, email)").neq("id", facultySetting?.id ?? "");
+            const { data: allFac } = await supabase.from("faculty_settings").select("id, name, shift_hours, max_load_hrs, profiles(id, full_name, email)").neq("id", facultySetting?.id ?? "");
             const candidates = (allFac ?? []).filter((f: any) => (f.shift_hours as number[]).includes(selectedSlot.time_slot)).map((f: any) => ({
-                faculty_id: f.id, name: f.profiles?.full_name ?? "Unknown", email: f.profiles?.email ?? "", current_load: f.max_load_hrs ?? 0, status: "Available & On Shift",
+                faculty_id: f.id,
+                name: f.profiles?.full_name ?? f.name ?? "Unknown Faculty",
+                email: f.profiles?.email ?? "",
+                current_load: f.max_load_hrs ?? 0,
+                status: "Available & On Shift",
             }));
             setSubstitutes(candidates);
         } catch (err: any) {
