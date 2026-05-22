@@ -445,7 +445,15 @@ function AdminFacultyDirectory() {
 // ══════════════════════════════════════════════════════════════════════════
 // ── Faculty: Personal Portal ───────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════
-function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: string; role: string } }) {
+function FacultyPersonalPortal({
+    profile,
+    overrideAsId,   // Admin demo: skip profile_id lookup, load this faculty_settings.id directly
+    overrideName,   // Admin demo: display name override
+}: {
+    profile: { id: string; full_name: string; role: string };
+    overrideAsId?: string;
+    overrideName?: string;
+}) {
     const supabase = createClient();
 
     const [facultySetting, setFacultySetting] = useState<{ id: string; shift_hours: number[]; max_load_hrs: number } | null>(null);
@@ -486,7 +494,23 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
             if (!prof?.institution_id) return;
             setInstitutionId(prof.institution_id);
 
-            const { data: fac } = await supabase.from("faculty_settings").select("id, shift_hours, max_load_hrs").eq("profile_id", profile.id).maybeSingle();
+            // If admin is simulating a specific faculty, fetch by faculty_settings.id directly
+            let fac: { id: string; shift_hours: number[]; max_load_hrs: number } | null = null;
+            if (overrideAsId) {
+                const { data: facById } = await supabase
+                    .from("faculty_settings")
+                    .select("id, shift_hours, max_load_hrs")
+                    .eq("id", overrideAsId)
+                    .single();
+                fac = facById ?? null;
+            } else {
+                const { data: facByProfile } = await supabase
+                    .from("faculty_settings")
+                    .select("id, shift_hours, max_load_hrs")
+                    .eq("profile_id", profile.id)
+                    .maybeSingle();
+                fac = facByProfile ?? null;
+            }
             setFacultySetting(fac ?? null);
 
             // Fetch all generation versions
@@ -702,12 +726,18 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
                 <div className="flex items-center gap-5 relative z-10">
                     <Avatar className="w-20 h-20 border-4 border-white dark:border-slate-950 shadow-md">
                         <AvatarFallback className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white text-2xl font-bold">
-                            {getInitials(profile.full_name ?? "FA")}
+                            {getInitials(overrideName ?? profile.full_name ?? "FA")}
                         </AvatarFallback>
                     </Avatar>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">{profile.full_name}</h1>
-                        <p className="text-slate-500 dark:text-slate-400 capitalize">{profile.role}</p>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">{overrideName ?? profile.full_name}</h1>
+                        <p className="text-slate-500 dark:text-slate-400 capitalize">
+                            {overrideAsId ? (
+                                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
+                                    <span>🎭</span> Admin Preview Mode
+                                </span>
+                            ) : profile.role}
+                        </p>
                         <div className="flex items-center gap-3 mt-2 flex-wrap">
                             <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                                 <Clock className="w-3 h-3 mr-1" />
@@ -953,6 +983,7 @@ function FacultyPersonalPortal({ profile }: { profile: { id: string; full_name: 
     );
 }
 
+
 // ══════════════════════════════════════════════════════════════════════════
 // ── Main: Role-Gated Entry Point ───────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════
@@ -961,11 +992,25 @@ export default function FacultyPage() {
     const [profile, setProfile] = useState<{ id: string; full_name: string; role: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Admin demo: selected faculty to simulate
+    const [previewFaculty, setPreviewFaculty] = useState<{ id: string; name: string } | null>(null);
+    const [allFacultyList, setAllFacultyList] = useState<{ id: string; name: string }[]>([]);
+
     useEffect(() => {
         supabase.auth.getUser().then(({ data: { user } }) => {
             if (!user) { setIsLoading(false); return; }
-            supabase.from("profiles").select("id, full_name, role").eq("id", user.id).single().then(({ data }) => {
+            supabase.from("profiles").select("id, full_name, role, institution_id").eq("id", user.id).single().then(async ({ data }) => {
                 setProfile(data ?? null);
+                // If admin, pre-load faculty list for the simulate dropdown
+                if (data?.role === "admin" && data?.institution_id) {
+                    const { data: facList } = await supabase
+                        .from("faculty_settings")
+                        .select("id, name")
+                        .eq("institution_id", data.institution_id)
+                        .eq("is_archived", false)
+                        .order("name");
+                    setAllFacultyList((facList ?? []).map((f: any) => ({ id: f.id, name: f.name ?? "Unnamed" })));
+                }
                 setIsLoading(false);
             });
         });
@@ -979,8 +1024,75 @@ export default function FacultyPage() {
 
     if (!profile) return <div className="text-center py-20 text-slate-400">Not authenticated.</div>;
 
-    // Admin → Faculty Directory; everyone else → Personal Portal
-    return profile.role === "admin"
-        ? <AdminFacultyDirectory />
-        : <FacultyPersonalPortal profile={profile} />;
+    // Faculty users → their own portal
+    if (profile.role !== "admin") {
+        return <FacultyPersonalPortal profile={profile} />;
+    }
+
+    // Admin view: directory + optional "Simulate as Faculty" portal
+    return (
+        <div className="space-y-8">
+            <AdminFacultyDirectory />
+
+            {/* ── Admin Demo Panel ── */}
+            <div className="rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 p-5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 className="text-base font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                            <span>🎭</span> Simulate as Faculty — Demo Mode
+                        </h2>
+                        <p className="text-xs text-amber-700/70 dark:text-amber-400/70 mt-0.5">
+                            Select any faculty below to preview their personal portal and test the Mark Absent → Find Substitute → Send Email flow.
+                        </p>
+                    </div>
+                    {previewFaculty && (
+                        <button
+                            onClick={() => setPreviewFaculty(null)}
+                            className="text-xs text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                        >
+                            ✕ Exit Preview
+                        </button>
+                    )}
+                </div>
+
+                {allFacultyList.length === 0 ? (
+                    <p className="text-sm text-amber-600 dark:text-amber-400">No faculty found — seed the database first using a demo preset on the Overview page.</p>
+                ) : (
+                    <div className="flex flex-wrap gap-2">
+                        {allFacultyList.map(f => (
+                            <button
+                                key={f.id}
+                                onClick={() => setPreviewFaculty(f)}
+                                className={`text-sm px-4 py-2 rounded-xl border transition-all font-medium ${
+                                    previewFaculty?.id === f.id
+                                        ? "bg-amber-500 dark:bg-amber-600 text-white border-amber-500 shadow-md scale-105"
+                                        : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400"
+                                }`}
+                            >
+                                {f.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Inline faculty portal for the selected preview faculty */}
+            {previewFaculty && (
+                <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-600 overflow-hidden">
+                    <div className="bg-amber-500 dark:bg-amber-700 text-white text-xs font-bold px-4 py-2 flex items-center gap-2">
+                        <span>🎭</span>
+                        <span>ADMIN PREVIEW — Viewing portal as: {previewFaculty.name}</span>
+                        <span className="ml-auto opacity-70">All substitution requests and emails will fire for real</span>
+                    </div>
+                    <div className="p-4 bg-white dark:bg-slate-950">
+                        <FacultyPersonalPortal
+                            profile={profile}
+                            overrideAsId={previewFaculty.id}
+                            overrideName={previewFaculty.name}
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
