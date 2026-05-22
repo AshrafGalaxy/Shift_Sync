@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, FileText, CheckCircle2, Clock, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download, Settings, UploadCloud, FlaskConical, BookOpen, ChevronRight, BarChart3, AlertCircle, ScrollText } from "lucide-react";
+import { Play, FileText, CheckCircle2, Clock, Users, Building, GraduationCap, Database, Loader2, RefreshCcw, AlertOctagon, Download, Settings, UploadCloud, FlaskConical, BookOpen, ChevronRight, BarChart3, AlertCircle, ScrollText, AlertTriangle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { createClient } from "@/utils/supabase/client";
@@ -235,7 +235,7 @@ export default function DashboardOverview() {
     // ── Demo Presets ──────────────────────────────────────────────────────────
     const DEMO_PRESETS = [
         {
-            label: "🟢 Preset A — Perfect Fit (CS Dept, 100% solvable)",
+            label: "[A] Perfect Fit — CS Dept, 100% solvable",
             description: "5 faculty · 5 rooms · 2 divisions · all constraints satisfiable. Generates a clean timetable with optimality score ≥ 85. Use to demo the full timetable grid, Google Calendar export, and faculty substitution flow.",
             json: {
                 college_settings: { days_active: ["Mon","Tue","Wed","Thu","Fri"], time_slots: [8,9,10,11,12,13,14,15,16], lunch_slot: {"Mon":13,"Tue":13,"Wed":13,"Thu":13,"Fri":13}, max_continuous_lectures: 3, custom_rules: [] },
@@ -261,7 +261,7 @@ export default function DashboardOverview() {
             }
         },
         {
-            label: "🟡 Preset B — Overflow (Ghost-Room: missing lab type)",
+            label: "[B] Overflow — Ghost-Room, missing lab type",
             description: "5 faculty · 3 lab workloads require 'Dual_Screen' tag · NO room has that tag → solver assigns them to GHOST_ROOM (TBD) → 'success_with_overflow'. Yellow overflow banner appears on the timetable showing slots needing manual room assignment.",
             json: {
                 college_settings: { days_active: ["Mon","Tue","Wed","Thu","Fri"], time_slots: [8,9,10,11,12,13,14,15,16], lunch_slot: {"Mon":13,"Tue":13,"Wed":13,"Thu":13,"Fri":13}, max_continuous_lectures: 3, custom_rules: [] },
@@ -297,7 +297,7 @@ export default function DashboardOverview() {
         },
 
         {
-            label: "🔴 Preset C — Infeasible (Conflict Diagnosis Demo)",
+            label: "[C] Infeasible — Conflict Diagnosis Demo",
             description: "1 faculty · 16 hours of workload · only 20 available slots · mathematically impossible. Solver returns INFEASIBLE → ConflictRefinerModal opens with human-readable bottleneck analysis.",
             json: {
                 college_settings: { days_active: ["Mon","Tue","Wed","Thu","Fri"], time_slots: [8,9,10,11,12], lunch_slot: {"Mon":12,"Tue":12,"Wed":12,"Thu":12,"Fri":12}, max_continuous_lectures: 2, custom_rules: [] },
@@ -547,7 +547,13 @@ export default function DashboardOverview() {
                         : lastGenSummary.status === 'success_with_overflow' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                         : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                     }`}>
-                        {lastGenSummary.status === 'success' ? 'âœ“ Success' : lastGenSummary.status === 'success_with_overflow' ? 'âš  Overflow' : 'âœ• Failed'}
+                        <span className="flex items-center gap-1">
+                            {lastGenSummary.status === 'success'
+                                ? <><CheckCircle2 className="w-3 h-3" /> Success</>
+                                : lastGenSummary.status === 'success_with_overflow'
+                                ? <><AlertTriangle className="w-3 h-3" /> Overflow</>
+                                : <><XCircle className="w-3 h-3" /> Failed</>}
+                        </span>
                     </span>
                     {/* Score mini-bar */}
                     {lastGenSummary.score != null && (

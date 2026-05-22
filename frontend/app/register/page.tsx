@@ -51,8 +51,12 @@ export default function RegisterPage() {
             });
 
             if (authError) {
-                setError(authError.message);
-                toast.error("Registration failed", { description: authError.message });
+                let msg = authError.message;
+                if (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("email")) {
+                    msg = "This email address was rejected by the authentication server. Supabase blocks role-based prefixes like 'admin@', 'postmaster@', or 'root@'. Please use a personal prefix instead — e.g., 'principal@vit.edu', 'timetable@vit.edu', or your name like 'j.sharma@vit.edu'.";
+                }
+                setError(msg);
+                toast.error("Registration failed", { description: msg });
                 setIsLoading(false);
                 return;
             }
@@ -256,10 +260,13 @@ export default function RegisterPage() {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="admin@institute.edu"
+                                    placeholder="principal@institute.edu"
                                     required
                                     className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
                                 />
+                                <p className="text-xs text-slate-400">
+                                    Avoid role-based prefixes like <span className="text-amber-400 font-mono">admin@</span>, <span className="text-amber-400 font-mono">root@</span>. Use your name or title — e.g. <span className="text-slate-300 font-mono">principal@vit.edu</span>
+                                </p>
                             </div>
 
                             <div className="space-y-2">

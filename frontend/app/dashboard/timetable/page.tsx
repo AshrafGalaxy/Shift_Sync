@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Filter, Download, Plus, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, ChevronDown, Lock, Unlock, Send, AlertTriangle, X, Users, Search } from "lucide-react";
+import { Filter, Download, Plus, Maximize2, Minimize2, Loader2, CalendarDays, FileSpreadsheet, Calendar as CalendarIcon, Printer, ChevronDown, ChevronRight, Lock, Unlock, Send, AlertTriangle, X, Users, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
@@ -618,7 +618,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                         onClick={() => setShowRoomUtil(v => !v)}
                         className="text-[11px] font-semibold text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center gap-1.5 mb-1.5 transition-colors"
                     >
-                        <span className={`transition-transform ${showRoomUtil ? "rotate-90" : ""}`}>â–¶</span>
+                        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showRoomUtil ? "rotate-90" : ""}`} />
                         Room Utilization ({roomUtil.length} rooms)
                     </button>
                     {showRoomUtil && (
