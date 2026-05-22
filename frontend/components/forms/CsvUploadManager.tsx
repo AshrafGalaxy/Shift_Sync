@@ -23,7 +23,7 @@ type ColDef = {
 const SCHEMA: Record<"rooms" | "faculty" | "workloads", ColDef[]> = {
   rooms: [
     { key: "room_id",  label: "room_id",  type: "string",  required: true,  hint: "e.g. D201" },
-    { key: "type",     label: "type",     type: "enum",    required: true,  hint: "theory | practical | lab", options: ["theory", "practical", "lab"] },
+    { key: "type",     label: "type",     type: "enum",    required: true,  hint: "theory | lab", options: ["theory", "lab"] },
     { key: "capacity", label: "capacity", type: "integer", required: true,  hint: "e.g. 60" },
     { key: "tags",     label: "tags",     type: "semisep", required: false, hint: "Projector;Lab (use ; as separator)" },
   ],
@@ -39,7 +39,7 @@ const SCHEMA: Record<"rooms" | "faculty" | "workloads", ColDef[]> = {
   workloads: [
     { key: "faculty_id",        label: "faculty_id",        type: "string",  required: true,  hint: "Must match uploaded faculty_id" },
     { key: "subject_code",      label: "subject_code",      type: "string",  required: true,  hint: "e.g. DS2001" },
-    { key: "event_type",        label: "event_type",        type: "enum",    required: false, hint: "Theory | Practical | Tutorial", options: ["Theory", "Practical", "Tutorial"] },
+    { key: "event_type",        label: "event_type",        type: "enum",    required: false, hint: "Theory | Lab | Tutorial (Practical = Lab)", options: ["Theory", "Lab", "Tutorial", "Practical"] },
     { key: "target_groups",     label: "target_groups",     type: "semisep", required: false, hint: "SY B;SY B1 (use ; as separator)" },
     { key: "weekly_hours",      label: "weekly_hours",      type: "integer", required: true,  hint: "Total hrs/week (e.g. 3)" },
     { key: "consecutive_hours", label: "consecutive_hours", type: "integer", required: false, hint: "Must divide weekly_hours evenly" },
@@ -51,9 +51,9 @@ const SCHEMA: Record<"rooms" | "faculty" | "workloads", ColDef[]> = {
 // ─── 3 sample rows per type ────────────────────────────────────────────────────
 const MOCK_DATA: Record<"rooms" | "faculty" | "workloads", Record<string, string>[]> = {
   rooms: [
-    { room_id: "D201", type: "theory",    capacity: "80", tags: "Projector" },
-    { room_id: "D205", type: "theory",    capacity: "80", tags: "" },
-    { room_id: "Lab1", type: "practical", capacity: "30", tags: "Linux_Lab;Projector" },
+    { room_id: "D201", type: "theory", capacity: "80", tags: "Projector" },
+    { room_id: "D205", type: "theory", capacity: "80", tags: "" },
+    { room_id: "Lab1", type: "lab",    capacity: "30", tags: "Linux_Lab;Projector" },
   ],
   faculty: [
     { faculty_id: "F001", name: "Dr. Sharma",  max_load_hrs: "12", max_continuous_hrs: "3", shift_start: "8",  shift_end: "17", class_teacher_for: "SY-B" },
@@ -61,9 +61,9 @@ const MOCK_DATA: Record<"rooms" | "faculty" | "workloads", Record<string, string
     { faculty_id: "F003", name: "Dr. Khan",    max_load_hrs: "14", max_continuous_hrs: "2", shift_start: "9",  shift_end: "17", class_teacher_for: "" },
   ],
   workloads: [
-    { faculty_id: "F001", subject_code: "DS2001",     event_type: "Theory",    target_groups: "SY B",       weekly_hours: "3", consecutive_hours: "1", is_online: "false", required_room_tags: "" },
-    { faculty_id: "F001", subject_code: "DS2001_LAB", event_type: "Practical", target_groups: "SY B1;SY B2",weekly_hours: "2", consecutive_hours: "2", is_online: "false", required_room_tags: "Linux_Lab" },
-    { faculty_id: "F002", subject_code: "CN3002",     event_type: "Theory",    target_groups: "SY B",       weekly_hours: "3", consecutive_hours: "1", is_online: "false", required_room_tags: "" },
+    { faculty_id: "F001", subject_code: "DS2001",     event_type: "Theory", target_groups: "SY B",       weekly_hours: "3", consecutive_hours: "1", is_online: "false", required_room_tags: "" },
+    { faculty_id: "F001", subject_code: "DS2001_LAB", event_type: "Lab",    target_groups: "SY B1;SY B2",weekly_hours: "2", consecutive_hours: "2", is_online: "false", required_room_tags: "Linux_Lab" },
+    { faculty_id: "F002", subject_code: "CN3002",     event_type: "Theory", target_groups: "SY B",       weekly_hours: "3", consecutive_hours: "1", is_online: "false", required_room_tags: "" },
   ],
 };
 
@@ -80,6 +80,30 @@ function validateRow(row: Record<string, string>, schema: ColDef[]): Record<stri
       errors[col.key] = `Must be: ${col.options.join(" | ")}`;
   }
   return errors;
+}
+
+/**
+ * Normalise workload class type to the 3 canonical DB enum values.
+ * Accepts any casing of: theory, lab, practical (→ Lab), tutorial.
+ */
+function normaliseWorkloadType(raw: string): string {
+  const map: Record<string, string> = {
+    theory: "Theory",
+    lab: "Lab",
+    practical: "Lab",  // legacy alias — practical = lab
+    tutorial: "Tutorial",
+  };
+  return map[raw.trim().toLowerCase()] ?? "Theory";
+}
+
+/**
+ * Normalise room type to lowercase canonical values used in solver: theory | lab.
+ * Accepts practical as alias for lab.
+ */
+function normaliseRoomType(raw: string): string {
+  const v = raw.trim().toLowerCase();
+  if (v === "practical" || v === "lab") return "lab";
+  return "theory";
 }
 
 // ─── Live Preview Table ───────────────────────────────────────────────────────
@@ -285,7 +309,8 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
       const payloads = data.filter(r => r.room_id?.trim()).map(row => ({
         institution_id: instId,
         name:      String(row.room_id).trim(),
-        type:      String(row.type || "theory").toLowerCase().trim(),
+        // Normalise room type: practical → lab (solver uses lowercase 'theory'/'lab')
+        type:      normaliseRoomType(row.type || "theory"),
         capacity:  parseInt(row.capacity) || 30,
         tags:      row.tags ? String(row.tags).split(";").map(t => t.trim()).filter(Boolean) : [],
         is_archived: false,
@@ -304,7 +329,9 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
         for (let i = start; i <= end; i++) shift.push(i);
         return {
           institution_id:    instId,
-          profile_id:        user.id,
+          // CSV faculty are NOT registered auth users — profile_id MUST be null.
+          // Setting profile_id = user.id (admin) caused unique constraint violations.
+          profile_id:        null,
           name:              String(row.name || row.faculty_id).trim(),
           faculty_csv_id:    String(row.faculty_id).trim(),
           max_load_hrs:      parseInt(row.max_load_hrs) || 16,
@@ -347,7 +374,8 @@ export default function CsvUploadManager({ onSuccess }: { onSuccess?: () => void
           institution_id:    instId,
           faculty_id:        facultyMap[row.faculty_id.trim()],
           subject_code:      String(row.subject_code || "").trim(),
-          type:              String(row.event_type || "Theory").trim(),
+          // Normalise type: practical/Practical/lab/LAB → 'Lab', theory → 'Theory', tutorial → 'Tutorial'
+          type:              normaliseWorkloadType(row.event_type || "Theory"),
           target_groups:     row.target_groups ? String(row.target_groups).split(";").map(t => t.trim()).filter(Boolean) : [],
           weekly_hours:      parseInt(row.weekly_hours) || 1,
           consecutive_hours: parseInt(row.consecutive_hours) || 1,
