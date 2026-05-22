@@ -43,6 +43,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
     const [overflowCount, setOverflowCount] = useState<number>(0);
     const [overflowBannerDismissed, setOverflowBannerDismissed] = useState(false);
     const [showRoomUtil, setShowRoomUtil] = useState(false);
+    const [substitutions, setSubstitutions] = useState<Record<string, { substitute_faculty_name: string; id: string }>>({});
     const gridRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
 
@@ -169,6 +170,24 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
 
         fetchLatestTimetable();
     }, []);
+
+    // Fetch active substitutions and index by "day|time_slot|subject_code"
+    useEffect(() => {
+        if (!instId) return;
+        (async () => {
+            const { data } = await supabase
+                .from("substitutions")
+                .select("id, day, time_slot, subject_code, substitute_faculty_name")
+                .eq("institution_id", instId)
+                .eq("status", "active");
+            if (!data) return;
+            const map: Record<string, { substitute_faculty_name: string; id: string }> = {};
+            data.forEach((s: any) => {
+                map[`${s.day}|${s.time_slot}|${s.subject_code}`] = { substitute_faculty_name: s.substitute_faculty_name, id: s.id };
+            });
+            setSubstitutions(map);
+        })();
+    }, [instId]);
 
     const isLunchTime = (day: string, time: number): boolean => {
         if (typeof lunchSlot === 'object' && lunchSlot !== null && !Array.isArray(lunchSlot)) {
@@ -426,15 +445,22 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                     {subjectName}
                 </p>
 
-                {/* Faculty row */}
-                <div className="mt-1.5 flex items-center gap-1">
-                    <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex justify-center items-center overflow-hidden shrink-0">
-                        <span className="text-[8px]">{slot.faculty?.charAt(0)}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium truncate">
-                        {slot.faculty}
-                    </p>
-                </div>
+                {/* Faculty row — shows substitute if one exists */}
+                {(() => {
+                    const subKey = `${slot.day}|${slot.time}|${slot.subject.split(' ')[0]}`;
+                    const sub = substitutions[subKey];
+                    return (
+                        <div className="mt-1.5 flex items-center gap-1 flex-wrap">
+                            <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 flex justify-center items-center overflow-hidden shrink-0">
+                                <span className="text-[8px]">{(sub ? sub.substitute_faculty_name : slot.faculty)?.charAt(0)}</span>
+                            </div>
+                            <p className={`text-[10px] font-medium truncate ${sub ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                                {sub ? sub.substitute_faculty_name : slot.faculty}
+                            </p>
+                            {sub && <span className="text-[8px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1 rounded">SUB</span>}
+                        </div>
+                    );
+                })()}
             </div>
         );
     };
