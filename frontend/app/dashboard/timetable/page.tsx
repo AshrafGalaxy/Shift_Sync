@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 
 import { useState, useEffect, useRef } from "react";
@@ -375,7 +375,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
         }
     };
 
-    // Slot card renderer â€” reused for both grid and print
+    // Slot card renderer — reused for both grid and print
     const SlotCard = ({ slot }: { slot: any }) => {
         const isPinned = pinnedClasses.includes(`${slot.workload_id}|${slot.room}|${slot.day}|${slot.time}`);
         const subjectParts = slot.subject.split('_');
@@ -484,113 +484,86 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                 }
             `}</style>
 
-            {/* Header & Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 print:hidden">
-                <div>
-                    <div className="flex items-center gap-2">
+            {/* Header - Row 1: Title+chip | Search (full-width) | Export | Fullscreen */}
+            <div className="shrink-0 print:hidden space-y-2">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 shrink-0">
                         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Master Timetable</h1>
                         {slots.length > 0 && (
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                visibleSlots.length === slots.length
-                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                                    : 'bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300'
-                            }`}>
-                                {visibleSlots.length === slots.length
-                                    ? `${slots.length} slots`
-                                    : `${visibleSlots.length} / ${slots.length} slots`}
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${visibleSlots.length === slots.length ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' : 'bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300'}`}>
+                                {visibleSlots.length === slots.length ? `${slots.length} slots` : `${visibleSlots.length} / ${slots.length} slots`}
                             </span>
                         )}
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {activeFilter === "All Divisions"
-                            ? "Viewing all divisions. Use the filter to isolate a single division's schedule."
-                            : `Filtered to: ${activeFilter} â€” each slot shows exactly one class.`}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    {/* Search box */}
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    {/* Search stretches full width */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                         <Input
-                            placeholder="Search subject or faculty..."
+                            placeholder="Search subject, faculty or room..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-8 h-9 w-48 text-sm"
+                            className="pl-9 h-9 w-full text-sm"
                         />
                         {searchQuery && (
-                            <button onClick={() => setSearchQuery("")} className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600">
+                            <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         )}
                     </div>
-
-                    {/* Division filter */}
-                    <div className="relative">
-                        <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                        <select
-                            className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 appearance-none h-9"
-                            value={activeFilter}
-                            onChange={(e) => setActiveFilter(e.target.value)}
-                        >
-                            {availableFilters.map(f => (
-                                <option key={f} value={f}>{f}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Faculty filter */}
-                    <div className="relative">
-                        <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                        <select
-                            className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 appearance-none h-9"
-                            value={facultyFilter}
-                            onChange={(e) => setFacultyFilter(e.target.value)}
-                        >
-                            {availableFaculty.map(f => (
-                                <option key={f} value={f}>{f}</option>
-                            ))}
-                        </select>
-                    </div>
-
+                    {/* Export */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-9">
-                                <Download className="w-4 h-4 mr-2" />
-                                Export
-                                <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
+                            <Button variant="outline" size="sm" className="h-9 shrink-0">
+                                <Download className="w-4 h-4 mr-2" />Export<ChevronDown className="w-4 h-4 ml-2 opacity-50" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-52">
                             <DropdownMenuLabel className="text-xs">Spreadsheet</DropdownMenuLabel>
                             <DropdownMenuItem onClick={exportToExcel} className="cursor-pointer text-green-700 dark:text-green-400 focus:text-green-700 focus:bg-green-50 dark:focus:bg-green-950/50">
-                                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                                Download as Excel (.xlsx)
+                                <FileSpreadsheet className="w-4 h-4 mr-2" />Download as Excel (.xlsx)
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs">Calendar Integration</DropdownMenuLabel>
                             <DropdownMenuItem onClick={exportToICS} className="cursor-pointer text-teal-600 focus:text-teal-600 focus:bg-teal-50 dark:focus:bg-teal-950/50">
-                                <CalendarIcon className="w-4 h-4 mr-2" />
-                                Export to iCal (.ics)
+                                <CalendarIcon className="w-4 h-4 mr-2" />Export to iCal (.ics)
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={pushToGoogleCalendar} className="cursor-pointer text-purple-600 focus:text-purple-600 focus:bg-purple-50 dark:focus:bg-purple-950/50">
-                                <Send className="w-4 h-4 mr-2" />
-                                Push to Google Calendar
+                                <Send className="w-4 h-4 mr-2" />Push to Google Calendar
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs">Printable</DropdownMenuLabel>
                             <DropdownMenuItem onClick={exportToPDF} className="cursor-pointer text-orange-600 focus:text-orange-600 focus:bg-orange-50 dark:focus:bg-orange-950/50">
-                                <Printer className="w-4 h-4 mr-2" />
-                                Save as PDF / Print
+                                <Printer className="w-4 h-4 mr-2" />Save as PDF / Print
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-
+                    {/* Fullscreen */}
                     {!hideFullscreen && (
-                        <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 md:flex hidden" onClick={toggleFullscreen}>
+                        <Button size="sm" className="h-9 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 md:flex hidden shrink-0" onClick={toggleFullscreen}>
                             {isFullscreen ? <Minimize2 className="w-4 h-4 mr-2" /> : <Maximize2 className="w-4 h-4 mr-2" />}
-                            {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                            {isFullscreen ? "Exit" : "Fullscreen"}
                         </Button>
                     )}
+                </div>
+                {/* Row 2: Description | Division filter | Faculty filter */}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {activeFilter === "All Divisions" ? "Viewing all divisions. Use the filter to isolate a single division's schedule." : `Filtered to: ${activeFilter} — each slot shows exactly one class.`}
+                    </p>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <div className="relative">
+                            <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                            <select className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 appearance-none h-9" value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
+                                {availableFilters.map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                        </div>
+                        <div className="relative">
+                            <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                            <select className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border-none rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 appearance-none h-9" value={facultyFilter} onChange={(e) => setFacultyFilter(e.target.value)}>
+                                {availableFaculty.map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -600,7 +573,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                     <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
                     <div className="flex-1">
                         <span className="font-semibold">{overflowCount} class slot{overflowCount !== 1 ? 's' : ''} have no matching room</span>
-                        <span className="font-normal ml-1 text-amber-700 dark:text-amber-300">â€” marked <span className="font-semibold">âš  TBD</span> in the grid. Add a matching room in Data Manager and regenerate.</span>
+                        <span className="font-normal ml-1 text-amber-700 dark:text-amber-300">— marked <span className="font-semibold">âš  TBD</span> in the grid. Add a matching room in Data Manager and regenerate.</span>
                     </div>
                     <button
                         onClick={() => setOverflowBannerDismissed(true)}
@@ -644,7 +617,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                 </div>
             )}
 
-            {/* Grid Container â€” min-h-0 prevents flex child from overflowing parent height */}
+            {/* Grid Container — min-h-0 prevents flex child from overflowing parent height */}
             <div
                 ref={gridRef}
                 className={`flex-1 min-h-0 overflow-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm relative print:overflow-visible print:border-none print:shadow-none print:w-full ${isFullscreen ? 'p-4 rounded-none border-none' : ''}`}
@@ -670,7 +643,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                         <colgroup>
                             {/* Day column */}
                             <col style={{ width: "80px" }} />
-                            {/* Time slot columns â€” equal width */}
+                            {/* Time slot columns — equal width */}
                             {times.map(t => <col key={t} />)}
                         </colgroup>
 
@@ -727,7 +700,7 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
 
                                         if (activeFilter === "All Divisions" && activeSlots.length > 1) {
                                             // Multi-class cell (All Divisions view):
-                                            // Stack cards vertically, each full width â€” NO scroll, all visible
+                                            // Stack cards vertically, each full width — NO scroll, all visible
                                             return (
                                                 <td key={time} className="border-r border-slate-100 dark:border-slate-800/50 p-1.5 align-top">
                                                     <div className="flex flex-col gap-1.5">
