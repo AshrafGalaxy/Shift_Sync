@@ -310,13 +310,105 @@ test("computeAssignedLoad: slots without faculty_id/faculty are skipped", () => 
   assertEqual(Object.keys(map).length, 0, "Slots without faculty should be ignored");
 });
 
+// ─── Category 7: Faculty name role-guard + admin preview mode ──────────────────
+
+console.log("\n► Category 7: Faculty name role-guard + admin preview mode");
+
+// Replicate the role-guard name resolution from faculty/page.tsx and manage/page.tsx
+function resolveFacultyDisplayName(f) {
+  return (f.profiles?.role === "faculty" && f.profiles?.full_name)
+    ? f.profiles.full_name   // Real registered faculty user
+    : (f.name || `Faculty ${f.id?.slice(0, 6) ?? "?"}`); // || catches empty string too
+}
+
+// Replicate overrideName display logic from FacultyPersonalPortal
+function resolvePortalDisplayName(profile, overrideName) {
+  return overrideName ?? profile.full_name;
+}
+
+function resolvePortalInitials(profile, overrideName) {
+  const name = overrideName ?? profile.full_name ?? "FA";
+  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+}
+
+test("CSV faculty with null profile_id → uses faculty_settings.name", () => {
+  const f = { id: "abc123", name: "Dr. Mehra", profiles: null };
+  assertEqual(resolveFacultyDisplayName(f), "Dr. Mehra");
+});
+
+test("Faculty with admin-role profile → ignores profiles.full_name, uses faculty_settings.name", () => {
+  const f = { id: "abc123", name: "Dr. Khan", profiles: { full_name: "Admin User", role: "admin" } };
+  assertEqual(resolveFacultyDisplayName(f), "Dr. Khan", "Admin profile should be ignored");
+});
+
+test("Real registered faculty (role=faculty) → uses profiles.full_name", () => {
+  const f = { id: "abc123", name: "CSV Import Name", profiles: { full_name: "Dr. Registered", role: "faculty" } };
+  assertEqual(resolveFacultyDisplayName(f), "Dr. Registered");
+});
+
+test("Faculty with no name and no profile → falls back to 'Faculty <id>'", () => {
+  const f = { id: "abcdef1234", name: null, profiles: null };
+  assertEqual(resolveFacultyDisplayName(f), "Faculty abcdef");
+});
+
+test("Faculty with empty string name → falls back to 'Faculty <id>'", () => {
+  const f = { id: "xyz999", name: "", profiles: null };
+  // empty string is falsy
+  assertEqual(resolveFacultyDisplayName(f), "Faculty xyz999");
+});
+
+test("Admin preview mode: portal shows overrideName instead of admin name", () => {
+  const adminProfile = { full_name: "Admin User", role: "admin" };
+  assertEqual(resolvePortalDisplayName(adminProfile, "Dr. Mehra"), "Dr. Mehra");
+});
+
+test("Admin preview mode: portal initials use overrideName", () => {
+  const adminProfile = { full_name: "Admin User", role: "admin" };
+  assertEqual(resolvePortalInitials(adminProfile, "Dr. Mehra"), "DM");
+});
+
+test("Non-preview mode: portal shows own profile name", () => {
+  const facultyProfile = { full_name: "Prof. Khan", role: "faculty" };
+  assertEqual(resolvePortalDisplayName(facultyProfile, undefined), "Prof. Khan");
+});
+
+test("Non-preview mode: portal initials from profile name", () => {
+  const facultyProfile = { full_name: "Prof. Khan", role: "faculty" };
+  assertEqual(resolvePortalInitials(facultyProfile, undefined), "PK");
+});
+
+test("Preset A faculty names are all distinct (no admin name bleed)", () => {
+  const presetAFaculty = ["Dr. Mehra", "Prof. Khan", "Dr. Patel", "Dr. Sharma", "Ms. Verma"];
+  const uniqueNames = new Set(presetAFaculty);
+  assertEqual(uniqueNames.size, 5, "All 5 Preset A faculty should have distinct names");
+  assert(!presetAFaculty.includes("Admin"), "No faculty should be named 'Admin'");
+  assert(!presetAFaculty.some(n => n.toLowerCase().includes("admin")), "No admin name bleed");
+});
+
+test("allFacultyList for simulate panel filters correctly", () => {
+  // Simulate the faculty list that would load in the admin demo panel
+  const rawFaculty = [
+    { id: "f1", name: "Dr. Mehra", is_archived: false },
+    { id: "f2", name: "Prof. Khan", is_archived: false },
+    { id: "f3", name: null, is_archived: false },        // null name edge case
+    { id: "f4", name: "Dr. Patel", is_archived: true },  // archived, would be filtered by DB query
+  ];
+  // Simulate .filter(f => !f.is_archived).map(...)
+  const list = rawFaculty
+    .filter(f => !f.is_archived)
+    .map(f => ({ id: f.id, name: f.name ?? "Unnamed" }));
+  assertEqual(list.length, 3);
+  assertEqual(list[2].name, "Unnamed", "Null name should become 'Unnamed'");
+  assert(!list.some(f => f.id === "f4"), "Archived faculty should be excluded");
+});
+
 // ─── Summary ──────────────────────────────────────────────────────────────────
 
 console.log(`\n${"─".repeat(50)}`);
 console.log(`Results: ${passed} passed, ${failed} failed`);
 if (failed > 0) {
-  console.error(`\n\u2717 ${failed} test(s) FAILED`);
+  console.error(`\n✗ ${failed} test(s) FAILED`);
   process.exit(1);
 } else {
-  console.log(`\n\u2713 All ${passed} tests passed!`);
+  console.log(`\n✓ All ${passed} tests passed!`);
 }

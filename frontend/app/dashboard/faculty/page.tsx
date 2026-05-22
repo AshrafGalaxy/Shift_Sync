@@ -166,7 +166,7 @@ function AdminFacultyDirectory() {
                     ...(f.profiles ?? {}),
                     full_name: (f.profiles?.role === "faculty" && f.profiles?.full_name)
                         ? f.profiles.full_name  // Real registered faculty user
-                        : (f.name ?? `Faculty ${f.id.slice(0, 6)}`), // CSV / demo faculty
+                        : (f.name || `Faculty ${f.id.slice(0, 6)}`), // CSV / demo faculty — || catches empty string too
                 },
                 workload_count: wMap[f.id] || 0,
             }));
