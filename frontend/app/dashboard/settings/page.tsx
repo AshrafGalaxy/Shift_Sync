@@ -157,7 +157,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto py-6">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto py-6 px-4 sm:px-6">
             <div className="flex flex-col gap-2">
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 flex items-center gap-3">
                     <User className="w-8 h-8 text-blue-600 dark:text-blue-500" />
@@ -169,7 +169,7 @@ export default function SettingsPage() {
             </div>
 
             {/* ── Row 1: Profile + Security side-by-side ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
                 {/* Profile Card */}
                 <Card className="border-slate-200/60 dark:border-slate-800/60 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 hover:border-blue-200 dark:hover:border-blue-800/50">
@@ -263,7 +263,7 @@ export default function SettingsPage() {
                             ))}
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-blue-500" /> Start Hour</Label>
                             <select value={startHour} onChange={e => setStartHour(Number(e.target.value))} className="w-full h-9 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
