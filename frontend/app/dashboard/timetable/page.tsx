@@ -673,17 +673,28 @@ export function MasterTimetableView({ targetIdProp, hideFullscreen }: { targetId
                             {times.map(t => <col key={t} />)}
                         </colgroup>
 
-                        {/* Header: times */}
+                        {/* Header: times + occupancy % */}
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                                 <th className="sticky left-0 z-30 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-2 text-center text-xs font-medium text-slate-500 print:static">
                                     Day / Time
                                 </th>
-                                {times.map(time => (
-                                    <th key={time} className="border-r border-slate-200 dark:border-slate-800 p-2 text-center text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                                        {mapMilitaryTo12Hour(time)}
-                                    </th>
-                                ))}
+                                {times.map(time => {
+                                    const nonLunchDays = days.filter(d => !isLunchTime(d, time));
+                                    const occupied = nonLunchDays.filter(d =>
+                                        visibleSlots.some(s => s.day === d && s.time === time)
+                                    ).length;
+                                    const pct = nonLunchDays.length ? Math.round((occupied / nonLunchDays.length) * 100) : 0;
+                                    const color = pct >= 80 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                                        : pct >= 40 ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400";
+                                    return (
+                                        <th key={time} className="border-r border-slate-200 dark:border-slate-800 p-2 text-center text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                                            <div>{mapMilitaryTo12Hour(time)}</div>
+                                            <span className={`inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${color}`}>{pct}%</span>
+                                        </th>
+                                    );
+                                })}
                             </tr>
                         </thead>
 
