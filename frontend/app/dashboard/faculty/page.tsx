@@ -114,14 +114,14 @@ function extractSlots(matrixData: any): TimetableSlot[] {
 // ── Slot type colour ────────────────────────────────────────────────────
 function slotColor(slot: TimetableSlot) {
     if (slot.is_online) return "bg-indigo-500";
-    if (slot.type === "Practical") return "bg-teal-500";
+    if (slot.type === "Lab") return "bg-teal-500";
     if (slot.type === "Tutorial") return "bg-purple-500";
     return "bg-blue-500";
 }
 
 function slotBadgeClass(slot: TimetableSlot) {
     if (slot.is_online) return "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-200";
-    if (slot.type === "Practical") return "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200";
+    if (slot.type === "Lab") return "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200";
     return "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200";
 }
 

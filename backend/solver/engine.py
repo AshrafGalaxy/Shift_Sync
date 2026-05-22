@@ -186,7 +186,7 @@ class TimetableEngine:
             if len(vars_list) > 1:
                 self.model.Add(sum(vars_list) <= 1)
 
-        # HC-7: Parent-child subgroup guard (Theory parent vs Practical child can't overlap)
+        # HC-7: Parent-child subgroup guard (Theory parent vs Lab child can't overlap)
         self._log("  [HC-7] Parent-child subgroup guard...")
         all_targets = set(tg for f in self.data.faculty for w in f.workload for tg in w.target_groups)
         for parent_t in all_targets:

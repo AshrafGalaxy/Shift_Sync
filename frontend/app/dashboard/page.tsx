@@ -243,8 +243,8 @@ export default function DashboardOverview() {
                     {id:"D201",type:"theory",capacity:80,tags:[]},
                     {id:"D205",type:"theory",capacity:80,tags:[]},
                     {id:"D207",type:"theory",capacity:80,tags:[]},
-                    {id:"Lab1",type:"practical",capacity:40,tags:["Computer_Lab"]},
-                    {id:"Lab2",type:"practical",capacity:40,tags:["Computer_Lab"]}
+                    {id:"Lab1",type:"lab",capacity:40,tags:["Computer_Lab"]},
+                    {id:"Lab2",type:"lab",capacity:40,tags:["Computer_Lab"]}
                 ]},
                 faculty: [
                     { id:"F001", name:"Dr. Mehra", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"SY-A",
@@ -252,7 +252,7 @@ export default function DashboardOverview() {
                     { id:"F002", name:"Prof. Khan", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:16, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"SY-B",
                       workload:[ {id:"W3",type:"Theory",subject:"DBMS",target_groups:["SY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W4",type:"Theory",subject:"DBMS",target_groups:["SY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] },
                     { id:"F003", name:"Dr. Patel", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
-                      workload:[ {id:"W5",type:"Practical",subject:"CS Lab",target_groups:["SY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false}, {id:"W6",type:"Practical",subject:"CS Lab",target_groups:["SY-B"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
+                      workload:[ {id:"W5",type:"Lab",subject:"CS Lab",target_groups:["SY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false}, {id:"W6",type:"Lab",subject:"CS Lab",target_groups:["SY-B"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false} ] },
                     { id:"F004", name:"Dr. Sharma", shift:[9,10,11,12,13,14,15,16], max_load_hrs:12, max_continuous_hrs:2, blocked_slots:[{day:"Wed",time:9},{day:"Wed",time:10}], class_teacher_for:"",
                       workload:[ {id:"W7",type:"Theory",subject:"OS Concepts",target_groups:["SY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}, {id:"W8",type:"Theory",subject:"OS Concepts",target_groups:["SY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false} ] },
                     { id:"F005", name:"Ms. Verma", shift:[8,9,10,11,12,13,14], max_load_hrs:10, max_continuous_hrs:2, blocked_slots:[], class_teacher_for:"",
@@ -268,25 +268,25 @@ export default function DashboardOverview() {
                 rooms_config: { rooms: [
                     {id:"A101",type:"theory",capacity:80,tags:[]},
                     {id:"A102",type:"theory",capacity:80,tags:[]},
-                    {id:"LabX",type:"practical",capacity:30,tags:["Computer_Lab"]}
+                    {id:"LabX",type:"lab",capacity:30,tags:["Computer_Lab"]}
                 ]},
                 faculty: [
                     { id:"F001", name:"Dr. Mehra", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:16, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"TY-A",
                       workload:[
                         {id:"W1",type:"Theory",subject:"Networks",target_groups:["TY-A"],hours:4,consecutive_hours:1,required_tags:[],is_online:false},
                         {id:"W2",type:"Theory",subject:"Networks",target_groups:["TY-B"],hours:4,consecutive_hours:1,required_tags:[],is_online:false},
-                        {id:"W3",type:"Practical",subject:"Networks Lab (Overflow)",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
+                        {id:"W3",type:"Lab",subject:"Networks Lab (Overflow)",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
                       ] },
                     { id:"F002", name:"Prof. Khan", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:16, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"TY-B",
                       workload:[
                         {id:"W4",type:"Theory",subject:"Algorithms",target_groups:["TY-A"],hours:3,consecutive_hours:1,required_tags:[],is_online:false},
                         {id:"W5",type:"Theory",subject:"Algorithms",target_groups:["TY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false},
-                        {id:"W6",type:"Practical",subject:"Algo Lab (Overflow)",target_groups:["TY-B"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
+                        {id:"W6",type:"Lab",subject:"Algo Lab (Overflow)",target_groups:["TY-B"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
                       ] },
                     { id:"F003", name:"Dr. Patel", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:14, max_continuous_hrs:3, blocked_slots:[], class_teacher_for:"",
                       workload:[
-                        {id:"W7",type:"Practical",subject:"CS Lab",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false},
-                        {id:"W8",type:"Practical",subject:"Project Lab (Overflow)",target_groups:["TY-B"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
+                        {id:"W7",type:"Lab",subject:"CS Lab",target_groups:["TY-A"],hours:4,consecutive_hours:2,required_tags:["Computer_Lab"],is_online:false},
+                        {id:"W8",type:"Lab",subject:"Project Lab (Overflow)",target_groups:["TY-B"],hours:4,consecutive_hours:2,required_tags:["Dual_Screen"],is_online:false}
                       ] },
                     { id:"F004", name:"Dr. Sharma", shift:[8,9,10,11,12,13,14,15,16], max_load_hrs:12, max_continuous_hrs:2, blocked_slots:[], class_teacher_for:"",
                       workload:[{id:"W9",type:"Theory",subject:"OS Concepts",target_groups:["TY-A","TY-B"],hours:3,consecutive_hours:1,required_tags:[],is_online:false}] },

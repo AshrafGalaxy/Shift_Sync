@@ -1,11 +1,11 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Union, Dict, Any
 
 # --- Shared Enumerations / Logic ---
 
 class SubjectType(str):
     THEORY = "Theory"
-    PRACTICAL = "Practical"
+    LAB = "Lab"
     TUTORIAL = "Tutorial"
 
 # --- Dynamic Custom Rules Engine ---
@@ -41,13 +41,36 @@ class RoomsConfig(BaseModel):
 
 class WorkloadItem(BaseModel):
     id: str = Field(..., description="Unique event ID to trace contiguous blocks easily")
-    type: str = Field(..., description="'Theory', 'Practical', or 'Tutorial'")
+    type: str = Field(..., description="'Theory', 'Lab', or 'Tutorial'")
     subject: str = Field(..., description="Subject code e.g. 'CS301'")
     target_groups: List[str] = Field(..., description="Array of targets (e.g. ['Div_A', 'Div_B'] for merged classes)")
     hours: int = Field(..., gt=0, description="Exact number of weekly hours required for this mapping")
     consecutive_hours: int = Field(1, description="How many hours MUST be mapped side-by-side without interruptions")
     required_tags: List[str] = Field(default_factory=list, description="Array of tags the assigned room MUST possess")
     is_online: bool = Field(default=False, description="If true, bypasses physical room mapping")
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def normalise_workload_type(cls, v: str) -> str:
+        """Accept any casing variant of the 3 canonical types.
+        Maps: practical / Practical / PRACTICAL / lab / LAB → 'Lab'
+              theory / THEORY → 'Theory'
+              tutorial / TUTORIAL → 'Tutorial'
+        Raises a clear ValueError for anything else.
+        """
+        mapping = {
+            "theory": "Theory",
+            "lab": "Lab",
+            "practical": "Lab",   # legacy alias → Lab
+            "tutorial": "Tutorial",
+        }
+        normalised = mapping.get(str(v).strip().lower())
+        if normalised is None:
+            raise ValueError(
+                f"Invalid class type '{v}'. Allowed values: Theory, Lab, Tutorial "
+                f"(also accepts: practical as an alias for Lab)."
+            )
+        return normalised
 
 class BlockedSlot(BaseModel):
     day: str

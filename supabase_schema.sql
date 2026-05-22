@@ -35,7 +35,7 @@ DROP TYPE IF EXISTS class_type CASCADE;
 -- =============================================================================
 
 CREATE TYPE user_role  AS ENUM ('admin', 'faculty', 'student');
-CREATE TYPE class_type AS ENUM ('Theory', 'Practical', 'Tutorial');
+CREATE TYPE class_type AS ENUM ('Theory', 'Lab', 'Tutorial');
 
 
 -- =============================================================================

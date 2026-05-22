@@ -23,7 +23,7 @@ export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) 
     const [typeFilter, setTypeFilter] = useState<string>("All");
     const supabase = createClient();
 
-    const TYPE_FILTERS = ["All", "Theory", "Practical", "Tutorial"];
+    const TYPE_FILTERS = ["All", "Theory", "Lab", "Tutorial"];
     const filteredData = typeFilter === "All" ? data : data.filter(w =>
         typeFilter === "Online" ? w.is_online : w.type === typeFilter
     );
@@ -66,9 +66,9 @@ export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) 
     };
 
     const typeColors: Record<string, string> = {
-        Theory: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20",
-        Practical: "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-500/20",
-        Tutorial: "bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/20",
+        Theory: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30",
+        Lab: "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-500/30",
+        Tutorial: "bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30",
     };
 
     const columns = [
@@ -220,7 +220,7 @@ export default function WorkloadGrid({ data, onDataChange }: WorkloadGridProps) 
                                         onChange={(e) => setEditingWorkload({ ...editingWorkload, type: e.target.value })}
                                     >
                                         <option value="Theory">Theory</option>
-                                        <option value="Practical">Practical</option>
+                                        <option value="Lab">Lab</option>
                                         <option value="Tutorial">Tutorial</option>
                                     </select>
                                 </div>
