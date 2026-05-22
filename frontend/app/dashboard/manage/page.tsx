@@ -73,11 +73,12 @@ export default function ManagePage() {
                 supabase.from("rooms").select("*").eq("institution_id", instId).order("name"),
                 supabase
                     .from("faculty_settings")
-                    .select("*, profiles(full_name)")
+                    .select("*, name, profiles(full_name)")
+                    .eq("institution_id", instId)
                     .order("created_at"),
                 supabase
                     .from("workloads")
-                    .select("*, faculty_settings(profiles(full_name))")
+                    .select("*, faculty_settings(name, profiles(full_name))")
                     .order("subject_code"),
             ]);
 
@@ -85,13 +86,13 @@ export default function ManagePage() {
             setFaculty(
                 (facultyRes.data || []).map((f: any) => ({
                     ...f,
-                    full_name: f.profiles?.full_name ?? "Unknown",
+                    full_name: (f.profiles?.full_name) ?? f.name ?? "Unknown",
                 }))
             );
             setWorkloads(
                 (workloadsRes.data || []).map((w: any) => ({
                     ...w,
-                    faculty_name: w.faculty_settings?.profiles?.full_name ?? "Unknown",
+                    faculty_name: w.faculty_settings?.profiles?.full_name ?? w.faculty_settings?.name ?? "Unknown",
                 }))
             );
         } catch (err) {
