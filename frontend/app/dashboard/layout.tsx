@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,6 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [notifications, setNotifications] = useState<{id: string; type: "error"|"warning"|"success"; title: string; body: string; ts?: string; link?: string}[]>([]);
     const [notifOpen, setNotifOpen] = useState(false);
     const [notifRead, setNotifRead] = useState(false);
+    const notifHashRef = useRef("");
     const pathname = usePathname();
     const router = useRouter();
     const supabase = createClient();
@@ -130,6 +131,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 if (!roomCount || roomCount === 0) notifs.push({ id: "no-rooms", type: "error", title: "No rooms configured", body: "Add at least one room before generating.", link: "/dashboard/manage" });
                 if (!facCount || facCount === 0) notifs.push({ id: "no-fac", type: "error", title: "No faculty configured", body: "Add at least one faculty member before generating.", link: "/dashboard/manage" });
 
+                const newHash = notifs.map(n => n.id).join(",");
+                if (newHash === notifHashRef.current) return; // No change — skip re-render + red-dot
+                notifHashRef.current = newHash;
                 setNotifications(notifs);
                 setNotifRead(false);
             } catch { /* silent */ }

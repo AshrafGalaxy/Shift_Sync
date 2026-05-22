@@ -1168,7 +1168,12 @@ export default function DashboardOverview() {
                     setIsLiveStreaming(false); // switch panel from live â†’ last trace
                     setLastGenerationDate(new Date().toLocaleString());
                 }}
-                onSuccess={() => { fetchDashboardStats(); router.push('/dashboard/timetable'); }}
+                onSuccess={() => {
+                    // Clear stale timetable cache so timetable page shows fresh result
+                    try { Object.keys(sessionStorage).filter(k => k.startsWith("tt_cache_")).forEach(k => sessionStorage.removeItem(k)); } catch { /* SSR guard */ }
+                    fetchDashboardStats();
+                    router.push("/dashboard/timetable");
+                }}
             />
         </div>
     );
