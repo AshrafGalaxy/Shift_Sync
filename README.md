@@ -14,13 +14,13 @@
 
 ---
 
-## System Overview
+## <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/project-24.svg" width="22" height="22" /> System Overview
 
 **ShiftSync** is an enterprise-grade SaaS platform designed for educational institutions to automate weekly timetable generation. The system orchestrates a **Next.js 14** web application, a **FastAPI** constraint solver engine utilizing **Google OR-Tools CP-SAT**, and a **Supabase (PostgreSQL)** database enforcing multi-tenant Row Level Security (RLS).
 
 ---
 
-## System Architecture
+## <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/cpu-24.svg" width="22" height="22" /> System Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -54,7 +54,7 @@
 
 ---
 
-## Core Capabilities
+## <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/zap-24.svg" width="22" height="22" /> Core Capabilities
 
 ### Constraint Satisfaction Engine (CP-SAT)
 - Enforces multi-dimensional hard constraints: shift compliance, room allocation, lab continuity, parent-child batch conflicts, and faculty workload bounds.
@@ -76,7 +76,7 @@
 
 ---
 
-## Technology Stack
+## <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/code-24.svg" width="22" height="22" /> Technology Stack
 
 <table>
   <tr>
@@ -119,7 +119,7 @@
 
 ---
 
-## Environment Setup
+## <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/terminal-24.svg" width="22" height="22" /> Environment Setup
 
 ### Prerequisites
 - Node.js 20+
@@ -173,7 +173,7 @@ Execute `supabase_schema.sql` in the Supabase SQL Editor.
 
 ---
 
-## Engine Testing & Verification
+## <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/verified-24.svg" width="22" height="22" /> Engine Testing & Verification
 
 Run backend unit tests:
 ```bash
@@ -183,6 +183,6 @@ pytest tests/ -v
 
 ---
 
-## Copyright Notice
+## <img src="https://raw.githubusercontent.com/primer/octicons/main/icons/shield-24.svg" width="22" height="22" /> Copyright Notice
 
 Copyright © 2026 Ashraf. All Rights Reserved.
