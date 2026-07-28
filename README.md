@@ -132,38 +132,7 @@ pytest tests/ -v
 
 16 unit tests covering: ghost room fallback, solver status codes, conflict refiner checks, workload divisibility guard.
 
----
 
-## Project Phases (Changelog)
-
-| Phase | Feature |
-|---|---|
-| 1–5 | UI scaffold, landing page, auth, dashboard, timetable view |
-| 6–9 | FastAPI backend, CP-SAT solver, substitute finder |
-| 10–11 | Supabase integration, auth wiring, route guards |
-| 12–13 | Hybrid CSV + web ingestion, settings page |
-| 14 | Generation history page |
-| 15 | Tutorial class type support |
-| 16 | Dashboard redesign, failure logs |
-| 17–18 | CSV/Excel/ICS export, resource heatmap |
-| 19–20 | Timetable pinning/shuffling, historical modal |
-| 21–22 | Lab continuity constraints, parent-child subgroup conflict |
-| 23 | Constraints & Requirements guide page |
-| 24 | Dynamic constraints (per-day lunch, per-faculty fatigue, online bypass) |
-| 25 | Premium dashboard overhaul (cyber-matrix loader, health checker) |
-| 26 | Core data management UI (Rooms/Faculty/Workloads DataGrids) |
-| 27 | Faculty portal (real Supabase data, substitute requests) |
-| 28 | Notification bell system (real-time Supabase subscription) |
-| 29 | Google Calendar OAuth + push-to-calendar |
-| 30 | Visual time-grid builder (paint-grid shift/block editor) |
-| 31 | Constraint templates & semester snapshots |
-| 32 | Soft-delete / archiving for rooms and faculty |
-| 33 | **Ghost Resource Layer** — overflow instead of INFEASIBLE |
-| 34 | **Bottleneck Diagnostics** — Conflict Refiner Modal |
-| 35 | **Production hardening** — pytest suite, GitHub Actions CI |
-| 36 | **Multi-tenant onboarding** — register page, per-institution RLS |
-
----
 
 ## License
 
