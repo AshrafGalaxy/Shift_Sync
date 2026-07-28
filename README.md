@@ -7,19 +7,20 @@
   <img src="https://img.shields.io/badge/Google_OR--Tools-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google OR-Tools" />
   <img src="https://img.shields.io/badge/Python_3.11-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
 </p>
 
 > Intelligent, constraint-aware timetable generation powered by Google OR-Tools CP-SAT, FastAPI, and Next.js 14.
 
 ---
 
-## 📌 Overview
+## System Overview
 
-**ShiftSync** is a full-stack SaaS platform that allows college administrators to generate conflict-free weekly timetables in seconds. It seamlessly connects a modern **Next.js** frontend with a high-performance **FastAPI + CP-SAT** constraint solver engine and a **Supabase** (PostgreSQL) backend protected by multi-tenant Row Level Security (RLS).
+**ShiftSync** is an enterprise-grade SaaS platform designed for educational institutions to automate weekly timetable generation. The system orchestrates a **Next.js 14** web application, a **FastAPI** constraint solver engine utilizing **Google OR-Tools CP-SAT**, and a **Supabase (PostgreSQL)** database enforcing multi-tenant Row Level Security (RLS).
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -53,60 +54,99 @@
 
 ---
 
-## ✨ Key Features
+## Core Capabilities
 
-- ⚙️ **CP-SAT Solver Engine**: Enforces hard constraints including shift compliance, room clashes, lab continuity, parent-child batch conflicts, and faculty fatigue limits.
-- 👻 **Ghost Resource Layer**: Prevents `INFEASIBLE` solver crashes by utilizing overflow slots when physical rooms are missing or constrained.
-- 🔍 **Bottleneck Diagnostics**: Generates a human-readable Conflict Refiner breakdown detailing exactly which constraints caused a generation failure.
-- 🔄 **Smart Substitute Finder**: Real-time conflict-aware search to identify eligible substitute faculty for unassigned slots.
-- 📅 **Google Calendar Sync**: OAuth 2.0 integration allowing one-click export of scheduled slots directly to Google Calendar.
-- 🔐 **Multi-Tenant RLS**: Row Level Security ensures complete data isolation per institution.
-- 📁 **Constraint Templates & Snapshots**: Save, load, and restore semester-wide timetable configurations.
-- 🗃️ **Soft-Delete & Archiving**: Safely archive rooms and faculty without losing historical schedule data.
+### Constraint Satisfaction Engine (CP-SAT)
+- Enforces multi-dimensional hard constraints: shift compliance, room allocation, lab continuity, parent-child batch conflicts, and faculty workload bounds.
 
----
+### Ghost Resource Layer
+- Implements dynamic overflow management to prevent solver `INFEASIBLE` states when physical room capacity is constrained.
 
-## 🛠️ Technology Stack
+### Bottleneck Diagnostics & Conflict Refiner
+- Provides human-readable diagnostic analysis pinpointing exact constraint collisions during unsolvable scheduling scenarios.
 
-| Category | Technologies |
-| :--- | :--- |
-| **Frontend** | Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide Icons |
-| **Backend API** | Python 3.11, FastAPI, Uvicorn, Pydantic |
-| **Constraint Solver** | Google OR-Tools (CP-SAT Solver Engine) |
-| **Database & Auth** | Supabase (PostgreSQL), Row Level Security (RLS) |
-| **Integrations** | Google Calendar API (OAuth 2.0) |
+### Faculty Substitution Engine
+- Performs real-time, conflict-aware matching to identify eligible substitute faculty for unassigned lecture slots.
+
+### Google Calendar Synchronization
+- Integrates OAuth 2.0 protocol for automated export of generated schedules into Google Calendar.
+
+### Multi-Tenant Architecture & Security
+- Enforces strict institutional data isolation via Supabase PostgreSQL Row Level Security (RLS) policies.
 
 ---
 
-## 🚀 Quick Start Guide
+## Technology Stack
+
+<table>
+  <tr>
+    <td align="center" width="160">
+      <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nextjs/nextjs-original.svg" width="48" height="48" alt="Next.js" /><br />
+      <b>Next.js 14</b>
+    </td>
+    <td align="center" width="160">
+      <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/typescript/typescript-original.svg" width="48" height="48" alt="TypeScript" /><br />
+      <b>TypeScript</b>
+    </td>
+    <td align="center" width="160">
+      <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/tailwindcss/tailwindcss-original.svg" width="48" height="48" alt="Tailwind CSS" /><br />
+      <b>Tailwind CSS</b>
+    </td>
+    <td align="center" width="160">
+      <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" width="48" height="48" alt="Python" /><br />
+      <b>Python 3.11</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="160">
+      <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/fastapi/fastapi-original.svg" width="48" height="48" alt="FastAPI" /><br />
+      <b>FastAPI</b>
+    </td>
+    <td align="center" width="160">
+      <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/supabase/supabase-original.svg" width="48" height="48" alt="Supabase" /><br />
+      <b>Supabase</b>
+    </td>
+    <td align="center" width="160">
+      <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original.svg" width="48" height="48" alt="PostgreSQL" /><br />
+      <b>PostgreSQL</b>
+    </td>
+    <td align="center" width="160">
+      <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/google/google-original.svg" width="48" height="48" alt="Google Cloud" /><br />
+      <b>Google OR-Tools</b>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Environment Setup
 
 ### Prerequisites
 - Node.js 20+
 - Python 3.11+
-- A [Supabase](https://supabase.com) project
+- Supabase Project Instance
 
-### 1. Clone Repository
+### 1. Repository Setup
 ```bash
 git clone https://github.com/AshrafGalaxy/Shift_Sync.git
 cd Shift_Sync
 ```
 
-### 2. Backend Setup
+### 2. Backend Engine Installation
 ```bash
 cd backend
 python -m venv venv
 
-# Activate Virtual Environment
-# Windows:
+# Windows
 venv\Scripts\activate
-# macOS/Linux:
+# macOS/Linux
 source venv/bin/activate
 
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### 3. Frontend Setup
+### 3. Frontend Web Client Installation
 ```bash
 cd ../frontend
 npm install
@@ -118,24 +158,24 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_ENGINE_URL=http://localhost:8000
 
-# Optional — Google Calendar Integration
+# Optional — Google Calendar OAuth Integration
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
-Run dev server:
+Launch development environment:
 ```bash
 npm run dev
 ```
 
-### 4. Database Setup
-Execute `supabase_schema.sql` inside your Supabase SQL Editor.
+### 4. Database Schema Migration
+Execute `supabase_schema.sql` in the Supabase SQL Editor.
 
 ---
 
-## 🧪 Verification & Testing
+## Engine Testing & Verification
 
-To run backend engine unit tests:
+Run backend unit tests:
 ```bash
 cd backend
 pytest tests/ -v
@@ -143,6 +183,6 @@ pytest tests/ -v
 
 ---
 
-## 📜 Copyright
+## Copyright Notice
 
 Copyright © 2026 Ashraf. All Rights Reserved.
