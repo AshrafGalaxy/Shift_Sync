@@ -14,13 +14,13 @@
 
 ---
 
-## <img src="https://api.iconify.design/lucide:layers.svg?color=%2338bdf8" width="24" height="24" align="center" /> System Overview
+## <img src="https://api.iconify.design/lucide:layers.svg?color=%2338bdf8" width="24" height="24" style="vertical-align: middle;" /> System Overview
 
 **ShiftSync** is an enterprise-grade SaaS platform designed for educational institutions to automate weekly timetable generation. The system orchestrates a **Next.js 14** web application, a **FastAPI** constraint solver engine utilizing **Google OR-Tools CP-SAT**, and a **Supabase (PostgreSQL)** database enforcing multi-tenant Row Level Security (RLS).
 
 ---
 
-## <img src="https://api.iconify.design/lucide:cpu.svg?color=%2338bdf8" width="24" height="24"  /> System Architecture
+## <img src="https://api.iconify.design/lucide:cpu.svg?color=%2338bdf8" width="24" height="24" style="vertical-align: middle;" /> System Architecture
 
 ```mermaid
 flowchart TD
@@ -60,7 +60,7 @@ flowchart TD
 
 ---
 
-## <img src="https://api.iconify.design/lucide:zap.svg?color=%2338bdf8" width="24" height="24" align="center" /> Core Capabilities
+## <img src="https://api.iconify.design/lucide:zap.svg?color=%2338bdf8" width="24" height="24" style="vertical-align: middle;" /> Core Capabilities
 
 ### Constraint Satisfaction Engine (CP-SAT)
 - Enforces multi-dimensional hard constraints: shift compliance, room allocation, lab continuity, parent-child batch conflicts, and faculty workload bounds.
@@ -82,7 +82,7 @@ flowchart TD
 
 ---
 
-## <img src="https://api.iconify.design/lucide:code-2.svg?color=%2338bdf8" width="24" height="24" align="center" /> Technology Stack
+## <img src="https://api.iconify.design/lucide:code-2.svg?color=%2338bdf8" width="24" height="24" style="vertical-align: middle;" /> Technology Stack
 
 <table>
   <tr>
@@ -125,7 +125,7 @@ flowchart TD
 
 ---
 
-## <img src="https://api.iconify.design/lucide:terminal.svg?color=%2338bdf8" width="24" height="24" align="center" /> Environment Setup
+## <img src="https://api.iconify.design/lucide:terminal.svg?color=%2338bdf8" width="24" height="24" style="vertical-align: middle;" /> Environment Setup
 
 ### Prerequisites
 - Node.js 20+
@@ -179,7 +179,7 @@ Execute `supabase_schema.sql` in the Supabase SQL Editor.
 
 ---
 
-## <img src="https://api.iconify.design/lucide:check-circle-2.svg?color=%2338bdf8" width="24" height="24" align="center" /> Engine Testing & Verification
+## <img src="https://api.iconify.design/lucide:check-circle-2.svg?color=%2338bdf8" width="24" height="24" style="vertical-align: middle;" /> Engine Testing & Verification
 
 Run backend unit tests:
 ```bash
@@ -189,6 +189,6 @@ pytest tests/ -v
 
 ---
 
-## <img src="https://api.iconify.design/lucide:shield-check.svg?color=%2338bdf8" width="24" height="24" align="center" /> Copyright Notice
+## <img src="https://api.iconify.design/lucide:shield-check.svg?color=%2338bdf8" width="24" height="24" style="vertical-align: middle;" /> Copyright Notice
 
 Copyright © 2026 Ashraf. All Rights Reserved.
