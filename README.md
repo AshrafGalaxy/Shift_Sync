@@ -20,7 +20,7 @@
 
 ---
 
-## <img src="https://api.iconify.design/lucide:cpu.svg?color=%2338bdf8" width="24" height="24" align="center" /> System Architecture
+## <img src="https://api.iconify.design/lucide:cpu.svg?color=%2338bdf8" width="24" height="24"  /> System Architecture
 
 ```mermaid
 flowchart TD
