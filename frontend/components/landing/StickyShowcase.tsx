@@ -70,7 +70,7 @@ const PILL_BOTTOM_PATH = "M 0 24 L 0 32 Q 0 48 16 48 L 32 48 Q 48 48 48 32 L 48 
 
 function PillCircuit({ active }: { active: boolean }) {
   if (!active) return null;
-  const pathLengthVariants = {
+  const pathLengthVariants: any = {
     animate: {
       pathLength: [0, 0.3, 0.3, 0],
       pathOffset: [0, 0, 0.7, 1],
