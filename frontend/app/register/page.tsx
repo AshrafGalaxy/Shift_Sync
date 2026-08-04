@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Calendar as CalendarIcon, Lock, Mail, Building2, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Calendar as CalendarIcon, Lock, Mail, Building2, Loader2, ArrowRight, CheckCircle2, Zap, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -143,17 +143,17 @@ export default function RegisterPage() {
                 transition={{ duration: 0.6 }}
                 className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
             >
-                {/* Background Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-teal-600/20 to-blue-600/20" />
-                <div className="absolute top-0 right-0 w-96 h-96 bg-teal-600/30 blur-[120px] rounded-full" />
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/30 blur-[120px] rounded-full" />
+                {/* Background Gradient — softened teal theme */}
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-600/12 to-cyan-700/10" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-teal-600/18 blur-[140px] rounded-full" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-600/15 blur-[140px] rounded-full" />
 
                 <div className="relative z-10">
                     <Link href="/" className="flex items-center gap-2 mb-12">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_12px_rgba(14,165,233,0.3)]">
                             <CalendarIcon className="w-6 h-6 text-white" />
                         </div>
-                        <span className="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                        <span className="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-400">
                             ShiftSync
                         </span>
                     </Link>
@@ -171,12 +171,12 @@ export default function RegisterPage() {
                                     description: "Each institution gets isolated, secure data environment",
                                 },
                                 {
-                                    icon: CheckCircle2,
+                                    icon: Zap,
                                     title: "Zero Setup Required",
                                     description: "Start generating timetables in minutes",
                                 },
                                 {
-                                    icon: Mail,
+                                    icon: Layers,
                                     title: "Multi-Department Support",
                                     description: "Manage multiple departments and schedules",
                                 },
@@ -190,7 +190,7 @@ export default function RegisterPage() {
                                         transition={{ delay: 0.2 + idx * 0.1 }}
                                         className="flex gap-4"
                                     >
-                                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-600 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-[0_0_14px_rgba(20,184,166,0.3)]">
                                             <Icon className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
@@ -214,10 +214,10 @@ export default function RegisterPage() {
             >
                 {/* Mobile Logo */}
                 <Link href="/" className="lg:hidden flex items-center gap-2 mb-8">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_10px_rgba(14,165,233,0.3)]">
                         <CalendarIcon className="w-5 h-5 text-white" />
                     </div>
-                    <span className="font-bold text-xl tracking-tight text-slate-50">ShiftSync</span>
+                    <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-400">ShiftSync</span>
                 </Link>
 
                 <Card className="w-full max-w-md border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl">

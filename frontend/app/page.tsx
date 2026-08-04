@@ -37,7 +37,6 @@ function AnimatedTimetableGrid() {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
   const times = ["8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "1 PM", "2 PM", "3 PM"];
 
-  // Mock timetable cells with random pattern
   const generateCells = () => {
     const cells = [];
     let cellId = 0;
@@ -47,17 +46,12 @@ function AnimatedTimetableGrid() {
         const isEmpty = rand > 0.7;
         if (!isEmpty) {
           const types = [
-            { code: "CS301", faculty: "DR", color: "from-blue-500 to-blue-600" },
-            { code: "ML_LAB", faculty: "PR", color: "from-teal-500 to-teal-600" },
-            { code: "DMS_TUT", faculty: "MS", color: "from-purple-500 to-purple-600" },
+            { code: "CS301",   color: "from-sky-500 to-blue-600" },
+            { code: "ML_LAB",  color: "from-teal-500 to-cyan-600" },
+            { code: "DMS_TUT", color: "from-violet-500 to-purple-600" },
           ];
           const type = types[Math.floor(Math.random() * types.length)];
-          cells.push({
-            id: cellId++,
-            day,
-            time,
-            ...type,
-          });
+          cells.push({ id: cellId++, day, time, ...type });
         }
       }
     }
@@ -68,10 +62,7 @@ function AnimatedTimetableGrid() {
   const [showBadge, setShowBadge] = useState(false);
 
   useEffect(() => {
-    // generateCells() uses Math.random() — must only run client-side to avoid
-    // an SSR/hydration mismatch where server and client produce different grids.
     setCells(generateCells());
-
     const timer = setTimeout(() => setShowBadge(true), 2000);
     return () => clearTimeout(timer);
   }, []);
@@ -90,10 +81,9 @@ function AnimatedTimetableGrid() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.8 }}
-      className="mt-20 rounded-2xl border border-slate-800 bg-slate-900/50 backdrop-blur-sm p-6 max-w-4xl mx-auto"
+      className="mt-20 rounded-2xl border border-slate-700/60 bg-slate-900/60 backdrop-blur-sm p-6 max-w-4xl mx-auto shadow-[0_0_60px_rgba(14,165,233,0.06)]"
     >
       <div className="flex gap-1 overflow-x-auto pb-4">
-        {/* Grid headers */}
         <div className="flex-shrink-0" />
         {days.map((day) => (
           <div key={day} className="w-24 text-center text-xs font-semibold text-slate-400 flex-shrink-0">
@@ -105,7 +95,7 @@ function AnimatedTimetableGrid() {
       <div className="grid gap-1" style={{ gridTemplateColumns: "auto repeat(5, minmax(96px, 1fr))" }}>
         {times.map((time, timeIdx) => (
           <React.Fragment key={time}>
-            <div className="text-xs font-semibold text-slate-400 h-12 flex items-center">
+            <div className="text-xs font-semibold text-slate-500 h-12 flex items-center">
               {time}
             </div>
             {days.map((day, dayIdx) => {
@@ -120,13 +110,11 @@ function AnimatedTimetableGrid() {
                   className="h-12"
                 >
                   {cell ? (
-                    <div
-                      className={`h-full rounded-lg bg-gradient-to-br ${cell.color} border border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.3)] flex items-center justify-center text-xs font-semibold text-white`}
-                    >
+                    <div className={`h-full rounded-lg bg-gradient-to-br ${cell.color} border border-white/10 shadow-[0_0_10px_rgba(14,165,233,0.25)] flex items-center justify-center text-xs font-semibold text-white`}>
                       {cell.code}
                     </div>
                   ) : (
-                    <div className="h-full rounded-lg bg-slate-800/30 border border-slate-700/50" />
+                    <div className="h-full rounded-lg bg-slate-800/50 border border-slate-700/40" />
                   )}
                 </motion.div>
               );
@@ -140,9 +128,12 @@ function AnimatedTimetableGrid() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 text-center text-sm text-teal-400 font-medium"
+            className="mt-4 text-center text-sm text-teal-400 font-medium tracking-wide"
           >
-            Generated in 42s ✓
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 inline-block animate-pulse" />
+              Generated in 42s
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -150,7 +141,7 @@ function AnimatedTimetableGrid() {
   );
 }
 
-// Marquee component
+// Marquee component — true infinite CSS scroll
 function Marquee() {
   const institutions = [
     "SATIS Engineering",
@@ -161,30 +152,31 @@ function Marquee() {
     "MIT Manipal",
     "VIT Vellore",
     "BITS Pilani",
+    "IIT Bombay Style",
+    "BIT Mesra",
   ];
 
+  // Duplicate list so the CSS animation can loop seamlessly (50% = one full set)
+  const doubled = [...institutions, ...institutions];
+
   return (
-    <div className="mt-32 py-12 border-y border-slate-800">
+    <div className="mt-32 py-12 border-y border-slate-800/70">
       <div className="text-center mb-8">
-        <p className="text-xs uppercase tracking-widest text-slate-600 font-semibold">
+        <p className="text-xs uppercase tracking-widest text-slate-500 font-semibold">
           Trusted by Institutions Across India
         </p>
       </div>
-      <div className="relative overflow-hidden">
-        <motion.div
-          className="flex gap-4"
-          animate={{ x: [-1000, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        >
-          {[...institutions, ...institutions].map((inst, idx) => (
+      <div className="marquee-container overflow-hidden">
+        <div className="animate-marquee gap-4">
+          {doubled.map((inst, idx) => (
             <div
               key={idx}
-              className="px-4 py-2 rounded-full bg-slate-900 border border-slate-800 text-sm text-slate-400 flex-shrink-0 whitespace-nowrap"
+              className="mx-2 px-5 py-2 rounded-full bg-slate-900 border border-slate-700/60 text-sm text-slate-300 flex-shrink-0 whitespace-nowrap hover:border-sky-500/40 hover:text-sky-300 transition-colors cursor-default"
             >
               {inst}
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -193,10 +185,10 @@ function Marquee() {
 // Live Stats with counter animation
 function LiveStats() {
   const stats = [
-    { label: "Timetables Generated", value: 500, suffix: "+" },
-    { label: "Institutions Onboarded", value: 30, suffix: "+" },
-    { label: "Avg. Generation Time", value: 42, suffix: "s" },
-    { label: "Constraint Conflicts Resolved", value: 10000, suffix: "+" },
+    { label: "Timetables Generated",       value: 500,   suffix: "+", accent: "from-sky-400 to-blue-500" },
+    { label: "Institutions Onboarded",     value: 30,    suffix: "+", accent: "from-teal-400 to-cyan-500" },
+    { label: "Avg. Generation Time",       value: 42,    suffix: "s", accent: "from-violet-400 to-purple-500" },
+    { label: "Constraint Conflicts Resolved", value: 10000, suffix: "+", accent: "from-amber-400 to-orange-500" },
   ];
 
   return (
@@ -208,11 +200,13 @@ function LiveStats() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: idx * 0.1 }}
-          className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all"
+          className="relative bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 hover:border-sky-500/40 hover:shadow-[0_0_24px_rgba(14,165,233,0.10)] transition-all overflow-hidden group"
         >
-          <motion.div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          {/* Top accent line */}
+          <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${stat.accent} opacity-70 group-hover:opacity-100 transition-opacity`} />
+          <div className={`text-3xl font-bold bg-gradient-to-r ${stat.accent} bg-clip-text text-transparent`}>
             <Counter value={stat.value} suffix={stat.suffix} />
-          </motion.div>
+          </div>
           <p className="text-slate-400 text-sm mt-2">{stat.label}</p>
         </motion.div>
       ))}
@@ -253,47 +247,59 @@ function Counter({
   );
 }
 
-// Feature cards
-function FeatureCards() {
-  const features = [
-    {
-      title: "AI Constraint Solver",
-      description: "Google OR-Tools CP-SAT engine solves thousands of constraint variables in seconds.",
-      icon: Brain,
-      color: "text-blue-500",
-    },
-    {
-      title: "Ghost Resource Layer",
-      description: "Never get a failed generation. Overflow slots use ghost rooms and flag them amber for manual resolution.",
-      icon: AlertTriangle,
-      color: "text-amber-500",
-    },
-    {
-      title: "Conflict Refiner",
-      description: "When generation fails, the Conflict Refiner diagnoses exactly which constraint is impossible.",
-      icon: Search,
-      color: "text-purple-500",
-    },
-    {
-      title: "Multi-Format Export",
-      description: "Export to Excel (.xlsx), PDF, iCal (.ics) or push directly to Google Calendar.",
-      icon: Download,
-      color: "text-teal-500",
-    },
-    {
-      title: "Multi-Tenant Architecture",
-      description: "Row Level Security ensures each institution sees only its own data. Register and go.",
-      icon: Building2,
-      color: "text-blue-500",
-    },
-    {
-      title: "Real-Time Substitution",
-      description: "Faculty absent? The substitute finder checks conflicts in real-time and notifies via the bell system.",
-      icon: UserCheck,
-      color: "text-purple-500",
-    },
-  ];
+// Feature cards — each with its own color identity
+const featureConfig = [
+  {
+    title: "AI Constraint Solver",
+    description: "Google OR-Tools CP-SAT engine solves thousands of constraint variables in seconds.",
+    icon: Brain,
+    iconGradient: "from-sky-500 to-blue-600",
+    hoverGlow: "hover:card-glow-blue hover:border-sky-500/50",
+    iconShadow: "shadow-[0_0_16px_rgba(14,165,233,0.35)]",
+  },
+  {
+    title: "Ghost Resource Layer",
+    description: "Never get a failed generation. Overflow slots use ghost rooms and flag them amber for manual resolution.",
+    icon: AlertTriangle,
+    iconGradient: "from-amber-500 to-orange-500",
+    hoverGlow: "hover:card-glow-amber hover:border-amber-500/50",
+    iconShadow: "shadow-[0_0_16px_rgba(245,158,11,0.35)]",
+  },
+  {
+    title: "Conflict Refiner",
+    description: "When generation fails, the Conflict Refiner diagnoses exactly which constraint is impossible.",
+    icon: Search,
+    iconGradient: "from-violet-500 to-purple-600",
+    hoverGlow: "hover:card-glow-violet hover:border-violet-500/50",
+    iconShadow: "shadow-[0_0_16px_rgba(139,92,246,0.35)]",
+  },
+  {
+    title: "Multi-Format Export",
+    description: "Export to Excel (.xlsx), PDF, iCal (.ics) or push directly to Google Calendar.",
+    icon: Download,
+    iconGradient: "from-teal-500 to-emerald-500",
+    hoverGlow: "hover:card-glow-teal hover:border-teal-500/50",
+    iconShadow: "shadow-[0_0_16px_rgba(20,184,166,0.35)]",
+  },
+  {
+    title: "Multi-Tenant Architecture",
+    description: "Row Level Security ensures each institution sees only its own data. Register and go.",
+    icon: Building2,
+    iconGradient: "from-indigo-500 to-blue-600",
+    hoverGlow: "hover:card-glow-indigo hover:border-indigo-500/50",
+    iconShadow: "shadow-[0_0_16px_rgba(99,102,241,0.35)]",
+  },
+  {
+    title: "Real-Time Substitution",
+    description: "Faculty absent? The substitute finder checks conflicts in real-time and notifies via the bell system.",
+    icon: UserCheck,
+    iconGradient: "from-rose-500 to-pink-600",
+    hoverGlow: "hover:card-glow-rose hover:border-rose-500/50",
+    iconShadow: "shadow-[0_0_16px_rgba(244,63,94,0.35)]",
+  },
+];
 
+function FeatureCards() {
   return (
     <div id="features" className="mt-32">
       <div className="text-center mb-12">
@@ -303,7 +309,7 @@ function FeatureCards() {
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {features.map((feature, idx) => {
+        {featureConfig.map((feature, idx) => {
           const Icon = feature.icon;
           return (
             <motion.div
@@ -312,13 +318,13 @@ function FeatureCards() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
-              className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all group"
+              className={`bg-slate-900/60 border border-slate-700/60 rounded-2xl p-6 hover:-translate-y-1 transition-all group ${feature.hoverGlow}`}
             >
-              <div className={`w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center mb-4 ${feature.color}`}>
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.iconGradient} ${feature.iconShadow} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
                 <Icon className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-semibold mb-2">{feature.title}</h3>
-              <p className="text-slate-400 text-sm">{feature.description}</p>
+              <h3 className="font-semibold mb-2 text-slate-100">{feature.title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">{feature.description}</p>
             </motion.div>
           );
         })}
@@ -327,7 +333,7 @@ function FeatureCards() {
   );
 }
 
-// How It Works
+// How It Works — connected timeline design
 function HowItWorks() {
   const steps = [
     {
@@ -335,53 +341,62 @@ function HowItWorks() {
       title: "Configure",
       description: "Upload your faculty, rooms, and workloads via CSV or the web form",
       icon: Upload,
+      gradient: "from-sky-500 to-blue-600",
+      glow: "shadow-[0_0_20px_rgba(14,165,233,0.4)]",
     },
     {
       number: "2",
       title: "Generate",
       description: "Click Generate. The CP-SAT engine applies every constraint and produces a conflict-free timetable",
       icon: Play,
+      gradient: "from-blue-500 to-violet-600",
+      glow: "shadow-[0_0_20px_rgba(139,92,246,0.35)]",
     },
     {
       number: "3",
       title: "Export & Share",
       description: "Export to Excel, PDF, or push to Google Calendar. Done.",
-      icon: ArrowRight,
+      icon: Download,
+      gradient: "from-violet-500 to-purple-600",
+      glow: "shadow-[0_0_20px_rgba(168,85,247,0.35)]",
     },
   ];
 
   return (
     <div id="how-it-works" className="mt-32">
-      <div className="text-center mb-12">
+      <div className="text-center mb-16">
         <h2 className="text-4xl font-bold mb-4">From setup to schedule in 3 steps</h2>
+        <p className="text-slate-400">No training required. Start generating in minutes.</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {steps.map((step, idx) => {
-          const Icon = step.icon;
-          return (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.2 }}
-              className="relative"
-            >
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold text-2xl mb-4">
-                  {step.number}
+      <div className="relative">
+        {/* Connector line — desktop only */}
+        <div className="hidden md:block absolute top-10 left-1/6 right-1/6 h-[1px] bg-gradient-to-r from-sky-500/40 via-violet-500/40 to-purple-500/40" style={{ left: '16.67%', right: '16.67%' }} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {steps.map((step, idx) => {
+            const Icon = step.icon;
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.2 }}
+                className="relative"
+              >
+                <div className="text-center">
+                  <div className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br ${step.gradient} ${step.glow} text-white font-black text-2xl mb-6 group-hover:scale-105 transition-transform`}>
+                    <Icon className="w-8 h-8" />
+                  </div>
+                  <div className="mb-1">
+                    <span className="text-xs uppercase tracking-widest text-slate-600 font-semibold">Step {step.number}</span>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 text-slate-100">{step.title}</h3>
+                  <p className="text-slate-400 leading-relaxed">{step.description}</p>
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                <p className="text-slate-400">{step.description}</p>
-              </div>
-              {idx < 2 && (
-                <div className="hidden md:block absolute -right-4 top-8">
-                  <ArrowRight className="w-8 h-8 text-slate-700" />
-                </div>
-              )}
-            </motion.div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -462,22 +477,22 @@ function ComparisonTable() {
 function Testimonials() {
   const testimonials = [
     {
-      quote:
-        "We reduced our timetable planning from 3 weeks to 45 minutes. The conflict detection alone saved us from 200+ manual checks.",
+      quote: "We reduced our timetable planning from 3 weeks to 45 minutes. The conflict detection alone saved us from 200+ manual checks.",
       author: "Dr. Priya Sharma",
       role: "HOD Computer Engineering, SATIS College Nashik",
+      avatarGradient: "from-sky-400 to-blue-500",
     },
     {
-      quote:
-        "The ghost room feature is a lifesaver. Generation never crashes — it just flags what needs manual attention.",
+      quote: "The ghost room feature is a lifesaver. Generation never crashes — it just flags what needs manual attention.",
       author: "Prof. Rakesh Joshi",
       role: "Senior Faculty, VIT-style Institution",
+      avatarGradient: "from-teal-400 to-emerald-500",
     },
     {
-      quote:
-        "The Google Calendar sync means every faculty member has their schedule on their phone the same day we generate.",
+      quote: "The Google Calendar sync means every faculty member has their schedule on their phone the same day we generate.",
       author: "Ms. Anjali Mehta",
       role: "Academic Coordinator, NIT-style Institution",
+      avatarGradient: "from-violet-400 to-purple-500",
     },
   ];
 
@@ -485,6 +500,7 @@ function Testimonials() {
     <div className="mt-32">
       <div className="text-center mb-12">
         <h2 className="text-4xl font-bold mb-4">What scheduling teams are saying</h2>
+        <p className="text-slate-400">Real feedback from real institutions.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {testimonials.map((testimonial, idx) => (
@@ -494,20 +510,27 @@ function Testimonials() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: idx * 0.1 }}
-            className="bg-slate-900 border border-slate-800 rounded-2xl p-6"
+            className="bg-slate-900/70 border border-slate-700/60 rounded-2xl p-6 hover:border-slate-600/70 transition-colors relative overflow-hidden"
           >
-            <div className="text-4xl text-purple-500 mb-4">"</div>
-            <p className="text-slate-300 mb-6 italic">{testimonial.quote}</p>
-            <div className="flex items-center gap-3 pt-6 border-t border-slate-800">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-400 to-emerald-400" />
+            {/* Subtle top-border accent */}
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-sky-500/40 to-transparent" />
+            {/* SVG Quote icon */}
+            <svg className="w-8 h-8 text-sky-500/60 mb-4" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
+            </svg>
+            <p className="text-slate-300 mb-6 leading-relaxed">{testimonial.quote}</p>
+            <div className="flex items-center gap-3 pt-5 border-t border-slate-800">
+              <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${testimonial.avatarGradient} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                {testimonial.author.split(" ").map(n => n[0]).join("").slice(0, 2)}
+              </div>
               <div>
-                <p className="font-semibold text-sm">{testimonial.author}</p>
-                <p className="text-xs text-slate-400">{testimonial.role}</p>
+                <p className="font-semibold text-sm text-slate-200">{testimonial.author}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{testimonial.role}</p>
               </div>
             </div>
             <div className="flex gap-1 mt-4">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-amber-500 text-amber-500" />
+                <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
               ))}
             </div>
           </motion.div>
@@ -698,94 +721,56 @@ function FAQ() {
 // Footer
 function Footer() {
   return (
-    <footer className="mt-32 py-16 border-t border-slate-800 bg-slate-950">
+    <footer className="mt-32 py-16 border-t border-slate-800/70 bg-slate-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_12px_rgba(14,165,233,0.3)]">
                 <Calendar className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-xl">ShiftSync</span>
+              <span className="font-bold text-xl text-slate-100">ShiftSync</span>
             </div>
             <p className="text-sm text-slate-400">Built with ❤️ for Indian engineering colleges</p>
           </div>
 
           {/* Product */}
           <div>
-            <p className="font-semibold mb-4 text-sm">Product</p>
+            <p className="font-semibold mb-4 text-sm text-slate-200">Product</p>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li>
-                <a href="#features" className="hover:text-slate-100 transition-colors">
-                  Features
-                </a>
-              </li>
-              <li>
-                <a href="#how-it-works" className="hover:text-slate-100 transition-colors">
-                  How it Works
-                </a>
-              </li>
-              <li>
-                <a href="#pricing" className="hover:text-slate-100 transition-colors">
-                  Pricing
-                </a>
-              </li>
+              <li><a href="#features" className="hover:text-slate-200 transition-colors">Features</a></li>
+              <li><a href="#how-it-works" className="hover:text-slate-200 transition-colors">How it Works</a></li>
+              <li><a href="#pricing" className="hover:text-slate-200 transition-colors">Pricing</a></li>
             </ul>
           </div>
 
           {/* Resources */}
           <div>
-            <p className="font-semibold mb-4 text-sm">Resources</p>
+            <p className="font-semibold mb-4 text-sm text-slate-200">Resources</p>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li>
-                <a href="#" className="hover:text-slate-100 transition-colors">
-                  Documentation
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-slate-100 transition-colors">
-                  Guide
-                </a>
-              </li>
-              <li>
-                <a href="#faq" className="hover:text-slate-100 transition-colors">
-                  FAQ
-                </a>
-              </li>
+              <li><a href="#" className="hover:text-slate-200 transition-colors">Documentation</a></li>
+              <li><a href="#" className="hover:text-slate-200 transition-colors">Guide</a></li>
+              <li><a href="#faq" className="hover:text-slate-200 transition-colors">FAQ</a></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <p className="font-semibold mb-4 text-sm">Legal</p>
+            <p className="font-semibold mb-4 text-sm text-slate-200">Legal</p>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li>
-                <a href="#" className="hover:text-slate-100 transition-colors">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-slate-100 transition-colors">
-                  Terms of Service
-                </a>
-              </li>
+              <li><a href="#" className="hover:text-slate-200 transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-slate-200 transition-colors">Terms of Service</a></li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row items-center justify-between">
-          <p className="text-sm text-slate-400">© 2025 ShiftSync. All rights reserved.</p>
+        <div className="border-t border-slate-800/70 pt-8 flex flex-col md:flex-row items-center justify-between">
+          <p className="text-sm text-slate-500">© 2026 ShiftSync. All rights reserved.</p>
           <div className="flex gap-4 mt-4 md:mt-0">
-            <a href="#" className="text-slate-400 hover:text-slate-100 transition-colors">
-              GitHub
-            </a>
-            <a href="#" className="text-slate-400 hover:text-slate-100 transition-colors">
-              Twitter
-            </a>
-            <a href="#" className="text-slate-400 hover:text-slate-100 transition-colors">
-              LinkedIn
-            </a>
+            <a href="#" className="text-slate-400 hover:text-slate-200 transition-colors text-sm">GitHub</a>
+            <a href="#" className="text-slate-400 hover:text-slate-200 transition-colors text-sm">Twitter</a>
+            <a href="#" className="text-slate-400 hover:text-slate-200 transition-colors text-sm">LinkedIn</a>
           </div>
         </div>
       </div>
@@ -810,13 +795,13 @@ export default function LandingPage() {
       <Toaster position="top-right" richColors />
 
       {/* Navigation */}
-      <nav className="fixed top-0 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl z-50">
+      <nav className="fixed top-0 w-full border-b border-slate-800/70 bg-slate-950/85 backdrop-blur-xl z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_10px_rgba(14,165,233,0.3)]">
               <Calendar className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+            <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-400">
               ShiftSync
             </span>
           </Link>
@@ -906,10 +891,11 @@ export default function LandingPage() {
       {/* Hero Section */}
       <main className="pt-32 pb-16 sm:pt-40 sm:pb-24 lg:pb-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          {/* Background Orbs */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-[400px] bg-blue-600/20 blur-[120px] rounded-full -z-10" />
-          <div className="absolute top-32 right-0 w-[400px] h-[400px] bg-purple-600/20 blur-[120px] rounded-full -z-10" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(255,255,255,0.03)_1px,_transparent_1px)] bg-[length:50px_50px] -z-10" />
+          {/* Background Orbs — softened, layered */}
+          <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-sky-600/10 blur-[150px] rounded-full -z-10" />
+          <div className="absolute top-20 right-[-80px] w-[400px] h-[400px] bg-violet-600/8 blur-[140px] rounded-full -z-10" />
+          <div className="absolute bottom-0 left-[-60px] w-[300px] h-[300px] bg-blue-700/8 blur-[130px] rounded-full -z-10" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(255,255,255,0.025)_1px,_transparent_1px)] bg-[length:48px_48px] -z-10" />
 
           {/* Hero Content */}
           <div className="text-center max-w-4xl mx-auto mb-16">
@@ -922,7 +908,7 @@ export default function LandingPage() {
               <h1 className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 leading-tight">
                 Build Perfect Timetables.
                 <br />
-                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <span className="gradient-sky-text">
                   {typewriterPhrases[currentPhrase]}
                 </span>
               </h1>

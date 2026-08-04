@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShieldCheck, Users, Calendar, ArrowRight, Loader2, Calendar as CalendarIcon, Lock, Mail } from "lucide-react";
+import { ShieldCheck, Users, Calendar, ArrowRight, Loader2, Calendar as CalendarIcon, Lock, Mail, Brain, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -62,17 +62,17 @@ export default function LoginPage() {
                 transition={{ duration: 0.6 }}
                 className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
             >
-                {/* Background Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-purple-600/20" />
-                <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/30 blur-[120px] rounded-full" />
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/30 blur-[120px] rounded-full" />
+                {/* Background Gradient — softened */}
+                <div className="absolute inset-0 bg-gradient-to-br from-sky-600/12 to-blue-700/12" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 blur-[140px] rounded-full" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-600/15 blur-[140px] rounded-full" />
 
                 <div className="relative z-10">
                     <Link href="/" className="flex items-center gap-2 mb-12">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_12px_rgba(14,165,233,0.3)]">
                             <CalendarIcon className="w-6 h-6 text-white" />
                         </div>
-                        <span className="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                        <span className="font-bold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-400">
                             ShiftSync
                         </span>
                     </Link>
@@ -85,7 +85,7 @@ export default function LoginPage() {
                         <div className="space-y-6">
                             {[
                                 {
-                                    icon: Users,
+                                    icon: Brain,
                                     title: "Intelligent Scheduling",
                                     description: "CP-SAT solver handles thousands of constraints",
                                 },
@@ -95,7 +95,7 @@ export default function LoginPage() {
                                     description: "Row-level security ensures data isolation",
                                 },
                                 {
-                                    icon: Mail,
+                                    icon: CalendarCheck,
                                     title: "Real-Time Sync",
                                     description: "Export to Google Calendar instantly",
                                 },
@@ -109,7 +109,7 @@ export default function LoginPage() {
                                         transition={{ delay: 0.2 + idx * 0.1 }}
                                         className="flex gap-4"
                                     >
-                                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-[0_0_14px_rgba(14,165,233,0.3)]">
                                             <Icon className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
@@ -140,10 +140,10 @@ export default function LoginPage() {
             >
                 {/* Mobile Logo */}
                 <Link href="/" className="lg:hidden flex items-center gap-2 mb-8">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_10px_rgba(14,165,233,0.3)]">
                         <CalendarIcon className="w-5 h-5 text-white" />
                     </div>
-                    <span className="font-bold text-xl tracking-tight text-slate-50">ShiftSync</span>
+                    <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-400">ShiftSync</span>
                 </Link>
 
                 <Card className="w-full max-w-md border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl">
@@ -155,17 +155,17 @@ export default function LoginPage() {
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="faculty" className="w-full" onValueChange={setRole}>
-                            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/50 p-1 rounded-lg border border-slate-700">
+                            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/60 p-1 rounded-xl border border-slate-700/60">
                                 <TabsTrigger
                                     value="faculty"
-                                    className="rounded-md data-[state=active]:bg-blue-600/20 data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:text-blue-400"
+                                    className="rounded-lg data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all"
                                 >
                                     <Users className="w-4 h-4 mr-2 hidden sm:block" />
                                     Faculty
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="admin"
-                                    className="rounded-md data-[state=active]:bg-blue-600/20 data-[state=active]:border-b data-[state=active]:border-blue-500 data-[state=active]:text-blue-400"
+                                    className="rounded-lg data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all"
                                 >
                                     <ShieldCheck className="w-4 h-4 mr-2 hidden sm:block" />
                                     Admin
@@ -220,7 +220,7 @@ export default function LoginPage() {
 
                                 <Button
                                     type="submit"
-                                    className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-600/20"
+                                    className="w-full mt-6 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 shadow-lg shadow-sky-600/20 transition-all"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (

@@ -204,12 +204,18 @@
   animation: gradient-shift 4s ease infinite;
 }
 
-/* Brand gradient utilities */
+/* Brand gradient utilities — sky→blue hierarchy */
 .gradient-brand {
-  background: linear-gradient(135deg, #2563eb 0%, #6366f1 50%, #9333ea 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
 }
 .gradient-brand-text {
-  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, #38bdf8 0%, #60a5fa 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-sky-text {
+  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 40%, #818cf8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -227,12 +233,24 @@
   background-clip: text;
 }
 
-/* Card glow effects */
+/* Card glow effects — per-feature colors */
 .card-glow-blue {
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3), 0 4px 24px rgba(59, 130, 246, 0.12);
 }
 .card-glow-teal {
   box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.3), 0 4px 24px rgba(20, 184, 166, 0.12);
+}
+.card-glow-amber {
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3), 0 4px 24px rgba(245, 158, 11, 0.10);
+}
+.card-glow-violet {
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.3), 0 4px 24px rgba(139, 92, 246, 0.12);
+}
+.card-glow-indigo {
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3), 0 4px 24px rgba(99, 102, 241, 0.12);
+}
+.card-glow-rose {
+  box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.3), 0 4px 24px rgba(244, 63, 94, 0.12);
 }
 
 /* Shimmer animation for buttons */
@@ -245,8 +263,22 @@
   animation: shimmer 3s linear infinite;
 }
 
+/* Marquee — true seamless infinite scroll */
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 30s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 /* Marquee mask fade */
 .marquee-container {
-  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
 }
