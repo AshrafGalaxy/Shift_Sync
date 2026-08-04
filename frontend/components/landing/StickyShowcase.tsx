@@ -253,6 +253,7 @@ export function StickyShowcase() {
 
   return (
     <div
+      id="how-it-works"
       ref={containerRef}
       style={{ height: `${sections.length * 100}vh` }}
       className="relative mt-20"
@@ -272,37 +273,44 @@ export function StickyShowcase() {
 
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             {/* ── Left: navigation ── */}
-            <div className="space-y-6 order-2 lg:order-1">
+            <div className="relative order-2 lg:order-1 pl-4 lg:pl-0">
+              
+              {/* Continuous Vertical Track (Hidden on mobile for simplicity) */}
+              <div className="hidden lg:block absolute left-6 top-8 bottom-8 w-[2px] bg-slate-800/80 z-0">
+                <motion.div 
+                  className="w-full bg-gradient-to-b from-sky-500 via-violet-500 to-teal-500 rounded-full"
+                  style={{ height: scrollYProgress, transformOrigin: "top" }}
+                />
+              </div>
+
+              <div className="space-y-12 relative z-10">
               {sections.map((sec, idx) => {
                 const SIcon = sec.icon;
                 const isActive = idx === activeIdx;
                 return (
                   <motion.div
                     key={sec.id}
-                    animate={{ opacity: isActive ? 1 : 0.35 }}
+                    animate={{ opacity: isActive ? 1 : 0.3 }}
                     transition={{ duration: 0.4 }}
-                    className="flex gap-4 items-start"
+                    className="flex gap-6 lg:gap-8 items-start"
                   >
-                    {/* Step pill / line */}
-                    <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-1">
+                    {/* Step pill */}
+                    <div className="flex flex-col items-center flex-shrink-0 pt-2 lg:pt-1 hidden lg:flex">
                       <motion.div
                         animate={{
                           background: isActive
                             ? `linear-gradient(135deg, var(--tw-gradient-stops))`
                             : undefined,
-                          scale: isActive ? 1.1 : 1,
+                          scale: isActive ? 1.15 : 1,
                         }}
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
                           isActive
-                            ? `bg-gradient-to-br ${sec.accent} shadow-[0_0_16px_rgba(14,165,233,0.35)]`
-                            : "bg-slate-800 border border-slate-700"
+                            ? `bg-gradient-to-br ${sec.accent} shadow-[0_0_24px_rgba(14,165,233,0.4)] ring-1 ring-white/20`
+                            : "bg-slate-900 border border-slate-700/60"
                         }`}
                       >
-                        <SIcon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
+                        <SIcon className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-500"}`} />
                       </motion.div>
-                      {idx < sections.length - 1 && (
-                        <div className="w-[1px] h-8 bg-slate-800" />
-                      )}
                     </div>
 
                     {/* Text */}
@@ -321,8 +329,8 @@ export function StickyShowcase() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.4 }}
                         >
-                          <p className={`text-xl font-black mb-2 gradient-sky-text`}>{sec.headline}</p>
-                          <p className="text-slate-400 text-sm leading-relaxed max-w-sm">{sec.description}</p>
+                          <p className={`text-3xl lg:text-4xl font-black mb-4 gradient-sky-text`}>{sec.headline}</p>
+                          <p className="text-slate-300 text-base lg:text-lg leading-relaxed max-w-md">{sec.description}</p>
                         </motion.div>
                       )}
                     </div>
@@ -330,6 +338,7 @@ export function StickyShowcase() {
                 );
               })}
             </div>
+          </div>
 
             {/* ── Right: animated visual ── */}
             <div className="order-1 lg:order-2">
@@ -340,19 +349,24 @@ export function StickyShowcase() {
                   animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                   exit={{ opacity: 0, x: -30, filter: "blur(8px)" }}
                   transition={{ duration: 0.45, ease: "easeInOut" }}
-                  className="bg-slate-900/70 border border-slate-700/60 rounded-2xl p-6 shadow-[0_0_60px_rgba(14,165,233,0.05)]"
+                  className="bg-slate-900/40 border border-slate-700/60 rounded-3xl p-8 lg:p-12 shadow-[0_0_80px_rgba(14,165,233,0.1)] w-full h-[400px] lg:h-[500px] flex flex-col items-center justify-center relative overflow-hidden backdrop-blur-xl"
                 >
                   {/* Visual header */}
-                  <div className={`inline-flex items-center gap-2 mb-5 px-3 py-1.5 rounded-full bg-gradient-to-r ${activeSection.accent} bg-opacity-10 border border-white/10`}>
+                  <div className={`absolute top-6 left-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${activeSection.accent} bg-opacity-10 border border-white/10 z-20`}>
                     <Icon className="w-3.5 h-3.5 text-white" />
                     <span className="text-xs text-white font-semibold">{activeSection.title}</span>
                   </div>
 
-                  {/* Content visual */}
-                  {activeIdx === 0 && <ConfigureVisual active />}
-                  {activeIdx === 1 && <GenerateVisual active />}
-                  {activeIdx === 2 && <AnalyzeVisual active />}
-                  {activeIdx === 3 && <ExportVisual active />}
+                  {/* Scaled up content visual */}
+                  <div className="w-full max-w-md transform lg:scale-125 z-10 relative">
+                    {activeIdx === 0 && <ConfigureVisual active />}
+                    {activeIdx === 1 && <GenerateVisual active />}
+                    {activeIdx === 2 && <AnalyzeVisual active />}
+                    {activeIdx === 3 && <ExportVisual active />}
+                  </div>
+                  
+                  {/* Ambient Glow */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${activeSection.accent} opacity-5 blur-3xl`} />
                 </motion.div>
               </AnimatePresence>
             </div>
