@@ -1,110 +1,186 @@
 "use client";
 
-import React, { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { Upload, Play, Download } from "lucide-react";
+import React from "react";
+import { motion } from "framer-motion";
+import { Upload, Play, Download, LucideIcon } from "lucide-react";
+
+/**
+ * 12-second total infinite loop.
+ * We use 6 stages, each taking 1.5s (12.5% of total time).
+ */
+const TOTAL_DURATION = 12;
+
+interface StageTiming {
+  start: number; // 0.0 to 1.0
+  end: number;
+}
+
+const STAGES = {
+  node1: { start: 0, end: 0.125 },
+  track1: { start: 0.125, end: 0.25 },
+  node2: { start: 0.25, end: 0.375 },
+  track2: { start: 0.375, end: 0.5 },
+  node3: { start: 0.5, end: 0.625 },
+};
+
+// Top and Bottom SVG paths for a 96x96 box with 16px border radius
+// Starts left-middle (0, 48), goes up/down, to right-middle (96, 48)
+const TOP_PATH = "M 0 48 L 0 16 Q 0 0 16 0 L 80 0 Q 96 0 96 16 L 96 48";
+const BOTTOM_PATH = "M 0 48 L 0 80 Q 0 96 16 96 L 80 96 Q 96 96 96 80 L 96 48";
+
+function NodeCircuit({ timing }: { timing: StageTiming }) {
+  const { start, end } = timing;
+  const length = end - start;
+  
+  // Break down the node stage into: appear/grow, travel, shrink/disappear
+  const t0 = start;
+  const t1 = start + length * 0.2;
+  const t2 = start + length * 0.8;
+  const t3 = end;
+
+  const keyframeTimes = [0, t0, t1, t2, t3, 1];
+
+  const pathLengthVariants: any = {
+    animate: {
+      pathLength: [0, 0, 0.4, 0.4, 0, 0],
+      pathOffset: [0, 0, 0, 0.6, 1, 1],
+      opacity:    [0, 0, 1, 1, 0, 0],
+      transition: { duration: TOTAL_DURATION, times: keyframeTimes, repeat: Infinity, ease: "linear" as const }
+    }
+  };
+
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 96 96" fill="none">
+      <motion.path 
+        d={TOP_PATH} stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: "drop-shadow(0 0 8px rgba(56,189,248,0.8))" }}
+        variants={pathLengthVariants} animate="animate"
+      />
+      <motion.path 
+        d={BOTTOM_PATH} stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: "drop-shadow(0 0 8px rgba(56,189,248,0.8))" }}
+        variants={pathLengthVariants} animate="animate"
+      />
+    </svg>
+  );
+}
+
+function TrackCircuit({ timing }: { timing: StageTiming }) {
+  const { start, end } = timing;
+  const length = end - start;
+  
+  const t0 = start;
+  const t1 = start + length * 0.2;
+  const t2 = start + length * 0.8;
+  const t3 = end;
+
+  const keyframeTimes = [0, t0, t1, t2, t3, 1];
+
+  const trackVariants: any = {
+    animate: {
+      pathLength: [0, 0, 0.3, 0.3, 0, 0],
+      pathOffset: [0, 0, 0, 0.7, 1, 1],
+      opacity:    [0, 0, 1, 1, 0, 0],
+      transition: { duration: TOTAL_DURATION, times: keyframeTimes, repeat: Infinity, ease: "linear" as const }
+    }
+  };
+
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none">
+      <motion.line 
+        x1="0%" y1="50%" x2="100%" y2="50%" 
+        stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: "drop-shadow(0 0 8px rgba(56,189,248,0.8))" }}
+        variants={trackVariants} 
+        animate="animate"
+      />
+    </svg>
+  );
+}
 
 export function PremiumHowItWorks() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  // Track scroll progress through the container
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start center", "end center"],
-  });
-
-  const steps = [
+  const steps: { number: string; title: string; description: string; icon: LucideIcon; timing: StageTiming }[] = [
     {
-      number: "01",
-      title: "Configure",
+      number: "01", title: "Configure",
       description: "Upload your faculty, rooms, and workloads via CSV or the web form.",
-      icon: Upload,
-      activeRange: [0, 0.33],
+      icon: Upload, timing: STAGES.node1
     },
     {
-      number: "02",
-      title: "Generate",
+      number: "02", title: "Generate",
       description: "The CP-SAT engine applies constraints to produce a conflict-free timetable.",
-      icon: Play,
-      activeRange: [0.33, 0.66],
+      icon: Play, timing: STAGES.node2
     },
     {
-      number: "03",
-      title: "Export & Share",
+      number: "03", title: "Export & Share",
       description: "Export to Excel, PDF, or push directly to Google Calendar.",
-      icon: Download,
-      activeRange: [0.66, 1],
+      icon: Download, timing: STAGES.node3
     },
   ];
 
   return (
-    <div id="how-it-works" className="mt-32 relative" ref={containerRef}>
-      <div className="text-center mb-20">
+    <div id="how-it-works" className="mt-32 relative">
+      <div className="text-center mb-20 px-4">
         <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
           From setup to schedule in 3 steps
         </h2>
         <p className="text-slate-400 text-lg">No training required. Start generating in minutes.</p>
       </div>
 
-      <div className="relative max-w-5xl mx-auto">
-        {/* The Track */}
-        <div className="hidden md:block absolute top-[40px] left-[15%] right-[15%] h-[1px] bg-slate-800" />
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6">
         
-        {/* The Laser */}
-        <motion.div 
-          className="hidden md:block absolute top-[40px] left-[15%] h-[2px] bg-gradient-to-r from-transparent via-sky-400 to-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.8)]"
-          style={{ 
-            width: useTransform(scrollYProgress, [0, 1], ["0%", "70%"]),
-          }}
-        />
+        {/* Z-0: Background Tracks connecting the boxes */}
+        {/* We place these absolutely between the columns */}
+        <div className="hidden md:block absolute top-[48px] left-[16%] w-[34%] h-[2px] bg-slate-800 z-0" />
+        <div className="hidden md:block absolute top-[48px] left-[16%] w-[34%] h-[20px] -mt-[9px] z-0">
+           <TrackCircuit timing={STAGES.track1} />
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
+        <div className="hidden md:block absolute top-[48px] left-[50%] w-[34%] h-[2px] bg-slate-800 z-0" />
+        <div className="hidden md:block absolute top-[48px] left-[50%] w-[34%] h-[20px] -mt-[9px] z-0">
+           <TrackCircuit timing={STAGES.track2} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-20">
           {steps.map((step, idx) => {
             const Icon = step.icon;
-            return (
-              <motion.div
-                key={idx}
-                className="relative group text-center md:text-left flex flex-col items-center md:items-start"
-              >
-                {/* Monochromatic technical icon box */}
-                <motion.div 
-                  className="w-20 h-20 mb-8 rounded-2xl border border-slate-800 bg-slate-900/50 flex items-center justify-center transition-all duration-500 relative overflow-hidden"
-                  style={{
-                    borderColor: useTransform(
-                      scrollYProgress,
-                      [step.activeRange[0] - 0.1, step.activeRange[0], step.activeRange[1], step.activeRange[1] + 0.1],
-                      ["rgba(30,41,59,1)", "rgba(56,189,248,0.5)", "rgba(56,189,248,0.5)", "rgba(30,41,59,1)"]
-                    ) as any,
-                    boxShadow: useTransform(
-                      scrollYProgress,
-                      [step.activeRange[0] - 0.1, step.activeRange[0], step.activeRange[1], step.activeRange[1] + 0.1],
-                      ["0px 0px 0px transparent", "0px 0px 30px rgba(56,189,248,0.15)", "0px 0px 30px rgba(56,189,248,0.15)", "0px 0px 0px transparent"]
-                    ) as any,
-                  }}
-                >
-                  {/* Ambient idle pulse (always on) */}
-                  <motion.div 
-                    className="absolute inset-0 rounded-2xl border border-sky-500/10"
-                    animate={{ opacity: [0.1, 0.5, 0.1] }}
-                    transition={{ duration: 3 + idx * 0.5, repeat: Infinity, ease: "easeInOut" }}
-                  />
-                  
-                  <Icon className="w-8 h-8 text-slate-400 group-hover:text-sky-400 transition-colors duration-300 relative z-10" />
-                  
-                  {/* Internal ambient glow that turns on when laser hits */}
-                  <motion.div 
-                    className="absolute inset-0 bg-sky-500/10 blur-xl"
-                    style={{
-                      opacity: useTransform(
-                        scrollYProgress,
-                        [step.activeRange[0] - 0.1, step.activeRange[0], step.activeRange[1], step.activeRange[1] + 0.1],
-                        [0, 1, 1, 0]
-                      )
-                    }}
-                  />
-                </motion.div>
+            
+            // Generate a synchronized internal glow pulse matching the node timing
+            const t0 = step.timing.start;
+            const t1 = step.timing.start + 0.05;
+            const t2 = step.timing.end - 0.05;
+            const t3 = step.timing.end;
+            const times = [0, t0, t1, t2, t3, 1];
 
-                <div className="flex flex-col items-center md:items-start">
+            return (
+              <div key={idx} className="relative flex flex-col items-center text-center">
+                
+                {/* 96x96 Container */}
+                <div className="w-24 h-24 mb-8 relative flex items-center justify-center">
+                  
+                  {/* The solid physical box (Z-20 Content) */}
+                  <div className="absolute inset-0 rounded-2xl border border-slate-800 bg-slate-950 z-20 flex items-center justify-center">
+                    {/* Idle ambient pulse behind icon */}
+                    <motion.div 
+                      className="absolute inset-0 rounded-2xl border border-sky-500/10"
+                      animate={{ opacity: [0.1, 0.4, 0.1] }}
+                      transition={{ duration: 4, repeat: Infinity, delay: idx, ease: "easeInOut" }}
+                    />
+                    
+                    {/* Synchronized bright internal glow when laser hits */}
+                    <motion.div 
+                      className="absolute inset-0 bg-sky-500/20 blur-md rounded-2xl"
+                      animate={{ opacity: [0, 0, 1, 1, 0, 0] }}
+                      transition={{ duration: TOTAL_DURATION, times, repeat: Infinity, ease: "linear" }}
+                    />
+                    
+                    <Icon className="w-8 h-8 text-slate-400 transition-colors duration-300 relative z-30" />
+                  </div>
+
+                  {/* Z-10: The Circuit Trace Layer (Renders OVER the background track, but precisely ON the border of the box) */}
+                  <NodeCircuit timing={step.timing} />
+                </div>
+
+                <div className="flex flex-col items-center">
                   <span className="text-xs uppercase font-mono tracking-widest text-slate-500 mb-4">
                     Step {step.number}
                   </span>
@@ -113,7 +189,7 @@ export function PremiumHowItWorks() {
                     {step.description}
                   </p>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
