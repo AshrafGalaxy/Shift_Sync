@@ -92,56 +92,73 @@ export function GrainFooter() {
         </motion.div>
       </div>
 
-      {/* ── Standard footer links ── */}
-      <div className="border-t border-slate-800/70 bg-slate-950/80 relative z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
-            <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_12px_rgba(14,165,233,0.3)]">
+      {/* ── Premium Glassmorphic Link Grid ── */}
+      <div className="relative z-20 px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="max-w-7xl mx-auto rounded-[2.5rem] bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 p-10 lg:p-14 shadow-2xl relative overflow-hidden">
+          {/* Subtle top inner gradient border */}
+          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-sky-500/30 to-transparent" />
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
+            <div className="col-span-2 md:col-span-2">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-[0_0_20px_rgba(14,165,233,0.3)]">
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
-                <span className="font-bold text-xl text-slate-100 tracking-tight">ShiftSync</span>
+                <span className="font-black text-2xl tracking-tight text-white drop-shadow-md">ShiftSync</span>
               </div>
-              <p className="text-sm text-slate-500">Engineered for absolute optimal efficiency.</p>
+              <p className="text-slate-400 leading-relaxed max-w-xs mb-8">
+                Engineered for absolute optimal efficiency. Replacing manual spreadsheets with deterministic constraint programming.
+              </p>
+              
+              <div className="flex gap-4">
+                <a href="#" className="relative group w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:border-sky-500/50 transition-all duration-300">
+                  <div className="absolute inset-0 rounded-full bg-sky-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <Github className="w-4 h-4 relative z-10" />
+                </a>
+                <a href="#" className="relative group w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:border-blue-400/50 transition-all duration-300">
+                  <div className="absolute inset-0 rounded-full bg-blue-400/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <Twitter className="w-4 h-4 relative z-10" />
+                </a>
+                <a href="#" className="relative group w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:border-blue-600/50 transition-all duration-300">
+                  <div className="absolute inset-0 rounded-full bg-blue-600/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <Linkedin className="w-4 h-4 relative z-10" />
+                </a>
+              </div>
             </div>
+            
             <div>
-              <p className="font-semibold mb-4 text-sm text-slate-200">Product</p>
-              <ul className="space-y-4 text-sm text-slate-400">
+              <p className="font-bold mb-6 text-xs text-slate-500 uppercase tracking-[0.2em]">Product</p>
+              <ul className="space-y-4 text-sm text-slate-300 font-medium">
                 <li><PremiumLink href="#features">Features</PremiumLink></li>
                 <li><PremiumLink href="#how-it-works">How it Works</PremiumLink></li>
                 <li><PremiumLink href="#pricing">Pricing</PremiumLink></li>
+                <li><PremiumLink href="#changelog">Changelog</PremiumLink></li>
               </ul>
             </div>
+            
             <div>
-              <p className="font-semibold mb-4 text-sm text-slate-200">Resources</p>
-              <ul className="space-y-4 text-sm text-slate-400">
+              <p className="font-bold mb-6 text-xs text-slate-500 uppercase tracking-[0.2em]">Resources</p>
+              <ul className="space-y-4 text-sm text-slate-300 font-medium">
                 <li><PremiumLink href="#">Documentation</PremiumLink></li>
-                <li><PremiumLink href="#">Guide</PremiumLink></li>
+                <li><PremiumLink href="#">Integration Guide</PremiumLink></li>
                 <li><PremiumLink href="#faq">FAQ</PremiumLink></li>
+                <li><PremiumLink href="#">API Reference</PremiumLink></li>
               </ul>
             </div>
+            
             <div>
-              <p className="font-semibold mb-4 text-sm text-slate-200">Legal</p>
-              <ul className="space-y-4 text-sm text-slate-400">
+              <p className="font-bold mb-6 text-xs text-slate-500 uppercase tracking-[0.2em]">Legal</p>
+              <ul className="space-y-4 text-sm text-slate-300 font-medium">
                 <li><PremiumLink href="#">Privacy Policy</PremiumLink></li>
                 <li><PremiumLink href="#">Terms of Service</PremiumLink></li>
+                <li><PremiumLink href="#">Security</PremiumLink></li>
               </ul>
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t border-slate-800/70 flex flex-col md:flex-row items-center justify-between">
-            <p className="text-sm text-slate-500 font-medium">© 2026 ShiftSync. All rights reserved.</p>
-            <div className="flex gap-4 mt-4 md:mt-0">
-              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors">
-                <Github className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors">
-                <Linkedin className="w-5 h-5" />
-              </a>
-            </div>
+
+          <div className="mt-14 pt-8 border-t border-slate-800/60 flex flex-col md:flex-row items-center justify-between text-slate-500 text-xs font-medium">
+            <p>© 2026 ShiftSync Inc. All rights reserved.</p>
+            <p className="mt-2 md:mt-0">Designed in India. Built for the World.</p>
           </div>
         </div>
       </div>

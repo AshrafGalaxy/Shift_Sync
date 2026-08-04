@@ -15,7 +15,9 @@ import {
   Download,
   UserRound,
   UserPlus,
-  GraduationCap
+  GraduationCap,
+  Sparkles,
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -129,37 +131,49 @@ function ComparisonTable() {
     { 
       title: "Generation Engine", 
       desc: "How the schedule is actually built.",
-      shiftsync: "CP-SAT AI Solver", sheets: "Manual Formulas", manual: "Human Guesswork"
+      shiftsync: { text: "CP-SAT AI Solver", icon: <Sparkles className="w-4 h-4 mr-1.5" /> },
+      sheets: "Manual Formulas",
+      manual: "Human Guesswork"
     },
     { 
       title: "Conflict Detection", 
       desc: "Flagging overlapping rooms and professors.",
-      shiftsync: "Real-time & Automated", sheets: "Formula-based (VLOOKUP)", manual: "Post-creation checks" 
+      shiftsync: { text: "Real-time automated", icon: <CheckCircle2 className="w-4 h-4 mr-1.5" /> },
+      sheets: "Formula-based",
+      manual: "Post-creation checks" 
     },
     { 
       title: "Smart Room Assignment", 
       desc: "Routing based on capacity and lab equipment.",
-      shiftsync: "Auto-routes intelligently", sheets: "Manual assignment", manual: "Manual assignment" 
+      shiftsync: { text: "Intelligent Auto-routing", icon: <CheckCircle2 className="w-4 h-4 mr-1.5" /> },
+      sheets: "Manual assignment",
+      manual: "Manual assignment" 
     },
     { 
       title: "Continuous Lab Blocks", 
       desc: "Ensuring practicals stay contiguous.",
-      shiftsync: "Guaranteed 2-3 hr blocks", sheets: "Highly error-prone", manual: "Easily fragmented" 
+      shiftsync: { text: "Guaranteed Blocks", icon: <CheckCircle2 className="w-4 h-4 mr-1.5" /> },
+      sheets: "Highly error-prone",
+      manual: "Easily fragmented" 
     },
     { 
       title: "Distribution", 
       desc: "Getting the schedule to faculty/students.",
-      shiftsync: "Google Calendar Auto-sync", sheets: "Share PDF / Link", manual: "Print to Noticeboard" 
+      shiftsync: { text: "Calendar Auto-sync", icon: <CheckCircle2 className="w-4 h-4 mr-1.5" /> },
+      sheets: "Share PDF / Link",
+      manual: "Print to Noticeboard" 
     },
     { 
       title: "Generation Time", 
       desc: "Time taken from data import to final schedule.",
-      shiftsync: "Under 45 seconds", sheets: "Days of tweaking", manual: "Weeks of planning" 
+      shiftsync: { text: "Under 45 seconds", icon: <Sparkles className="w-4 h-4 mr-1.5" /> },
+      sheets: "Days of tweaking",
+      manual: "Weeks of planning" 
     },
   ];
 
   return (
-    <div id="comparison" className="mt-32 scroll-mt-24">
+    <div id="comparison" className="mt-32 scroll-mt-24 relative">
       <div className="text-center mb-16">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -187,13 +201,16 @@ function ComparisonTable() {
         className="max-w-5xl mx-auto relative"
       >
         {/* Glow behind ShiftSync column */}
-        <div className="absolute top-0 bottom-0 left-[40%] md:left-[50%] w-[30%] md:w-[25%] bg-sky-500/5 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute top-0 bottom-0 left-[40%] md:left-[50%] w-[30%] md:w-[25%] bg-sky-500/10 blur-[60px] rounded-full pointer-events-none" />
 
-        <div className="grid grid-cols-4 md:grid-cols-5 text-sm md:text-base mb-4 px-4">
-          <div className="col-span-2 md:col-span-2 text-slate-500 font-semibold uppercase tracking-widest text-xs">Features</div>
-          <div className="text-center font-bold text-sky-400">ShiftSync</div>
-          <div className="text-center font-semibold text-slate-500">Spreadsheets</div>
-          <div className="hidden md:block text-center font-semibold text-slate-500">Manual</div>
+        {/* Persistent Glass Pillar for ShiftSync */}
+        <div className="absolute top-0 bottom-0 left-[40%] md:left-[50%] w-[30%] md:w-[25%] bg-slate-900/40 backdrop-blur-md border-x border-t rounded-t-3xl border-sky-500/20 shadow-[0_0_30px_rgba(14,165,233,0.05)] -z-10" />
+
+        <div className="grid grid-cols-4 md:grid-cols-5 text-sm md:text-base mb-6 px-4">
+          <div className="col-span-2 md:col-span-2 text-slate-500 font-bold uppercase tracking-[0.2em] text-xs">Capabilities</div>
+          <div className="text-center font-black text-sky-400 uppercase tracking-widest text-sm drop-shadow-[0_0_10px_rgba(56,189,248,0.3)]">ShiftSync</div>
+          <div className="text-center font-bold text-slate-600 uppercase tracking-widest text-xs">Spreadsheets</div>
+          <div className="hidden md:block text-center font-bold text-slate-600 uppercase tracking-widest text-xs">Manual</div>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -204,31 +221,37 @@ function ComparisonTable() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.05 }}
-              className="grid grid-cols-4 md:grid-cols-5 items-center p-4 md:p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-800/40 transition-colors group relative overflow-hidden"
+              className="grid grid-cols-4 md:grid-cols-5 items-center p-4 md:p-5 rounded-2xl bg-slate-900/20 border border-slate-800/40 hover:bg-slate-800/40 hover:border-slate-700/60 transition-all duration-300 group relative overflow-hidden"
             >
-              {/* Highlight bar for ShiftSync cell */}
-              <div className="absolute top-0 bottom-0 left-[40%] md:left-[50%] w-[30%] md:w-[25%] bg-slate-800/30 border-x border-slate-700/30 group-hover:bg-slate-700/20 transition-colors -z-10" />
+              {/* Highlight bar for ShiftSync cell - activates on row hover */}
+              <div className="absolute top-0 bottom-0 left-[40%] md:left-[50%] w-[30%] md:w-[25%] bg-sky-950/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
 
               <div className="col-span-2 md:col-span-2 pr-4">
-                <p className="font-semibold text-slate-200 mb-1">{row.title}</p>
-                <p className="text-xs text-slate-500 hidden md:block">{row.desc}</p>
+                <p className="font-semibold text-slate-200 mb-1 group-hover:text-white transition-colors">{row.title}</p>
+                <p className="text-xs text-slate-500 hidden md:block group-hover:text-slate-400 transition-colors">{row.desc}</p>
               </div>
 
-              <div className="text-center flex justify-center">
-                <span className="font-bold text-sky-400 bg-sky-400/10 px-3 py-1.5 rounded-lg border border-sky-400/20 text-xs md:text-sm drop-shadow-[0_0_12px_rgba(56,189,248,0.2)]">
-                  {row.shiftsync}
-                </span>
+              <div className="text-center flex justify-center z-10">
+                <div className="flex items-center font-bold text-sky-300 bg-sky-500/10 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs md:text-sm shadow-[0_0_15px_rgba(14,165,233,0.15)] group-hover:bg-sky-500/20 group-hover:border-sky-400/30 group-hover:shadow-[0_0_20px_rgba(14,165,233,0.3)] transition-all">
+                  {row.shiftsync.icon}
+                  {row.shiftsync.text}
+                </div>
               </div>
 
-              <div className="text-center flex justify-center opacity-60">
-                <span className="font-medium text-slate-300 text-xs md:text-sm">{row.sheets}</span>
+              <div className="text-center flex justify-center items-center opacity-40 group-hover:opacity-20 transition-opacity duration-300 mix-blend-luminosity">
+                <XCircle className="w-3.5 h-3.5 mr-1.5 text-slate-500 hidden xl:block" />
+                <span className="font-medium text-slate-400 text-xs md:text-sm line-through decoration-slate-600/50">{row.sheets}</span>
               </div>
 
-              <div className="hidden md:flex text-center justify-center opacity-40">
-                <span className="font-medium text-slate-500 text-xs md:text-sm">{row.manual}</span>
+              <div className="hidden md:flex text-center justify-center items-center opacity-30 group-hover:opacity-10 transition-opacity duration-300 mix-blend-luminosity">
+                <XCircle className="w-3.5 h-3.5 mr-1.5 text-slate-500 hidden xl:block" />
+                <span className="font-medium text-slate-500 text-xs md:text-sm line-through decoration-slate-700/50">{row.manual}</span>
               </div>
             </motion.div>
           ))}
+          
+          {/* Bottom cap for the glass pillar */}
+          <div className="absolute -bottom-4 left-[40%] md:left-[50%] w-[30%] md:w-[25%] h-4 bg-slate-900/40 backdrop-blur-md border-x border-b rounded-b-3xl border-sky-500/20 shadow-[0_0_30px_rgba(14,165,233,0.05)] -z-10" />
         </div>
       </motion.div>
     </div>
