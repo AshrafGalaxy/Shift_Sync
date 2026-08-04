@@ -159,14 +159,14 @@ export default function LoginPage() {
                             <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/60 p-1 rounded-xl border border-slate-700/60 h-11 items-stretch">
                                 <TabsTrigger
                                     value="faculty"
-                                    className="rounded-lg h-full data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all"
+                                    className="rounded-lg h-full transition-all"
                                 >
                                     <Users className="w-4 h-4 mr-2 hidden sm:block" />
                                     Faculty
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="admin"
-                                    className="rounded-lg h-full data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all"
+                                    className="rounded-lg h-full transition-all"
                                 >
                                     <ShieldCheck className="w-4 h-4 mr-2 hidden sm:block" />
                                     Admin
