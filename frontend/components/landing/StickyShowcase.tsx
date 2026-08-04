@@ -233,25 +233,7 @@ function ExportVisual({ active }: { active: boolean }) {
  */
 export function StickyShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const trackContainerRef = useRef<HTMLDivElement>(null);
-  const lastIconRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [trackHeight, setTrackHeight] = useState(0);
-
-  useEffect(() => {
-    const updateHeight = () => {
-      if (lastIconRef.current && trackContainerRef.current) {
-        // Calculate the exact distance from the top of the track container to the center of the last icon
-        const containerTop = trackContainerRef.current.getBoundingClientRect().top;
-        const iconRect = lastIconRef.current.getBoundingClientRect();
-        const iconCenter = iconRect.top + (iconRect.height / 2);
-        setTrackHeight(iconCenter - containerTop - 40); // 40px offset for top-[40px]
-      }
-    };
-    updateHeight();
-    window.addEventListener("resize", updateHeight);
-    return () => window.removeEventListener("resize", updateHeight);
-  }, []);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -292,34 +274,17 @@ export function StickyShowcase() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             {/* ── Left: navigation ── */}
             <div className="relative order-2 lg:order-1 pl-4 lg:pl-0">
-              
-              {/* Continuous Vertical Track (Hidden on mobile for simplicity) */}
-              <div 
-                className="hidden lg:block absolute left-[23px] top-[40px] w-[2px] bg-slate-800/60 z-0"
-                style={{ height: trackHeight > 0 ? trackHeight : '100%' }}
-              >
-                <motion.div 
-                  className="w-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)] origin-top"
-                  initial={false}
-                  animate={{ height: `${(activeIdx / (sections.length - 1)) * 100}%` }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              </div>
-
-              <div ref={trackContainerRef} className="space-y-12 relative z-10">
+              <div className="relative z-10">
               {sections.map((sec, idx) => {
                 const SIcon = sec.icon;
                 const isActive = idx === activeIdx;
                 return (
                   <div
                     key={sec.id}
-                    className="flex gap-6 lg:gap-8 items-start relative z-10"
+                    className={`flex gap-6 lg:gap-8 items-stretch relative z-10 ${idx < sections.length - 1 ? 'pb-12' : ''}`}
                   >
-                    {/* Step pill */}
-                    <div 
-                      ref={idx === sections.length - 1 ? lastIconRef : undefined}
-                      className="flex flex-col items-center flex-shrink-0 pt-2 lg:pt-1 hidden lg:flex relative z-20"
-                    >
+                    {/* Step pill and connecting segment */}
+                    <div className="w-12 flex flex-col items-center flex-shrink-0 hidden lg:flex relative z-20">
                       <motion.div
                         animate={{
                           scale: isActive ? 1.15 : 1,
@@ -332,6 +297,18 @@ export function StickyShowcase() {
                       >
                         <SIcon className={`w-5 h-5 transition-colors duration-500 ${isActive ? "text-white" : "text-slate-500"}`} />
                       </motion.div>
+
+                      {/* Line Segment to Next Icon */}
+                      {idx < sections.length - 1 && (
+                        <div className="w-[2px] flex-grow bg-slate-800/60 my-2 relative overflow-hidden rounded-full">
+                          <motion.div 
+                            className="absolute top-0 left-0 w-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)] origin-top"
+                            initial={false}
+                            animate={{ height: activeIdx > idx ? '100%' : '0%' }}
+                            transition={{ duration: 0.5, ease: "easeInOut" }}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Text */}
