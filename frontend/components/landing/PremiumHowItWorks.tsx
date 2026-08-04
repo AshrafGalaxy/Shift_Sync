@@ -8,7 +8,7 @@ import { Upload, Play, Download, LucideIcon } from "lucide-react";
  * 12-second total infinite loop.
  * We use 6 stages, each taking 1.5s (12.5% of total time).
  */
-const TOTAL_DURATION = 12;
+const TOTAL_DURATION = 5;
 
 interface StageTiming {
   start: number; // 0.0 to 1.0
@@ -50,15 +50,15 @@ function NodeCircuit({ timing }: { timing: StageTiming }) {
   };
 
   return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 96 96" fill="none">
+    <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 96 96" fill="none">
       <motion.path 
-        d={TOP_PATH} stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"
-        style={{ filter: "drop-shadow(0 0 8px rgba(56,189,248,0.8))" }}
+        d={TOP_PATH} stroke="#ffffff" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: "drop-shadow(0 0 6px #0ea5e9)" }}
         variants={pathLengthVariants} animate="animate"
       />
       <motion.path 
-        d={BOTTOM_PATH} stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"
-        style={{ filter: "drop-shadow(0 0 8px rgba(56,189,248,0.8))" }}
+        d={BOTTOM_PATH} stroke="#ffffff" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: "drop-shadow(0 0 6px #0ea5e9)" }}
         variants={pathLengthVariants} animate="animate"
       />
     </svg>
@@ -89,8 +89,8 @@ function TrackCircuit({ timing }: { timing: StageTiming }) {
     <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none">
       <motion.line 
         x1="0%" y1="50%" x2="100%" y2="50%" 
-        stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"
-        style={{ filter: "drop-shadow(0 0 8px rgba(56,189,248,0.8))" }}
+        stroke="#ffffff" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: "drop-shadow(0 0 6px #0ea5e9)" }}
         variants={trackVariants} 
         animate="animate"
       />
@@ -157,8 +157,8 @@ export function PremiumHowItWorks() {
                 {/* 96x96 Container */}
                 <div className="w-24 h-24 mb-8 relative flex items-center justify-center">
                   
-                  {/* The solid physical box (Z-20 Content) */}
-                  <div className="absolute inset-0 rounded-2xl border border-slate-800 bg-slate-950 z-20 flex items-center justify-center">
+                  {/* The solid physical box (Z-10 Content) */}
+                  <div className="absolute inset-0 rounded-2xl border border-slate-800 bg-slate-950 z-10 flex items-center justify-center">
                     {/* Idle ambient pulse behind icon */}
                     <motion.div 
                       className="absolute inset-0 rounded-2xl border border-sky-500/10"
@@ -173,10 +173,10 @@ export function PremiumHowItWorks() {
                       transition={{ duration: TOTAL_DURATION, times, repeat: Infinity, ease: "linear" }}
                     />
                     
-                    <Icon className="w-8 h-8 text-slate-400 transition-colors duration-300 relative z-30" />
+                    <Icon className="w-8 h-8 text-slate-400 transition-colors duration-300 relative z-20" />
                   </div>
 
-                  {/* Z-10: The Circuit Trace Layer (Renders OVER the background track, but precisely ON the border of the box) */}
+                  {/* Z-30: The Circuit Trace Layer (Renders OVER the solid box) */}
                   <NodeCircuit timing={step.timing} />
                 </div>
 
