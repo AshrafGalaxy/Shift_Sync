@@ -156,17 +156,17 @@ export default function LoginPage() {
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="faculty" className="w-full" onValueChange={setRole}>
-                            <TabsList className="flex w-full mb-8 bg-slate-800/60 p-1 rounded-xl border border-slate-700/60">
+                            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/60 p-1 rounded-xl border border-slate-700/60 h-11 items-stretch">
                                 <TabsTrigger
                                     value="faculty"
-                                    className="flex-1 rounded-lg !h-auto py-2.5 border-none data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center"
+                                    className="rounded-lg h-full data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all"
                                 >
                                     <Users className="w-4 h-4 mr-2 hidden sm:block" />
                                     Faculty
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="admin"
-                                    className="flex-1 rounded-lg !h-auto py-2.5 border-none data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center"
+                                    className="rounded-lg h-full data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all"
                                 >
                                     <ShieldCheck className="w-4 h-4 mr-2 hidden sm:block" />
                                     Admin
