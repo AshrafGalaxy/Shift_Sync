@@ -63,6 +63,50 @@ const sections = [
   },
 ] as const;
 
+// ─── Laser Animations ────────────────────────────────────────────────────────
+
+const PILL_TOP_PATH = "M 0 24 L 0 16 Q 0 0 16 0 L 32 0 Q 48 0 48 16 L 48 24";
+const PILL_BOTTOM_PATH = "M 0 24 L 0 32 Q 0 48 16 48 L 32 48 Q 48 48 48 32 L 48 24";
+
+function PillCircuit({ active }: { active: boolean }) {
+  if (!active) return null;
+  const pathLengthVariants = {
+    animate: {
+      pathLength: [0, 0.3, 0.3, 0],
+      pathOffset: [0, 0, 0.7, 1],
+      opacity:    [0, 1, 1, 0],
+      transition: { duration: 2, repeat: Infinity, ease: "linear" }
+    }
+  };
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 48 48" fill="none">
+      <motion.path 
+        d={PILL_TOP_PATH} stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: "drop-shadow(0 0 6px #0ea5e9)" }}
+        variants={pathLengthVariants} animate="animate"
+      />
+      <motion.path 
+        d={PILL_BOTTOM_PATH} stroke="#38bdf8" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: "drop-shadow(0 0 6px #0ea5e9)" }}
+        variants={pathLengthVariants} animate="animate"
+      />
+    </svg>
+  );
+}
+
+function LaserLine({ active }: { active: boolean }) {
+  if (!active) return null;
+  return (
+    <motion.div 
+      className="absolute left-0 w-full bg-gradient-to-b from-transparent via-sky-400 to-transparent"
+      style={{ height: "60%", filter: "drop-shadow(0 0 8px #38bdf8)" }}
+      initial={{ top: "-60%" }}
+      animate={{ top: "100%" }}
+      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+    />
+  );
+}
+
 // ─── Right-panel visuals ─────────────────────────────────────────────────────
 
 function ConfigureVisual({ active }: { active: boolean }) {
@@ -296,17 +340,16 @@ export function StickyShowcase() {
                         }`}
                       >
                         <SIcon className={`w-5 h-5 transition-colors duration-500 ${isActive ? "text-white" : "text-slate-500"}`} />
+                        <PillCircuit active={isActive} />
                       </motion.div>
 
                       {/* Line Segment to Next Icon */}
                       {idx < sections.length - 1 && (
                         <div className="w-[2px] flex-grow bg-slate-800/60 my-2 relative overflow-hidden rounded-full">
-                          <motion.div 
-                            className="absolute top-0 left-0 w-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)] origin-top"
-                            initial={false}
-                            animate={{ height: activeIdx > idx ? '100%' : '0%' }}
-                            transition={{ duration: 0.5, ease: "easeInOut" }}
-                          />
+                          {idx < activeIdx && (
+                             <div className="absolute inset-0 bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)]" />
+                          )}
+                          <LaserLine active={idx === activeIdx} />
                         </div>
                       )}
                     </div>
