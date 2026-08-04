@@ -264,14 +264,14 @@ function ComparisonTable() {
                 </div>
               </div>
 
-              <div className="text-center flex justify-center items-center opacity-40 group-hover:opacity-20 transition-opacity duration-300 mix-blend-luminosity">
-                <XCircle className="w-3.5 h-3.5 mr-1.5 text-slate-500 hidden xl:block" />
-                <span className="font-medium text-slate-400 text-xs md:text-sm line-through decoration-slate-600/50">{row.sheets}</span>
+              <div className="text-center flex justify-center items-center text-slate-400 group-hover:text-slate-500 transition-colors duration-300">
+                <XCircle className="w-3.5 h-3.5 mr-1.5 opacity-60 hidden xl:block" />
+                <span className="font-medium text-xs md:text-sm">{row.sheets}</span>
               </div>
 
-              <div className="hidden md:flex text-center justify-center items-center opacity-30 group-hover:opacity-10 transition-opacity duration-300 mix-blend-luminosity">
-                <XCircle className="w-3.5 h-3.5 mr-1.5 text-slate-500 hidden xl:block" />
-                <span className="font-medium text-slate-500 text-xs md:text-sm line-through decoration-slate-700/50">{row.manual}</span>
+              <div className="hidden md:flex text-center justify-center items-center text-slate-500 group-hover:text-slate-600 transition-colors duration-300">
+                <XCircle className="w-3.5 h-3.5 mr-1.5 opacity-40 hidden xl:block" />
+                <span className="font-medium text-xs md:text-sm">{row.manual}</span>
               </div>
             </motion.div>
           ))}
@@ -281,86 +281,6 @@ function ComparisonTable() {
         </div>
       </motion.div>
     </div>
-  );
-}
-
-function TestimonialCard({ t, idx }: { t: any, idx: number }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
-  const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const rotX = ((mouseY / height) - 0.5) * -20;
-    const rotY = ((mouseX / width) - 0.5) * 20;
-
-    setRotateX(rotX);
-    setRotateY(rotY);
-    setGlarePosition({ x: (mouseX / width) * 100, y: (mouseY / height) * 100 });
-  };
-
-  const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-    setIsHovered(false);
-  };
-
-  return (
-    <motion.div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={handleMouseLeave}
-      initial={{ opacity: 0, rotateX: 8, rotateY: -4, y: 20 }}
-      whileInView={{ opacity: 1, rotateX: 0, rotateY: 0, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: idx * 0.1, duration: 0.5 }}
-      style={{ perspective: 1000 }}
-      className="relative z-10"
-    >
-      <motion.div
-        animate={{ rotateX: isHovered ? rotateX : 0, rotateY: isHovered ? rotateY : 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className="bg-slate-900/70 border border-slate-700/60 rounded-2xl p-6 h-full relative overflow-hidden"
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        {/* Specular Glare */}
-        <div 
-          className="absolute inset-0 pointer-events-none transition-opacity duration-300 mix-blend-screen"
-          style={{
-            opacity: isHovered ? 0.3 : 0,
-            background: `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255,255,255,0.8) 0%, transparent 60%)`,
-          }}
-        />
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-sky-500/40 to-transparent" />
-        <svg className="w-8 h-8 text-sky-500/60 mb-4" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
-        </svg>
-        <p className="text-slate-300 mb-6 leading-relaxed relative z-10">{t.quote}</p>
-        <div className="flex items-center gap-4 pt-5 border-t border-slate-800 relative z-10">
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.avatarGradient} border border-slate-700/50 flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden`}>
-            <img src={t.avatarUrl} alt={t.author} className="w-full h-full object-cover scale-110 mt-1" />
-          </div>
-          <div>
-            <p className="font-semibold text-sm text-slate-200">{t.author}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{t.role}</p>
-          </div>
-        </div>
-        <div className="flex gap-1 mt-4 relative z-10">
-          {[...Array(5)].map((_, i) => (
-            <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-          ))}
-        </div>
-      </motion.div>
-    </motion.div>
   );
 }
 
@@ -413,7 +333,34 @@ function Testimonials() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {testimonials.map((t, idx) => (
-          <TestimonialCard key={idx} t={t} idx={idx} />
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: idx * 0.1, duration: 0.5 }}
+            className="bg-slate-900/70 border border-slate-700/60 rounded-2xl p-6 hover:border-slate-600/70 transition-colors relative overflow-hidden"
+          >
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-sky-500/20 to-transparent" />
+            <svg className="w-8 h-8 text-sky-500/40 mb-4" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
+            </svg>
+            <p className="text-slate-300 mb-6 leading-relaxed relative z-10">{t.quote}</p>
+            <div className="flex items-center gap-4 pt-5 border-t border-slate-800 relative z-10">
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.avatarGradient} border border-slate-700/50 flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden`}>
+                <img src={t.avatarUrl} alt={t.author} className="w-full h-full object-cover scale-110 mt-1" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm text-slate-200">{t.author}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{t.role}</p>
+              </div>
+            </div>
+            <div className="flex gap-1 mt-4 relative z-10">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+              ))}
+            </div>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -574,22 +521,17 @@ function FAQ() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: idx * 0.05 }}
-            className={`bg-slate-900/50 border rounded-xl overflow-hidden relative transition-colors duration-300 ${isOpen ? 'border-sky-500/40' : 'border-slate-800'}`}
+            className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"
           >
-            {/* Active glow indicator line */}
-            <div 
-              className={`absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-sky-400 to-blue-600 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`} 
-              style={{ boxShadow: isOpen ? '0 0 15px rgba(14,165,233,0.5)' : 'none' }}
-            />
             <button
               onClick={() => setOpenIdx(isOpen ? -1 : idx)}
-              className={`w-full px-6 py-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors text-left ${isOpen ? 'bg-slate-800/30' : ''}`}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors text-left"
             >
-              <p className={`font-semibold transition-colors duration-300 ${isOpen ? 'text-sky-300' : 'text-slate-200'}`}>{faq.question}</p>
+              <p className="font-semibold text-slate-200">{faq.question}</p>
               <motion.span
                 animate={{ rotate: isOpen ? 180 : 0 }}
                 transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className={`flex-shrink-0 ml-4 transition-colors duration-300 ${isOpen ? 'text-sky-400' : 'text-slate-500'}`}
+                className="flex-shrink-0 ml-4 text-slate-500"
               >
                 ↓
               </motion.span>
