@@ -276,10 +276,10 @@ export function StickyShowcase() {
             <div className="relative order-2 lg:order-1 pl-4 lg:pl-0">
               
               {/* Continuous Vertical Track (Hidden on mobile for simplicity) */}
-              <div className="hidden lg:block absolute left-6 top-8 bottom-8 w-[2px] bg-slate-800/80 z-0">
+              <div className="hidden lg:block absolute left-[23px] top-10 bottom-10 w-[2px] bg-slate-800/80 z-0">
                 <motion.div 
-                  className="w-full bg-gradient-to-b from-sky-500 via-violet-500 to-teal-500 rounded-full"
-                  style={{ height: scrollYProgress, transformOrigin: "top" }}
+                  className="w-full h-full bg-gradient-to-b from-sky-500 via-violet-500 to-teal-500 rounded-full origin-top"
+                  style={{ scaleY: scrollYProgress }}
                 />
               </div>
 
@@ -357,12 +357,14 @@ export function StickyShowcase() {
                     <span className="text-xs text-white font-semibold">{activeSection.title}</span>
                   </div>
 
-                  {/* Scaled up content visual */}
-                  <div className="w-full max-w-md transform lg:scale-125 z-10 relative">
-                    {activeIdx === 0 && <ConfigureVisual active />}
-                    {activeIdx === 1 && <GenerateVisual active />}
-                    {activeIdx === 2 && <AnalyzeVisual active />}
-                    {activeIdx === 3 && <ExportVisual active />}
+                  {/* Responsive fluid content visual */}
+                  <div className="w-full max-w-full z-10 relative px-2 lg:px-4 flex items-center justify-center">
+                    <div className="w-full max-w-sm lg:max-w-md">
+                      {activeIdx === 0 && <ConfigureVisual active />}
+                      {activeIdx === 1 && <GenerateVisual active />}
+                      {activeIdx === 2 && <AnalyzeVisual active />}
+                      {activeIdx === 3 && <ExportVisual active />}
+                    </div>
                   </div>
                   
                   {/* Ambient Glow */}
