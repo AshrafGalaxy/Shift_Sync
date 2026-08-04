@@ -276,7 +276,7 @@ export function StickyShowcase() {
             <div className="relative order-2 lg:order-1 pl-4 lg:pl-0">
               
               {/* Continuous Vertical Track (Hidden on mobile for simplicity) */}
-              <div className="hidden lg:block absolute left-[23px] top-10 bottom-10 w-[2px] bg-slate-800/80 z-0">
+              <div className="hidden lg:block absolute left-[23px] top-[40px] bottom-[180px] w-[2px] bg-slate-800/60 z-0">
                 <motion.div 
                   className="w-full h-full bg-gradient-to-b from-sky-500 via-violet-500 to-teal-500 rounded-full origin-top"
                   style={{ scaleY: scrollYProgress }}
@@ -290,12 +290,12 @@ export function StickyShowcase() {
                 return (
                   <motion.div
                     key={sec.id}
-                    animate={{ opacity: isActive ? 1 : 0.3 }}
+                    animate={{ opacity: isActive ? 1 : 0.6 }}
                     transition={{ duration: 0.4 }}
-                    className="flex gap-6 lg:gap-8 items-start"
+                    className="flex gap-6 lg:gap-8 items-start relative z-10"
                   >
                     {/* Step pill */}
-                    <div className="flex flex-col items-center flex-shrink-0 pt-2 lg:pt-1 hidden lg:flex">
+                    <div className="flex flex-col items-center flex-shrink-0 pt-2 lg:pt-1 hidden lg:flex relative z-20">
                       <motion.div
                         animate={{
                           background: isActive
@@ -306,10 +306,10 @@ export function StickyShowcase() {
                         className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
                           isActive
                             ? `bg-gradient-to-br ${sec.accent} shadow-[0_0_24px_rgba(14,165,233,0.4)] ring-1 ring-white/20`
-                            : "bg-slate-900 border border-slate-700/60"
+                            : "bg-slate-900 shadow-xl border border-slate-700/60"
                         }`}
                       >
-                        <SIcon className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-500"}`} />
+                        <SIcon className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-400"}`} />
                       </motion.div>
                     </div>
 
@@ -352,9 +352,9 @@ export function StickyShowcase() {
                   className="bg-slate-900/40 border border-slate-700/60 rounded-3xl p-8 lg:p-12 shadow-[0_0_80px_rgba(14,165,233,0.1)] w-full h-[400px] lg:h-[500px] flex flex-col items-center justify-center relative overflow-hidden backdrop-blur-xl"
                 >
                   {/* Visual header */}
-                  <div className={`absolute top-6 left-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${activeSection.accent} bg-opacity-10 border border-white/10 z-20`}>
-                    <Icon className="w-3.5 h-3.5 text-white" />
-                    <span className="text-xs text-white font-semibold">{activeSection.title}</span>
+                  <div className="absolute top-8 left-8 flex items-center gap-3 z-20">
+                    <Icon className={`w-5 h-5 ${activeSection.accentColor}`} />
+                    <span className="text-sm uppercase tracking-widest text-slate-300 font-bold">{activeSection.title}</span>
                   </div>
 
                   {/* Responsive fluid content visual */}
