@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Calendar as CalendarIcon, Lock, Mail, Building2, Loader2, ArrowRight, CheckCircle2, Zap, Layers } from "lucide-react";
+import { Calendar as CalendarIcon, Lock, Mail, Building2, Loader2, ArrowRight, CheckCircle2, Zap, Layers, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ export default function RegisterPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const router = useRouter();
@@ -143,10 +145,10 @@ export default function RegisterPage() {
                 transition={{ duration: 0.6 }}
                 className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
             >
-                {/* Background Gradient — softened teal theme */}
-                <div className="absolute inset-0 bg-gradient-to-br from-teal-600/12 to-cyan-700/10" />
-                <div className="absolute top-0 right-0 w-96 h-96 bg-teal-600/18 blur-[140px] rounded-full" />
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-600/15 blur-[140px] rounded-full" />
+                {/* Background Gradient — softened blue theme */}
+                <div className="absolute inset-0 bg-gradient-to-br from-sky-600/12 to-blue-700/12" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 blur-[140px] rounded-full" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-600/15 blur-[140px] rounded-full" />
 
                 <div className="relative z-10">
                     <Link href="/" className="flex items-center gap-2 mb-12">
@@ -190,7 +192,7 @@ export default function RegisterPage() {
                                         transition={{ delay: 0.2 + idx * 0.1 }}
                                         className="flex gap-4"
                                     >
-                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-[0_0_14px_rgba(20,184,166,0.3)]">
+                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-[0_0_14px_rgba(14,165,233,0.3)]">
                                             <Icon className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
@@ -271,34 +273,52 @@ export default function RegisterPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="password">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    required
-                                    className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        required
+                                        className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50 pr-10"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
                                 <p className="text-xs text-slate-400">Minimum 8 characters</p>
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                                <Input
-                                    id="confirmPassword"
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    required
-                                    className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="confirmPassword"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        required
+                                        className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50 pr-10"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="w-full mt-6 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-lg shadow-teal-600/20"
+                                className="w-full mt-6 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 shadow-lg shadow-sky-600/20 transition-all"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
