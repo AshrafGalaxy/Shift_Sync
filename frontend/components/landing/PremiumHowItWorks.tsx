@@ -158,40 +158,22 @@ export function PremiumHowItWorks() {
                 <div className="w-24 h-24 mb-8 relative flex items-center justify-center">
                   
                   {/* The solid physical box (Z-10 Content) */}
-                  <div className="absolute inset-0 rounded-2xl border border-slate-800 bg-slate-950 z-10 flex items-center justify-center overflow-hidden">
-                    {/* Subtle micro-circuit pin matrix (Always on) */}
-                    <div 
-                      className="absolute inset-0 opacity-20"
-                      style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)', backgroundSize: '8px 8px' }}
-                    />
-
-                    {/* Power-up node grid glow */}
+                  <div className="absolute inset-0 rounded-2xl border border-slate-800 bg-slate-950 z-10 flex items-center justify-center">
+                    {/* Idle ambient pulse behind icon */}
                     <motion.div 
-                      className="absolute inset-0"
-                      style={{ backgroundImage: 'radial-gradient(rgba(56,189,248,0.5) 1px, transparent 1px)', backgroundSize: '8px 8px' }}
+                      className="absolute inset-0 rounded-2xl border border-sky-500/10"
+                      animate={{ opacity: [0.1, 0.4, 0.1] }}
+                      transition={{ duration: 4, repeat: Infinity, delay: idx, ease: "easeInOut" }}
+                    />
+                    
+                    {/* Synchronized bright internal glow when laser hits */}
+                    <motion.div 
+                      className="absolute inset-0 bg-sky-500/20 blur-md rounded-2xl"
                       animate={{ opacity: [0, 0, 1, 1, 0, 0] }}
                       transition={{ duration: TOTAL_DURATION, times, repeat: Infinity, ease: "linear" }}
                     />
                     
-                    {/* Central Processor Core (Glows and expands when hit) */}
-                    <motion.div 
-                      className="absolute inset-0"
-                      style={{ background: "radial-gradient(circle at center, rgba(56,189,248,0.3) 0%, transparent 65%)" }}
-                      animate={{ opacity: [0, 0, 1, 1, 0, 0], scale: [0.5, 0.5, 1.2, 1.2, 0.5, 0.5] }}
-                      transition={{ duration: TOTAL_DURATION, times, repeat: Infinity, ease: "linear" }}
-                    />
-                    
-                    {/* The Icon itself, lighting up bright cyan when powered */}
-                    <motion.div
-                      animate={{ 
-                        color: ["#94a3b8", "#94a3b8", "#38bdf8", "#38bdf8", "#94a3b8", "#94a3b8"],
-                        filter: ["drop-shadow(0 0 0px transparent)", "drop-shadow(0 0 0px transparent)", "drop-shadow(0 0 10px rgba(56,189,248,0.8))", "drop-shadow(0 0 10px rgba(56,189,248,0.8))", "drop-shadow(0 0 0px transparent)", "drop-shadow(0 0 0px transparent)"]
-                      }}
-                      transition={{ duration: TOTAL_DURATION, times, repeat: Infinity, ease: "linear" }}
-                      className="relative z-20"
-                    >
-                      <Icon className="w-8 h-8" />
-                    </motion.div>
+                    <Icon className="w-8 h-8 text-slate-400 transition-colors duration-300 relative z-20" />
                   </div>
 
                   {/* Z-30: The Circuit Trace Layer (Renders OVER the solid box) */}

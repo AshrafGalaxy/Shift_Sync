@@ -160,17 +160,17 @@ export function ParticleText({ text }: ParticleTextProps) {
       // Draw exactly in the center
       ctx.fillText(text, width / 2, height / 2);
 
-      const textCoordinates = ctx.getImageData(0, 0, width, height);
+      const textCoordinates = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
       // Step determines particle density (lower = more particles)
-      const step = 4;
+      const step = 8; // Double the step because we are iterating over the 2x scaled buffer
       
       for (let y = 0, y2 = textCoordinates.height; y < y2; y += step) {
         for (let x = 0, x2 = textCoordinates.width; x < x2; x += step) {
           // Check opacity of pixel
           if (textCoordinates.data[(y * 4 * textCoordinates.width) + (x * 4) + 3] > 128) {
-            let positionX = x;
-            let positionY = y;
+            let positionX = x / 2; // Map back to CSS pixel space
+            let positionY = y / 2;
             // Get color from gradient pixel
             let r = textCoordinates.data[(y * 4 * textCoordinates.width) + (x * 4)];
             let g = textCoordinates.data[(y * 4 * textCoordinates.width) + (x * 4) + 1];
@@ -180,6 +180,14 @@ export function ParticleText({ text }: ParticleTextProps) {
             particlesArray.push(new Particle(positionX, positionY, color));
           }
         }
+      }
+
+      // Add ambient scatter dust across the entire canvas for depth
+      const numDust = 200;
+      for (let i = 0; i < numDust; i++) {
+         let px = Math.random() * width;
+         let py = Math.random() * height;
+         particlesArray.push(new Particle(px, py, "rgba(255,255,255,0.15)"));
       }
     };
 
@@ -233,7 +241,7 @@ export function ParticleText({ text }: ParticleTextProps) {
     <div ref={containerRef} className="w-full max-w-[1200px] h-[150px] md:h-[250px] lg:h-[350px] mx-auto relative flex items-center justify-center">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full cursor-crosshair z-10"
+        className="absolute inset-0 w-full h-full cursor-default z-10"
         style={{ touchAction: "none" }}
       />
       {/* Fallback readable text for screen readers */}

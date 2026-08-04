@@ -33,12 +33,16 @@ export function GrainFooter() {
   }, []);
 
   return (
-    <footer className="mt-32 border-t border-slate-800/70 bg-slate-950 overflow-hidden">
+    <footer className="mt-32 bg-slate-950 overflow-hidden relative">
       {/* ── Brand hero area ── */}
       <div
         ref={containerRef}
         className="relative py-20 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center overflow-hidden"
-        style={{ "--mx": "50%", "--my": "50%" } as React.CSSProperties}
+        style={{ 
+          "--mx": "50%", 
+          "--my": "50%",
+          maskImage: "linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)"
+        } as React.CSSProperties}
       >
         {/* Radial ambient background tracking mouse */}
         <div
