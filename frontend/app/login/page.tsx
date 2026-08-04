@@ -156,19 +156,19 @@ export default function LoginPage() {
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="faculty" className="w-full" onValueChange={setRole}>
-                            <TabsList className="flex w-full mb-8 bg-slate-800/60 p-1.5 rounded-xl border border-slate-700/60 !h-auto">
+                            <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-800/60 p-1 rounded-lg border border-slate-700/60 h-10">
                                 <TabsTrigger
                                     value="faculty"
-                                    className="flex-1 rounded-lg !h-auto py-2 transition-all"
+                                    className="rounded-md h-full text-sm transition-all"
                                 >
-                                    <Users className="w-4 h-4 mr-2 hidden sm:block" />
+                                    <Users className="w-3.5 h-3.5 mr-2 hidden sm:block" />
                                     Faculty
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="admin"
-                                    className="flex-1 rounded-lg !h-auto py-2 transition-all"
+                                    className="rounded-md h-full text-sm transition-all"
                                 >
-                                    <ShieldCheck className="w-4 h-4 mr-2 hidden sm:block" />
+                                    <ShieldCheck className="w-3.5 h-3.5 mr-2 hidden sm:block" />
                                     Admin
                                 </TabsTrigger>
                             </TabsList>
