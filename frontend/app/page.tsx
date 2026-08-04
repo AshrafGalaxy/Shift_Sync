@@ -540,7 +540,7 @@ export default function LandingPage() {
   const dotGridY = useTransform(scrollY, [0, 800], [0, -20]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-50 overflow-x-clip">
       {/* §8 Cursor Glow */}
       <CursorGlow />
       {/* §1 Grain Overlay */}
