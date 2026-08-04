@@ -127,39 +127,34 @@ function LiveStats() {
 function ComparisonTable() {
   const rows = [
     { 
-      title: "Algorithmic Solver", 
-      desc: "Uses CP-SAT AI constraints vs manual guesswork.",
-      shiftsync: true, sheets: false, manual: false 
+      title: "Generation Engine", 
+      desc: "How the schedule is actually built.",
+      shiftsync: "CP-SAT AI Solver", sheets: "Manual Formulas", manual: "Human Guesswork"
     },
     { 
       title: "Conflict Detection", 
-      desc: "Instantly flags overlapping rooms and professors.",
-      shiftsync: true, sheets: false, manual: false 
+      desc: "Flagging overlapping rooms and professors.",
+      shiftsync: "Real-time & Automated", sheets: "Formula-based (VLOOKUP)", manual: "Post-creation checks" 
     },
     { 
       title: "Smart Room Assignment", 
-      desc: "Auto-routes based on capacity and lab equipment.",
-      shiftsync: true, sheets: false, manual: false 
+      desc: "Routing based on capacity and lab equipment.",
+      shiftsync: "Auto-routes intelligently", sheets: "Manual assignment", manual: "Manual assignment" 
     },
     { 
       title: "Continuous Lab Blocks", 
-      desc: "Guarantees 2-3 hour practicals stay contiguous.",
-      shiftsync: true, sheets: false, manual: false 
+      desc: "Ensuring practicals stay contiguous.",
+      shiftsync: "Guaranteed 2-3 hr blocks", sheets: "Highly error-prone", manual: "Easily fragmented" 
     },
     { 
-      title: "Instant Distribution", 
-      desc: "Direct push to student and faculty Google Calendars.",
-      shiftsync: true, sheets: false, manual: false 
+      title: "Distribution", 
+      desc: "Getting the schedule to faculty/students.",
+      shiftsync: "Google Calendar Auto-sync", sheets: "Share PDF / Link", manual: "Print to Noticeboard" 
     },
     { 
       title: "Generation Time", 
       desc: "Time taken from data import to final schedule.",
-      shiftsync: "42 Secs", sheets: "Days", manual: "Weeks" 
-    },
-    { 
-      title: "Cost", 
-      desc: "Required budget to operate.",
-      shiftsync: "Free", sheets: "Free", manual: "Free" 
+      shiftsync: "Under 45 seconds", sheets: "Days of tweaking", manual: "Weeks of planning" 
     },
   ];
 
@@ -220,24 +215,17 @@ function ComparisonTable() {
               </div>
 
               <div className="text-center flex justify-center">
-                {typeof row.shiftsync === "boolean" 
-                  ? <CheckCircle2 className="w-6 h-6 text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
-                  : <span className="font-black text-sky-400">{row.shiftsync}</span>
-                }
+                <span className="font-bold text-sky-400 bg-sky-400/10 px-3 py-1.5 rounded-lg border border-sky-400/20 text-xs md:text-sm drop-shadow-[0_0_12px_rgba(56,189,248,0.2)]">
+                  {row.shiftsync}
+                </span>
               </div>
 
-              <div className="text-center flex justify-center opacity-40">
-                {typeof row.sheets === "boolean" 
-                  ? <X className="w-5 h-5 text-slate-500" />
-                  : <span className="font-semibold text-slate-500">{row.sheets}</span>
-                }
+              <div className="text-center flex justify-center opacity-60">
+                <span className="font-medium text-slate-300 text-xs md:text-sm">{row.sheets}</span>
               </div>
 
               <div className="hidden md:flex text-center justify-center opacity-40">
-                {typeof row.manual === "boolean" 
-                  ? <X className="w-5 h-5 text-slate-500" />
-                  : <span className="font-semibold text-slate-500">{row.manual}</span>
-                }
+                <span className="font-medium text-slate-500 text-xs md:text-sm">{row.manual}</span>
               </div>
             </motion.div>
           ))}
@@ -254,22 +242,22 @@ function Testimonials() {
       quote: "We reduced our timetable planning from 3 weeks to 45 minutes. The conflict detection alone saved us from 200+ manual checks.",
       author: "Dr. Priya Sharma",
       role: "HOD Computer Engineering, SATIS College Nashik",
-      avatarGradient: "from-sky-400 to-blue-500",
-      icon: UserRound
+      avatarGradient: "from-sky-400/20 to-blue-500/20",
+      avatarUrl: "https://api.dicebear.com/7.x/micah/svg?seed=Priya&backgroundColor=transparent"
     },
     {
       quote: "The ghost room feature is a lifesaver. Generation never crashes — it just flags what needs manual attention.",
       author: "Prof. Rakesh Joshi",
       role: "Senior Faculty, VIT-style Institution",
-      avatarGradient: "from-teal-400 to-emerald-500",
-      icon: UserPlus
+      avatarGradient: "from-teal-400/20 to-emerald-500/20",
+      avatarUrl: "https://api.dicebear.com/7.x/micah/svg?seed=Rakesh&backgroundColor=transparent"
     },
     {
       quote: "The Google Calendar sync means every faculty member has their schedule on their phone the same day we generate.",
       author: "Ms. Anjali Mehta",
       role: "Academic Coordinator, NIT-style Institution",
-      avatarGradient: "from-violet-400 to-purple-500",
-      icon: GraduationCap
+      avatarGradient: "from-violet-400/20 to-purple-500/20",
+      avatarUrl: "https://api.dicebear.com/7.x/micah/svg?seed=Anjali&backgroundColor=transparent"
     },
   ];
 
@@ -311,8 +299,8 @@ function Testimonials() {
             </svg>
             <p className="text-slate-300 mb-6 leading-relaxed">{t.quote}</p>
             <div className="flex items-center gap-4 pt-5 border-t border-slate-800">
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.avatarGradient} flex items-center justify-center shadow-lg flex-shrink-0`}>
-                <t.icon className="w-6 h-6 text-white" />
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.avatarGradient} border border-slate-700/50 flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden`}>
+                <img src={t.avatarUrl} alt={t.author} className="w-full h-full object-cover scale-110 mt-1" />
               </div>
               <div>
                 <p className="font-semibold text-sm text-slate-200">{t.author}</p>
