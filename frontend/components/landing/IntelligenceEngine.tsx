@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Upload, Play, Download, LucideIcon } from "lucide-react";
+import { Database, Cpu, Zap, LucideIcon } from "lucide-react";
 
 /**
  * 12-second total infinite loop.
@@ -98,32 +98,32 @@ function TrackCircuit({ timing }: { timing: StageTiming }) {
   );
 }
 
-export function PremiumHowItWorks() {
+export function IntelligenceEngine() {
   const steps: { number: string; title: string; description: string; icon: LucideIcon; timing: StageTiming }[] = [
     {
-      number: "01", title: "Configure",
-      description: "Upload your faculty, rooms, and workloads via CSV or the web form.",
-      icon: Upload, timing: STAGES.node1
+      number: "01", title: "Ingestion Matrix",
+      description: "Your CSVs, room capacities, and workloads translate into a multi-dimensional mathematical matrix.",
+      icon: Database, timing: STAGES.node1
     },
     {
-      number: "02", title: "Generate",
-      description: "The CP-SAT engine applies constraints to produce a conflict-free timetable.",
-      icon: Play, timing: STAGES.node2
+      number: "02", title: "Parallel Resolution",
+      description: "Google OR-Tools CP-SAT explores millions of permutations to guarantee a zero-conflict schedule.",
+      icon: Cpu, timing: STAGES.node2
     },
     {
-      number: "03", title: "Export & Share",
-      description: "Export to Excel, PDF, or push directly to Google Calendar.",
-      icon: Download, timing: STAGES.node3
+      number: "03", title: "Edge Delivery",
+      description: "The optimal result is cached and delivered via our Supabase global edge network instantly.",
+      icon: Zap, timing: STAGES.node3
     },
   ];
 
   return (
-    <div id="how-it-works" className="mt-20 relative">
+    <div id="intelligence-engine" className="mt-20 relative">
       <div className="text-center mb-20 px-4">
         <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
-          From setup to schedule in 3 steps
+          The CP-SAT Intelligence Engine
         </h2>
-        <p className="text-slate-400 text-lg">No training required. Start generating in minutes.</p>
+        <p className="text-slate-400 text-lg">How we process millions of constraints in under 60 seconds.</p>
       </div>
 
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6">

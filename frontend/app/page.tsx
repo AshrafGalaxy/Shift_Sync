@@ -28,7 +28,7 @@ import { StickyShowcase }   from "@/components/landing/StickyShowcase";
 import { GrainFooter }      from "@/components/landing/GrainFooter";
 import { PremiumLink }      from "@/components/landing/PremiumLink";
 import { PremiumLiveStats } from "@/components/landing/PremiumLiveStats";
-import { PremiumHowItWorks } from "@/components/landing/PremiumHowItWorks";
+import { IntelligenceEngine } from "@/components/landing/IntelligenceEngine";
 
 // ─── Typewriter phrases ───────────────────────────────────────────────────────
 const typewriterPhrases = [
@@ -119,101 +119,6 @@ function LiveStats() {
   );
 }
 
-// ─── How It Works ─────────────────────────────────────────────────────────────
-function HowItWorks() {
-  const steps = [
-    {
-      number: "1", title: "Configure",
-      description: "Upload your faculty, rooms, and workloads via CSV or the web form",
-      icon: Upload,
-      gradient: "from-sky-500 to-blue-600",
-      glow: "shadow-[0_0_20px_rgba(14,165,233,0.4)]",
-    },
-    {
-      number: "2", title: "Generate",
-      description: "Click Generate. The CP-SAT engine applies every constraint and produces a conflict-free timetable",
-      icon: Play,
-      gradient: "from-blue-500 to-violet-600",
-      glow: "shadow-[0_0_20px_rgba(139,92,246,0.35)]",
-    },
-    {
-      number: "3", title: "Export & Share",
-      description: "Export to Excel, PDF, or push to Google Calendar. Done.",
-      icon: Download,
-      gradient: "from-violet-500 to-purple-600",
-      glow: "shadow-[0_0_20px_rgba(168,85,247,0.35)]",
-    },
-  ];
-
-  return (
-    <div id="how-it-works" className="mt-32">
-      <div className="text-center mb-16">
-        <motion.h2
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-4xl font-bold mb-4"
-        >
-          From setup to schedule in 3 steps
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
-          className="text-slate-400"
-        >
-          No training required. Start generating in minutes.
-        </motion.p>
-      </div>
-
-      <div className="relative">
-        {/* Self-drawing connector line — desktop only */}
-        <div className="hidden md:block absolute top-10" style={{ left: "20%", right: "20%" }}>
-          <motion.div
-            initial={{ scaleX: 0, opacity: 0 }}
-            whileInView={{ scaleX: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.4, ease: "easeOut", delay: 0.3 }}
-            className="h-[1px] bg-gradient-to-r from-sky-500/50 via-violet-500/50 to-purple-500/50"
-            style={{ transformOrigin: "left" }}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {steps.map((step, idx) => {
-            const Icon = step.icon;
-            return (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 22 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.2 + 0.1 }}
-                className="text-center"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.08 }}
-                  transition={{ type: "spring", stiffness: 260 }}
-                  className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br ${step.gradient} ${step.glow} text-white mb-6`}
-                >
-                  <Icon className="w-8 h-8" />
-                </motion.div>
-                <div className="mb-1">
-                  <span className="text-xs uppercase tracking-widest text-slate-600 font-semibold">
-                    Step {step.number}
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-slate-100">{step.title}</h3>
-                <p className="text-slate-400 leading-relaxed">{step.description}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Comparison Table ─────────────────────────────────────────────────────────
 function ComparisonTable() {
@@ -664,18 +569,20 @@ export default function LandingPage() {
               <h1 className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 leading-tight">
                 Build Perfect Timetables.
                 <br />
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={currentPhrase}
-                    initial={{ opacity: 0, filter: "blur(12px)", y: 10 }}
-                    animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
-                    exit={{ opacity: 0, filter: "blur(12px)", y: -10 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
-                    className="gradient-sky-text inline-block"
-                  >
-                    {typewriterPhrases[currentPhrase]}
-                  </motion.span>
-                </AnimatePresence>
+                <span className="inline-block min-h-[1.2em] relative">
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={currentPhrase}
+                      initial={{ opacity: 0, filter: "blur(12px)", y: 10 }}
+                      animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+                      exit={{ opacity: 0, filter: "blur(12px)", y: -10 }}
+                      transition={{ duration: 0.4, ease: "easeInOut" }}
+                      className="gradient-sky-text inline-block"
+                    >
+                      {typewriterPhrases[currentPhrase]}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
               </h1>
             </motion.div>
 
@@ -726,8 +633,8 @@ export default function LandingPage() {
           {/* §9 Bento Features */}
           <BentoFeatures />
 
-          {/* How It Works */}
-          <PremiumHowItWorks />
+          {/* The Intelligence Engine */}
+          <IntelligenceEngine />
 
           {/* Comparison */}
           <ComparisonTable />

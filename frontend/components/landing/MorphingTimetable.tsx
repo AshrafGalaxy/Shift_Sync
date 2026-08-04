@@ -176,23 +176,25 @@ export function MorphingTimetable() {
         ])}
       </div>
 
-      {/* Generation badge */}
-      <AnimatePresence>
-        {showBadge && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.4 }}
-            className="mt-4 text-center"
-          >
-            <span className="inline-flex items-center gap-2 text-sm text-teal-400 font-medium tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
-              Conflict-free timetable generated in 42s
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Generation badge container (fixed height to prevent layout shift) */}
+      <div className="h-10 flex items-center justify-center mt-2">
+        <AnimatePresence>
+          {showBadge && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.4 }}
+              className="text-center"
+            >
+              <span className="inline-flex items-center gap-2 text-sm text-teal-400 font-medium tracking-wide">
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+                Conflict-free timetable generated in 42s
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 }
