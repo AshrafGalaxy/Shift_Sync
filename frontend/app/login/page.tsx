@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShieldCheck, Users, Calendar, ArrowRight, Loader2, Calendar as CalendarIcon, Lock, Mail, Brain, CalendarCheck } from "lucide-react";
+import { ShieldCheck, Users, Calendar, ArrowRight, Loader2, Calendar as CalendarIcon, Lock, Mail, Brain, CalendarCheck, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export default function LoginPage() {
     const [role, setRole] = useState("faculty");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
     const supabase = createClient();
@@ -155,17 +156,17 @@ export default function LoginPage() {
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="faculty" className="w-full" onValueChange={setRole}>
-                            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/60 p-1 rounded-xl border border-slate-700/60">
+                            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/60 p-1 rounded-xl border border-slate-700/60 h-auto items-stretch">
                                 <TabsTrigger
                                     value="faculty"
-                                    className="rounded-lg data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all"
+                                    className="rounded-lg py-2.5 data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center"
                                 >
                                     <Users className="w-4 h-4 mr-2 hidden sm:block" />
                                     Faculty
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="admin"
-                                    className="rounded-lg data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all"
+                                    className="rounded-lg py-2.5 data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center"
                                 >
                                     <ShieldCheck className="w-4 h-4 mr-2 hidden sm:block" />
                                     Admin
@@ -207,15 +208,24 @@ export default function LoginPage() {
                                             Forgot password?
                                         </Link>
                                     </div>
-                                    <Input
-                                        id="password"
-                                        type="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        required
-                                        className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50"
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            required
+                                            className="bg-slate-800/50 border-slate-700 focus-visible:border-blue-500 focus-visible:ring-blue-500/50 pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <Button
@@ -240,7 +250,7 @@ export default function LoginPage() {
 
                         <div className="mt-6 text-center text-sm text-slate-400">
                             Don&apos;t have an account?{" "}
-                            <Link href="/register" className="text-teal-400 hover:text-teal-300 font-semibold transition-colors">
+                            <Link href="/register" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
                                 Register here
                             </Link>
                         </div>
