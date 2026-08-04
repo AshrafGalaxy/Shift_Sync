@@ -557,8 +557,8 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-5 lg:gap-8">
             {[
               { name: "Features",     href: "#features" },
-              { name: "Engine",       href: "#intelligence-engine" },
               { name: "How It Works", href: "#how-it-works" },
+              { name: "Engine",       href: "#intelligence-engine" },
               { name: "Comparison",   href: "#comparison" },
               { name: "Feedback",     href: "#testimonials" },
               { name: "Pricing",      href: "#pricing" },
@@ -597,8 +597,8 @@ export default function LandingPage() {
               <div className="px-4 py-4 space-y-2">
                 {[
                   { name: "Features",     href: "#features" },
-                  { name: "Engine",       href: "#intelligence-engine" },
                   { name: "How It Works", href: "#how-it-works" },
+                  { name: "Engine",       href: "#intelligence-engine" },
                   { name: "Comparison",   href: "#comparison" },
                   { name: "Feedback",     href: "#testimonials" },
                   { name: "Pricing",      href: "#pricing" },

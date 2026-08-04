@@ -299,7 +299,7 @@ export function StickyShowcase() {
                 style={{ height: trackHeight > 0 ? trackHeight : '100%' }}
               >
                 <motion.div 
-                  className="w-full h-full bg-gradient-to-b from-sky-500 via-violet-500 to-teal-500 rounded-full origin-top"
+                  className="w-full h-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)] origin-top"
                   style={{ scaleY: scrollYProgress }}
                 />
               </div>
@@ -320,15 +320,12 @@ export function StickyShowcase() {
                     >
                       <motion.div
                         animate={{
-                          background: isActive
-                            ? `linear-gradient(135deg, var(--tw-gradient-stops))`
-                            : undefined,
                           scale: isActive ? 1.15 : 1,
                         }}
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
                           isActive
-                            ? `bg-gradient-to-br ${sec.accent} shadow-[0_0_24px_rgba(14,165,233,0.4)] ring-1 ring-white/20`
-                            : "bg-slate-800/40 backdrop-blur-sm border border-slate-700/60 shadow-lg"
+                            ? `bg-gradient-to-br ${sec.accent} shadow-[0_0_24px_rgba(14,165,233,0.5)] ring-1 ring-white/20`
+                            : "bg-slate-800/50 backdrop-blur-md border border-slate-700/50 shadow-lg"
                         }`}
                       >
                         <SIcon className={`w-5 h-5 transition-colors duration-500 ${isActive ? "text-white" : "text-slate-500"}`} />
