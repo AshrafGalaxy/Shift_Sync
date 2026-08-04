@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import {
   Upload,
@@ -233,7 +233,25 @@ function ExportVisual({ active }: { active: boolean }) {
  */
 export function StickyShowcase() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const trackContainerRef = useRef<HTMLDivElement>(null);
+  const lastIconRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [trackHeight, setTrackHeight] = useState(0);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      if (lastIconRef.current && trackContainerRef.current) {
+        // Calculate the exact distance from the top of the track container to the center of the last icon
+        const containerTop = trackContainerRef.current.getBoundingClientRect().top;
+        const iconRect = lastIconRef.current.getBoundingClientRect();
+        const iconCenter = iconRect.top + (iconRect.height / 2);
+        setTrackHeight(iconCenter - containerTop - 40); // 40px offset for top-[40px]
+      }
+    };
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, []);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -276,26 +294,30 @@ export function StickyShowcase() {
             <div className="relative order-2 lg:order-1 pl-4 lg:pl-0">
               
               {/* Continuous Vertical Track (Hidden on mobile for simplicity) */}
-              <div className="hidden lg:block absolute left-[23px] top-[40px] bottom-[180px] w-[2px] bg-slate-800/60 z-0">
+              <div 
+                className="hidden lg:block absolute left-[23px] top-[40px] w-[2px] bg-slate-800/60 z-0"
+                style={{ height: trackHeight > 0 ? trackHeight : '100%' }}
+              >
                 <motion.div 
                   className="w-full h-full bg-gradient-to-b from-sky-500 via-violet-500 to-teal-500 rounded-full origin-top"
                   style={{ scaleY: scrollYProgress }}
                 />
               </div>
 
-              <div className="space-y-12 relative z-10">
+              <div ref={trackContainerRef} className="space-y-12 relative z-10">
               {sections.map((sec, idx) => {
                 const SIcon = sec.icon;
                 const isActive = idx === activeIdx;
                 return (
-                  <motion.div
+                  <div
                     key={sec.id}
-                    animate={{ opacity: isActive ? 1 : 0.6 }}
-                    transition={{ duration: 0.4 }}
                     className="flex gap-6 lg:gap-8 items-start relative z-10"
                   >
                     {/* Step pill */}
-                    <div className="flex flex-col items-center flex-shrink-0 pt-2 lg:pt-1 hidden lg:flex relative z-20">
+                    <div 
+                      ref={idx === sections.length - 1 ? lastIconRef : undefined}
+                      className="flex flex-col items-center flex-shrink-0 pt-2 lg:pt-1 hidden lg:flex relative z-20"
+                    >
                       <motion.div
                         animate={{
                           background: isActive
@@ -303,18 +325,22 @@ export function StickyShowcase() {
                             : undefined,
                           scale: isActive ? 1.15 : 1,
                         }}
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${
                           isActive
                             ? `bg-gradient-to-br ${sec.accent} shadow-[0_0_24px_rgba(14,165,233,0.4)] ring-1 ring-white/20`
-                            : "bg-slate-900 shadow-xl border border-slate-700/60"
+                            : "bg-slate-800/40 backdrop-blur-sm border border-slate-700/60 shadow-lg"
                         }`}
                       >
-                        <SIcon className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-400"}`} />
+                        <SIcon className={`w-5 h-5 transition-colors duration-500 ${isActive ? "text-white" : "text-slate-500"}`} />
                       </motion.div>
                     </div>
 
                     {/* Text */}
-                    <div className="pb-4">
+                    <motion.div 
+                      className="pb-4"
+                      animate={{ opacity: isActive ? 1 : 0.4 }}
+                      transition={{ duration: 0.4 }}
+                    >
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-[11px] font-mono font-bold ${isActive ? sec.accentColor : "text-slate-600"}`}>
                           {sec.step}
@@ -333,8 +359,8 @@ export function StickyShowcase() {
                           <p className="text-slate-300 text-base lg:text-lg leading-relaxed max-w-md">{sec.description}</p>
                         </motion.div>
                       )}
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </div>
                 );
               })}
             </div>
