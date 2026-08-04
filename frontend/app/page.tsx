@@ -19,13 +19,15 @@ import { Badge } from "@/components/ui/badge";
 import { Toaster } from "@/components/ui/sonner";
 
 // New premium landing components
-import { CursorGlow }       from "@/components/landing/CursorGlow";
+
 import { GrainOverlay }     from "@/components/landing/GrainOverlay";
-import { MagneticButton }   from "@/components/landing/MagneticButton";
+import { PremiumButton }      from "@/components/landing/PremiumButton";
 import { MorphingTimetable } from "@/components/landing/MorphingTimetable";
 import { BentoFeatures }    from "@/components/landing/BentoFeatures";
 import { StickyShowcase }   from "@/components/landing/StickyShowcase";
 import { GrainFooter }      from "@/components/landing/GrainFooter";
+import { PremiumLiveStats } from "@/components/landing/PremiumLiveStats";
+import { PremiumHowItWorks } from "@/components/landing/PremiumHowItWorks";
 
 // ─── Typewriter phrases ───────────────────────────────────────────────────────
 const typewriterPhrases = [
@@ -541,8 +543,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 overflow-x-clip">
-      {/* §8 Cursor Glow */}
-      <CursorGlow />
+
       {/* §1 Grain Overlay */}
       <GrainOverlay />
 
@@ -579,9 +580,9 @@ export default function LandingPage() {
               Sign In
             </Link>
             <Link href="/login">
-              <Button className="relative h-9 px-5 rounded-full text-sm font-semibold bg-white text-slate-900 hover:bg-slate-100 shadow-sm transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]">
-                Get Started Free <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
-              </Button>
+              <PremiumButton icon={<ArrowRight className="w-3.5 h-3.5" />} className="h-9 px-4 text-xs">
+                Get Started Free
+              </PremiumButton>
             </Link>
           </div>
 
@@ -695,22 +696,10 @@ export default function LandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
             >
-              <Link href="/login">
-                <MagneticButton>
-                  <Button
-                    size="lg"
-                    className="relative h-14 px-10 text-base font-bold rounded-full overflow-hidden
-                      bg-white text-slate-900 hover:bg-slate-50
-                      shadow-[0_0_40px_rgba(14,165,233,0.3)] hover:shadow-[0_0_60px_rgba(14,165,233,0.5)]
-                      transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] tracking-tight"
-                  >
-                    <span className="absolute inset-0 bg-gradient-to-r from-sky-100/40 via-white/0 to-blue-100/40 pointer-events-none" />
-                    <span className="relative z-10 flex items-center gap-2">
-                      Generate Your Timetable
-                      <ArrowRight className="w-4 h-4" />
-                    </span>
-                  </Button>
-                </MagneticButton>
+              <Link href="/register">
+                <PremiumButton icon={<ArrowRight className="w-4 h-4" />}>
+                  Generate Your Timetable
+                </PremiumButton>
               </Link>
 
               <Button
@@ -727,7 +716,7 @@ export default function LandingPage() {
           <MorphingTimetable />
 
           {/* Stats */}
-          <LiveStats />
+          <PremiumLiveStats />
 
           {/* Marquee */}
           <Marquee />
@@ -739,7 +728,7 @@ export default function LandingPage() {
           <BentoFeatures />
 
           {/* How It Works */}
-          <HowItWorks />
+          <PremiumHowItWorks />
 
           {/* Comparison */}
           <ComparisonTable />

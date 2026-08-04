@@ -3,7 +3,7 @@
 import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Calendar } from "lucide-react";
+import { ArrowRight, Calendar, Github, Twitter, Linkedin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ParticleText } from "./ParticleText";
 
@@ -127,9 +127,15 @@ export function GrainFooter() {
           <div className="mt-12 pt-8 border-t border-slate-800/70 flex flex-col md:flex-row items-center justify-between">
             <p className="text-sm text-slate-500 font-medium">© 2026 ShiftSync. All rights reserved.</p>
             <div className="flex gap-4 mt-4 md:mt-0">
-              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors text-sm font-medium">GitHub</a>
-              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors text-sm font-medium">Twitter</a>
-              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors text-sm font-medium">LinkedIn</a>
+              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors">
+                <Github className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors">
+                <Twitter className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors">
+                <Linkedin className="w-5 h-5" />
+              </a>
             </div>
           </div>
         </div>

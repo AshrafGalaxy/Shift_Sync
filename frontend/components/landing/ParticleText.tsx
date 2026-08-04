@@ -127,9 +127,23 @@ export function ParticleText({ text }: ParticleTextProps) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       
-      // Dynamic font size based on container width
-      let fontSize = Math.min(width * 0.22, 180);
-      ctx.font = `900 ${fontSize}px system-ui, -apple-system, sans-serif`;
+      // Dynamically measure and fit text to the canvas
+      // Start with a large font and scale down until it fits with 10% padding
+      let fontSize = 200;
+      const padding = width * 0.1;
+      const maxTextWidth = width - padding * 2;
+      
+      // Standard SaaS font fallback chain
+      const fontFamily = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+      
+      ctx.font = `900 ${fontSize}px ${fontFamily}`;
+      let textMetrics = ctx.measureText(text);
+      
+      while (textMetrics.width > maxTextWidth && fontSize > 20) {
+        fontSize -= 2;
+        ctx.font = `900 ${fontSize}px ${fontFamily}`;
+        textMetrics = ctx.measureText(text);
+      }
       
       // Text gradient
       const gradient = ctx.createLinearGradient(0, 0, width, 0);
@@ -139,6 +153,7 @@ export function ParticleText({ text }: ParticleTextProps) {
       gradient.addColorStop(1, "#4f46e5"); // indigo-600
       
       ctx.fillStyle = gradient;
+      // Draw exactly in the center
       ctx.fillText(text, width / 2, height / 2);
 
       const textCoordinates = ctx.getImageData(0, 0, width, height);
@@ -175,8 +190,11 @@ export function ParticleText({ text }: ParticleTextProps) {
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    handleResize();
-    animate();
+    // Delay init slightly to ensure fonts are loaded
+    document.fonts.ready.then(() => {
+      handleResize();
+      animate();
+    });
 
     window.addEventListener("resize", handleResize);
     canvas.addEventListener("mousemove", handleMouseMove);
@@ -208,10 +226,10 @@ export function ParticleText({ text }: ParticleTextProps) {
   }
 
   return (
-    <div ref={containerRef} className="w-full max-w-[1200px] h-[200px] md:h-[300px] lg:h-[400px] mx-auto relative flex items-center justify-center">
+    <div ref={containerRef} className="w-full max-w-[1200px] h-[150px] md:h-[250px] lg:h-[350px] mx-auto relative flex items-center justify-center">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full z-10"
+        className="absolute inset-0 w-full h-full cursor-crosshair z-10"
         style={{ touchAction: "none" }}
       />
       {/* Fallback readable text for screen readers */}
