@@ -132,17 +132,21 @@ export function ParticleText({ text }: ParticleTextProps) {
       let fontSize = 200;
       const padding = width * 0.1;
       const maxTextWidth = width - padding * 2;
+      const maxTextHeight = height * 0.75; // Max 75% of container height to strictly prevent vertical clipping
       
-      // Standard SaaS font fallback chain
-      const fontFamily = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+      // Inherit the exact brand font from the page body to guarantee cohesive typography
+      const computedFont = getComputedStyle(document.body).fontFamily;
+      const fontFamily = computedFont || "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
       
       ctx.font = `900 ${fontSize}px ${fontFamily}`;
       let textMetrics = ctx.measureText(text);
+      let textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
       
-      while (textMetrics.width > maxTextWidth && fontSize > 20) {
+      while ((textMetrics.width > maxTextWidth || textHeight > maxTextHeight) && fontSize > 10) {
         fontSize -= 2;
         ctx.font = `900 ${fontSize}px ${fontFamily}`;
         textMetrics = ctx.measureText(text);
+        textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
       }
       
       // Text gradient

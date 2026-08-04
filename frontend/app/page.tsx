@@ -26,6 +26,7 @@ import { MorphingTimetable } from "@/components/landing/MorphingTimetable";
 import { BentoFeatures }    from "@/components/landing/BentoFeatures";
 import { StickyShowcase }   from "@/components/landing/StickyShowcase";
 import { GrainFooter }      from "@/components/landing/GrainFooter";
+import { PremiumLink }      from "@/components/landing/PremiumLink";
 import { PremiumLiveStats } from "@/components/landing/PremiumLiveStats";
 import { PremiumHowItWorks } from "@/components/landing/PremiumHowItWorks";
 
@@ -411,9 +412,9 @@ function Pricing() {
             ))}
           </ul>
           <Link href="/register">
-            <Button className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700">
+            <PremiumButton icon={<ArrowRight className="w-4 h-4" />} className="w-full">
               Get Started Free
-            </Button>
+            </PremiumButton>
           </Link>
         </motion.div>
 
@@ -442,9 +443,9 @@ function Pricing() {
               </li>
             ))}
           </ul>
-          <Button variant="outline" className="w-full border-slate-700 text-slate-400" disabled>
+          <PremiumButton variant="secondary" className="w-full opacity-50 cursor-not-allowed">
             Join Waitlist
-          </Button>
+          </PremiumButton>
         </motion.div>
       </div>
     </div>
@@ -568,10 +569,9 @@ export default function LandingPage() {
               { name: "Pricing",     href: "#pricing" },
               { name: "FAQ",         href: "#faq" },
             ].map((link) => (
-              <a key={link.name} href={link.href}
-                className="text-sm font-medium text-slate-400 hover:text-slate-100 transition-colors">
+              <PremiumLink key={link.name} href={link.href} className="text-sm">
                 {link.name}
-              </a>
+              </PremiumLink>
             ))}
           </div>
 

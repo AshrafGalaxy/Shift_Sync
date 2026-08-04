@@ -82,6 +82,13 @@ export function PremiumHowItWorks() {
                     ) as any,
                   }}
                 >
+                  {/* Ambient idle pulse (always on) */}
+                  <motion.div 
+                    className="absolute inset-0 rounded-2xl border border-sky-500/10"
+                    animate={{ opacity: [0.1, 0.5, 0.1] }}
+                    transition={{ duration: 3 + idx * 0.5, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  
                   <Icon className="w-8 h-8 text-slate-400 group-hover:text-sky-400 transition-colors duration-300 relative z-10" />
                   
                   {/* Internal ambient glow that turns on when laser hits */}

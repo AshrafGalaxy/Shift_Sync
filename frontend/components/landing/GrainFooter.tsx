@@ -4,8 +4,9 @@ import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Calendar, Github, Twitter, Linkedin } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ParticleText } from "./ParticleText";
+import { PremiumButton } from "./PremiumButton";
+import { PremiumLink } from "./PremiumLink";
 
 /**
  * §3 — Premium Interactive Footer
@@ -75,14 +76,14 @@ export function GrainFooter() {
           className="flex flex-col sm:flex-row items-center gap-4 relative z-20"
         >
           <Link href="/register">
-            <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 shadow-lg shadow-sky-600/20 px-8 h-12 text-sm font-semibold rounded-full transition-transform hover:scale-105 active:scale-95">
-              Start Building Now <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <PremiumButton icon={<ArrowRight className="w-4 h-4" />}>
+              Start Building Now
+            </PremiumButton>
           </Link>
           <Link href="/login">
-            <Button variant="outline" className="border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-300 hover:text-white px-8 h-12 text-sm font-semibold rounded-full transition-transform hover:scale-105 active:scale-95">
+            <PremiumButton variant="secondary">
               Sign in to Dashboard
-            </Button>
+            </PremiumButton>
           </Link>
         </motion.div>
       </div>
@@ -102,25 +103,25 @@ export function GrainFooter() {
             </div>
             <div>
               <p className="font-semibold mb-4 text-sm text-slate-200">Product</p>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li><a href="#features" className="hover:text-sky-400 transition-colors">Features</a></li>
-                <li><a href="#how-it-works" className="hover:text-sky-400 transition-colors">How it Works</a></li>
-                <li><a href="#pricing" className="hover:text-sky-400 transition-colors">Pricing</a></li>
+              <ul className="space-y-4 text-sm text-slate-400">
+                <li><PremiumLink href="#features">Features</PremiumLink></li>
+                <li><PremiumLink href="#how-it-works">How it Works</PremiumLink></li>
+                <li><PremiumLink href="#pricing">Pricing</PremiumLink></li>
               </ul>
             </div>
             <div>
               <p className="font-semibold mb-4 text-sm text-slate-200">Resources</p>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-sky-400 transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-sky-400 transition-colors">Guide</a></li>
-                <li><a href="#faq" className="hover:text-sky-400 transition-colors">FAQ</a></li>
+              <ul className="space-y-4 text-sm text-slate-400">
+                <li><PremiumLink href="#">Documentation</PremiumLink></li>
+                <li><PremiumLink href="#">Guide</PremiumLink></li>
+                <li><PremiumLink href="#faq">FAQ</PremiumLink></li>
               </ul>
             </div>
             <div>
               <p className="font-semibold mb-4 text-sm text-slate-200">Legal</p>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-sky-400 transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-sky-400 transition-colors">Terms of Service</a></li>
+              <ul className="space-y-4 text-sm text-slate-400">
+                <li><PremiumLink href="#">Privacy Policy</PremiumLink></li>
+                <li><PremiumLink href="#">Terms of Service</PremiumLink></li>
               </ul>
             </div>
           </div>
