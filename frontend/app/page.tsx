@@ -17,7 +17,8 @@ import {
   UserPlus,
   GraduationCap,
   Sparkles,
-  XCircle
+  XCircle,
+  Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,18 +54,21 @@ function Marquee() {
   const doubled = [...institutions, ...institutions];
 
   return (
-    <div className="mt-20 py-12 border-y border-slate-800/70">
+    <div className="mt-32 py-12 border-y border-slate-800/70 relative">
       <div className="text-center mb-8">
         <p className="text-xs uppercase tracking-widest text-slate-500 font-semibold">
           Trusted by Institutions Across India
         </p>
       </div>
-      <div className="marquee-container overflow-hidden">
+      <div 
+        className="marquee-container overflow-hidden relative"
+        style={{ maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)" }}
+      >
         <div className="animate-marquee gap-4">
           {doubled.map((inst, idx) => (
             <div
               key={idx}
-              className="mx-2 px-5 py-2 rounded-full bg-slate-900 border border-slate-700/60 text-sm text-slate-300 flex-shrink-0 whitespace-nowrap hover:border-sky-500/40 hover:text-sky-300 transition-colors cursor-default"
+              className="mx-2 px-5 py-2 rounded-full bg-slate-900/50 backdrop-blur-md border border-slate-700/60 text-sm text-slate-300 flex-shrink-0 whitespace-nowrap hover:border-sky-500/60 hover:text-white hover:shadow-[0_0_15px_rgba(14,165,233,0.4)] hover:bg-slate-800/80 transition-all cursor-default"
             >
               {inst}
             </div>
@@ -93,7 +97,42 @@ function Counter({ value, suffix }: { value: number; suffix: string }) {
   return <>{count}{suffix}</>;
 }
 
-// ─── Live Stats ───────────────────────────────────────────────────────────────
+function StatCard({ stat, idx }: { stat: any, idx: number }) {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      setMousePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
+  };
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: idx * 0.1 }}
+      className="relative bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 transition-all overflow-hidden group"
+    >
+      <div 
+        className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          background: `radial-gradient(400px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(14,165,233,0.15), transparent 40%)`
+        }}
+      />
+      <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${stat.accent} opacity-40 group-hover:opacity-100 transition-opacity duration-300`} />
+      <div className={`text-3xl font-bold bg-gradient-to-r ${stat.accent} bg-clip-text text-transparent relative z-10`}>
+        <Counter value={stat.value} suffix={stat.suffix} />
+      </div>
+      <p className="text-slate-400 text-sm mt-2 relative z-10">{stat.label}</p>
+    </motion.div>
+  );
+}
+
 function LiveStats() {
   const stats = [
     { label: "Timetables Generated",        value: 500,   suffix: "+", accent: "from-sky-400 to-blue-500" },
@@ -103,22 +142,9 @@ function LiveStats() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-20">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-32">
       {stats.map((stat, idx) => (
-        <motion.div
-          key={idx}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: idx * 0.1 }}
-          className="relative bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 hover:border-sky-500/40 hover:shadow-[0_0_24px_rgba(14,165,233,0.10)] transition-all overflow-hidden group"
-        >
-          <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${stat.accent} opacity-70 group-hover:opacity-100 transition-opacity`} />
-          <div className={`text-3xl font-bold bg-gradient-to-r ${stat.accent} bg-clip-text text-transparent`}>
-            <Counter value={stat.value} suffix={stat.suffix} />
-          </div>
-          <p className="text-slate-400 text-sm mt-2">{stat.label}</p>
-        </motion.div>
+        <StatCard key={idx} stat={stat} idx={idx} />
       ))}
     </div>
   );
@@ -258,6 +284,86 @@ function ComparisonTable() {
   );
 }
 
+function TestimonialCard({ t, idx }: { t: any, idx: number }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [glarePosition, setGlarePosition] = useState({ x: 50, y: 50 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const rotX = ((mouseY / height) - 0.5) * -20;
+    const rotY = ((mouseX / width) - 0.5) * 20;
+
+    setRotateX(rotX);
+    setRotateY(rotY);
+    setGlarePosition({ x: (mouseX / width) * 100, y: (mouseY / height) * 100 });
+  };
+
+  const handleMouseLeave = () => {
+    setRotateX(0);
+    setRotateY(0);
+    setIsHovered(false);
+  };
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
+      initial={{ opacity: 0, rotateX: 8, rotateY: -4, y: 20 }}
+      whileInView={{ opacity: 1, rotateX: 0, rotateY: 0, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: idx * 0.1, duration: 0.5 }}
+      style={{ perspective: 1000 }}
+      className="relative z-10"
+    >
+      <motion.div
+        animate={{ rotateX: isHovered ? rotateX : 0, rotateY: isHovered ? rotateY : 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        className="bg-slate-900/70 border border-slate-700/60 rounded-2xl p-6 h-full relative overflow-hidden"
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        {/* Specular Glare */}
+        <div 
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300 mix-blend-screen"
+          style={{
+            opacity: isHovered ? 0.3 : 0,
+            background: `radial-gradient(circle at ${glarePosition.x}% ${glarePosition.y}%, rgba(255,255,255,0.8) 0%, transparent 60%)`,
+          }}
+        />
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-sky-500/40 to-transparent" />
+        <svg className="w-8 h-8 text-sky-500/60 mb-4" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
+        </svg>
+        <p className="text-slate-300 mb-6 leading-relaxed relative z-10">{t.quote}</p>
+        <div className="flex items-center gap-4 pt-5 border-t border-slate-800 relative z-10">
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.avatarGradient} border border-slate-700/50 flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden`}>
+            <img src={t.avatarUrl} alt={t.author} className="w-full h-full object-cover scale-110 mt-1" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-slate-200">{t.author}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{t.role}</p>
+          </div>
+        </div>
+        <div className="flex gap-1 mt-4 relative z-10">
+          {[...Array(5)].map((_, i) => (
+            <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+          ))}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 function Testimonials() {
   const testimonials = [
@@ -285,7 +391,7 @@ function Testimonials() {
   ];
 
   return (
-    <div id="testimonials" className="mt-20 scroll-mt-24">
+    <div id="testimonials" className="mt-32 scroll-mt-24">
       <div className="text-center mb-12">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -307,35 +413,7 @@ function Testimonials() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {testimonials.map((t, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, rotateX: 8, rotateY: -4, y: 20 }}
-            whileInView={{ opacity: 1, rotateX: 0, rotateY: 0, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: idx * 0.1, duration: 0.5 }}
-            className="bg-slate-900/70 border border-slate-700/60 rounded-2xl p-6 hover:border-slate-600/70 transition-colors relative overflow-hidden"
-            style={{ perspective: 800 }}
-          >
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-sky-500/40 to-transparent" />
-            <svg className="w-8 h-8 text-sky-500/60 mb-4" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
-              <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
-            </svg>
-            <p className="text-slate-300 mb-6 leading-relaxed">{t.quote}</p>
-            <div className="flex items-center gap-4 pt-5 border-t border-slate-800">
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.avatarGradient} border border-slate-700/50 flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden`}>
-                <img src={t.avatarUrl} alt={t.author} className="w-full h-full object-cover scale-110 mt-1" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm text-slate-200">{t.author}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{t.role}</p>
-              </div>
-            </div>
-            <div className="flex gap-1 mt-4">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-              ))}
-            </div>
-          </motion.div>
+          <TestimonialCard key={idx} t={t} idx={idx} />
         ))}
       </div>
     </div>
@@ -371,48 +449,53 @@ function Pricing() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 max-w-5xl mx-auto px-4">
         {/* FREE TIER - GLOWING BENTO */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="group relative bg-slate-900/60 backdrop-blur-xl border border-sky-500/40 rounded-[2rem] p-8 lg:p-10 shadow-[0_0_40px_rgba(14,165,233,0.15)] hover:shadow-[0_0_60px_rgba(14,165,233,0.25)] hover:border-sky-400/60 transition-all duration-500 overflow-hidden flex flex-col"
-        >
-          <div className="absolute top-0 right-0 p-8">
-            <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/50 backdrop-blur-md px-3 py-1 font-semibold uppercase tracking-wider text-xs">
-              🎉 Free During Beta
-            </Badge>
-          </div>
+        <div className="relative group flex flex-col">
+          {/* Breathing pulse glow behind the Free Tier card */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-sky-500/30 to-blue-500/30 rounded-[2.2rem] blur-xl opacity-40 animate-pulse group-hover:opacity-80 transition-opacity duration-700" />
           
-          <h3 className="text-3xl font-black mb-2 tracking-tight">Free</h3>
-          <div className="flex items-baseline gap-2 mb-2">
-            <p className="text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400">₹0</p>
-          </div>
-          <p className="text-slate-400 text-sm mb-8 font-medium">Forever, during beta phase</p>
-          
-          <ul className="space-y-4 mb-10 text-slate-300 flex-grow">
-            {[
-              { title: "1 Institution, unlimited departments", desc: "No caps on your organizational structure." },
-              { title: "Unlimited timetable generations", desc: "Run the AI solver as many times as you need." },
-              { title: "CSV import & full export suite", desc: "Export to Excel, PDF, and iCal instantly." },
-              { title: "Google Calendar sync", desc: "Direct integration for faculty and students." },
-              { title: "Conflict refiner & substitution system", desc: "Resolve absences and ghost rooms easily." },
-            ].map((f, i) => (
-              <li key={i} className="flex gap-3 items-start">
-                <CheckCircle2 className="w-6 h-6 text-sky-400 flex-shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
-                <div>
-                  <span className="font-semibold text-slate-200 block">{f.title}</span>
-                  <span className="text-sm text-slate-500 block mt-0.5">{f.desc}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-          
-          <Link href="/register" className="mt-auto">
-            <PremiumButton icon={<ArrowRight className="w-5 h-5" />} className="w-full py-6 text-lg shadow-[0_0_20px_rgba(14,165,233,0.3)]">
-              Get Started Free
-            </PremiumButton>
-          </Link>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="relative bg-slate-900/60 backdrop-blur-xl border border-sky-500/40 rounded-[2rem] p-8 lg:p-10 shadow-[0_0_40px_rgba(14,165,233,0.15)] hover:shadow-[0_0_60px_rgba(14,165,233,0.25)] hover:border-sky-400/60 transition-all duration-500 overflow-hidden flex flex-col flex-grow z-10"
+          >
+            <div className="absolute top-0 right-0 p-8">
+              <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/50 backdrop-blur-md px-3 py-1 font-semibold uppercase tracking-wider text-xs shadow-[0_0_15px_rgba(14,165,233,0.3)]">
+                🎉 Free During Beta
+              </Badge>
+            </div>
+            
+            <h3 className="text-3xl font-black mb-2 tracking-tight">Free</h3>
+            <div className="flex items-baseline gap-2 mb-2">
+              <p className="text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400">₹0</p>
+            </div>
+            <p className="text-slate-400 text-sm mb-8 font-medium">Forever, during beta phase</p>
+            
+            <ul className="space-y-4 mb-10 text-slate-300 flex-grow">
+              {[
+                { title: "1 Institution, unlimited departments", desc: "No caps on your organizational structure." },
+                { title: "Unlimited timetable generations", desc: "Run the AI solver as many times as you need." },
+                { title: "CSV import & full export suite", desc: "Export to Excel, PDF, and iCal instantly." },
+                { title: "Google Calendar sync", desc: "Direct integration for faculty and students." },
+                { title: "Conflict refiner & substitution system", desc: "Resolve absences and ghost rooms easily." },
+              ].map((f, i) => (
+                <li key={i} className="flex gap-3 items-start">
+                  <CheckCircle2 className="w-6 h-6 text-sky-400 flex-shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
+                  <div>
+                    <span className="font-semibold text-slate-200 block">{f.title}</span>
+                    <span className="text-sm text-slate-500 block mt-0.5">{f.desc}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            
+            <Link href="/register" className="mt-auto">
+              <PremiumButton icon={<ArrowRight className="w-5 h-5" />} className="w-full py-6 text-lg shadow-[0_0_20px_rgba(14,165,233,0.3)] hover:shadow-[0_0_30px_rgba(14,165,233,0.5)] transition-shadow">
+                Get Started Free
+              </PremiumButton>
+            </Link>
+          </motion.div>
+        </div>
 
         {/* PRO TIER - BLURRED / MYSTERY */}
         <motion.div
@@ -423,8 +506,9 @@ function Pricing() {
           className="relative bg-slate-900/30 border border-slate-700/50 rounded-[2rem] p-8 lg:p-10 overflow-hidden flex flex-col items-center text-center justify-center min-h-[500px]"
         >
           {/* Heavy blur overlay */}
-          <div className="absolute inset-0 backdrop-blur-[4px] bg-slate-950/40 z-10 flex flex-col items-center justify-center p-8">
-             <Badge className="mb-4 bg-slate-800/80 text-slate-300 border-slate-600 px-4 py-1.5 font-bold tracking-widest uppercase text-xs shadow-xl">
+          <div className="absolute inset-0 backdrop-blur-[6px] bg-slate-950/50 z-10 flex flex-col items-center justify-center p-8 group/pro">
+             <Badge className="mb-4 bg-slate-800/90 text-slate-300 border-slate-600 px-4 py-1.5 font-bold tracking-widest uppercase text-xs shadow-xl flex items-center gap-2">
+               <Lock className="w-3.5 h-3.5 text-slate-400 group-hover/pro:animate-bounce" />
                Coming Soon
              </Badge>
              <h3 className="text-3xl font-black mb-3 bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-500">Pro Tier</h3>
@@ -469,7 +553,7 @@ function FAQ() {
   ];
 
   return (
-    <div id="faq" className="mt-20 pb-20">
+    <div id="faq" className="mt-32 pb-32">
       <div className="text-center mb-12">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -480,46 +564,54 @@ function FAQ() {
           Frequently asked questions
         </motion.h2>
       </div>
-      <div className="max-w-2xl mx-auto space-y-3">
-        {faqs.map((faq, idx) => (
+      <div className="max-w-2xl mx-auto space-y-3 px-4">
+        {faqs.map((faq, idx) => {
+          const isOpen = openIdx === idx;
+          return (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: idx * 0.05 }}
-            className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"
+            className={`bg-slate-900/50 border rounded-xl overflow-hidden relative transition-colors duration-300 ${isOpen ? 'border-sky-500/40' : 'border-slate-800'}`}
           >
+            {/* Active glow indicator line */}
+            <div 
+              className={`absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-sky-400 to-blue-600 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`} 
+              style={{ boxShadow: isOpen ? '0 0 15px rgba(14,165,233,0.5)' : 'none' }}
+            />
             <button
-              onClick={() => setOpenIdx(openIdx === idx ? -1 : idx)}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors text-left"
+              onClick={() => setOpenIdx(isOpen ? -1 : idx)}
+              className={`w-full px-6 py-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors text-left ${isOpen ? 'bg-slate-800/30' : ''}`}
             >
-              <p className="font-semibold">{faq.question}</p>
+              <p className={`font-semibold transition-colors duration-300 ${isOpen ? 'text-sky-300' : 'text-slate-200'}`}>{faq.question}</p>
               <motion.span
-                animate={{ rotate: openIdx === idx ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-slate-400 flex-shrink-0 ml-4"
+                animate={{ rotate: isOpen ? 180 : 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                className={`flex-shrink-0 ml-4 transition-colors duration-300 ${isOpen ? 'text-sky-400' : 'text-slate-500'}`}
               >
                 ↓
               </motion.span>
             </button>
             <AnimatePresence>
-              {openIdx === idx && (
+              {isOpen && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  <p className="px-6 pb-5 text-slate-400 border-t border-slate-800 pt-3 leading-relaxed">
+                  <p className="px-6 pb-5 text-slate-400 pt-3 leading-relaxed">
                     {faq.answer}
                   </p>
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
