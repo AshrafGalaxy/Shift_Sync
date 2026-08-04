@@ -217,7 +217,7 @@ function BentoCard({
 
 export function BentoFeatures() {
   return (
-    <div id="features" className="mt-32">
+    <div id="features" className="mt-20">
       <div className="text-center mb-12">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}

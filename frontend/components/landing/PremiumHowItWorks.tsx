@@ -118,7 +118,7 @@ export function PremiumHowItWorks() {
   ];
 
   return (
-    <div id="how-it-works" className="mt-32 relative">
+    <div id="how-it-works" className="mt-20 relative">
       <div className="text-center mb-20 px-4">
         <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
           From setup to schedule in 3 steps

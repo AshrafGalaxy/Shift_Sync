@@ -33,7 +33,7 @@ export function GrainFooter() {
   }, []);
 
   return (
-    <footer className="mt-32 bg-slate-950 overflow-hidden relative">
+    <footer className="mt-0 bg-slate-950 overflow-hidden relative">
       {/* ── Brand hero area ── */}
       <div
         ref={containerRef}

@@ -255,7 +255,7 @@ export function StickyShowcase() {
     <div
       ref={containerRef}
       style={{ height: `${sections.length * 100}vh` }}
-      className="relative mt-32"
+      className="relative mt-20"
     >
       {/* Sticky viewport */}
       <div className="sticky top-0 h-screen flex items-center overflow-hidden">

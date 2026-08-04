@@ -48,7 +48,7 @@ function Marquee() {
   const doubled = [...institutions, ...institutions];
 
   return (
-    <div className="mt-32 py-12 border-y border-slate-800/70">
+    <div className="mt-20 py-12 border-y border-slate-800/70">
       <div className="text-center mb-8">
         <p className="text-xs uppercase tracking-widest text-slate-500 font-semibold">
           Trusted by Institutions Across India
@@ -228,7 +228,7 @@ function ComparisonTable() {
   ];
 
   return (
-    <div className="mt-32">
+    <div className="mt-20">
       <div className="text-center mb-12">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -306,7 +306,7 @@ function Testimonials() {
   ];
 
   return (
-    <div className="mt-32">
+    <div className="mt-20">
       <div className="text-center mb-12">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -366,7 +366,7 @@ function Testimonials() {
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 function Pricing() {
   return (
-    <div id="pricing" className="mt-32">
+    <div id="pricing" className="mt-20">
       <div className="text-center mb-12">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -466,7 +466,7 @@ function FAQ() {
   ];
 
   return (
-    <div id="faq" className="mt-32">
+    <div id="faq" className="mt-20 pb-20">
       <div className="text-center mb-12">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
