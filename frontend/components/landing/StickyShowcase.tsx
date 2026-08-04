@@ -335,13 +335,11 @@ export function StickyShowcase() {
                     {/* Step pill and connecting segment */}
                     <div className="w-12 flex flex-col items-center flex-shrink-0 hidden lg:flex relative z-20">
                       <motion.div
-                        animate={{
-                          scale: isActive ? 1.15 : 1,
-                        }}
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                        animate={{ scale: isActive ? 1.15 : 1 }}
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center relative transition-all duration-300 z-10 ${
                           isActive
                             ? `bg-gradient-to-br ${sec.accent} shadow-[0_0_24px_rgba(14,165,233,0.5)] ring-1 ring-white/20`
-                            : "bg-slate-800/50 backdrop-blur-md border border-slate-700/50 shadow-lg"
+                            : "bg-slate-950 border border-slate-800 shadow-lg"
                         }`}
                       >
                         <SIcon className={`w-5 h-5 transition-colors duration-500 ${isActive ? "text-white" : "text-slate-500"}`} />
@@ -352,7 +350,7 @@ export function StickyShowcase() {
                       {idx < sections.length - 1 && (
                         <div 
                           className="absolute w-[2px] bg-slate-800/80 z-0 overflow-hidden"
-                          style={{ top: '48px', bottom: '0px', left: '50%', transform: 'translateX(-50%)' }}
+                          style={{ top: '24px', bottom: '-24px', left: '50%', transform: 'translateX(-50%)' }}
                         >
                           <ScrollLine scrollYProgress={scrollYProgress} idx={idx} total={sections.length} />
                         </div>
