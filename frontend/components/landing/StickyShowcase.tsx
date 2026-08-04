@@ -36,8 +36,8 @@ const sections = [
     description:
       "Click Generate. The CP-SAT engine evaluates thousands of constraint combinations and produces a provably optimal, conflict-free timetable — or tells you exactly which constraint is impossible.",
     icon: Cpu,
-    accent: "from-blue-500 to-violet-600",
-    accentColor: "text-blue-400",
+    accent: "from-sky-500 to-blue-600",
+    accentColor: "text-sky-400",
   },
   {
     id: "analyze",
@@ -47,8 +47,8 @@ const sections = [
     description:
       "View your resource heatmap — see which faculty are overloaded, which rooms sit empty all week, and which time-slots are bottlenecks. Drill into any constraint conflict.",
     icon: BarChart3,
-    accent: "from-violet-500 to-purple-600",
-    accentColor: "text-violet-400",
+    accent: "from-sky-500 to-blue-600",
+    accentColor: "text-sky-400",
   },
   {
     id: "export",
@@ -58,8 +58,8 @@ const sections = [
     description:
       "Export to Excel, PDF, or iCal — or push directly to Google Calendar. Every faculty member has their personal schedule on their phone the same day you generate.",
     icon: Download,
-    accent: "from-teal-500 to-emerald-600",
-    accentColor: "text-teal-400",
+    accent: "from-sky-500 to-blue-600",
+    accentColor: "text-sky-400",
   },
 ] as const;
 
@@ -299,8 +299,10 @@ export function StickyShowcase() {
                 style={{ height: trackHeight > 0 ? trackHeight : '100%' }}
               >
                 <motion.div 
-                  className="w-full h-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)] origin-top"
-                  style={{ scaleY: scrollYProgress }}
+                  className="w-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)] origin-top"
+                  initial={false}
+                  animate={{ height: `${(activeIdx / (sections.length - 1)) * 100}%` }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
               </div>
 
