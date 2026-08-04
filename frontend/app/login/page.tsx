@@ -156,17 +156,17 @@ export default function LoginPage() {
                     </CardHeader>
                     <CardContent>
                         <Tabs defaultValue="faculty" className="w-full" onValueChange={setRole}>
-                            <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-800/60 p-1 rounded-lg border border-slate-700/60 h-10">
+                            <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-800/60 rounded-lg border border-slate-700/60 h-10 items-center px-1">
                                 <TabsTrigger
                                     value="faculty"
-                                    className="rounded-md !h-full text-sm transition-all"
+                                    className="rounded-md h-8 text-sm transition-all data-[state=active]:shadow-none"
                                 >
                                     <Users className="w-3.5 h-3.5 mr-2 hidden sm:block" />
                                     Faculty
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="admin"
-                                    className="rounded-md !h-full text-sm transition-all"
+                                    className="rounded-md h-8 text-sm transition-all data-[state=active]:shadow-none"
                                 >
                                     <ShieldCheck className="w-3.5 h-3.5 mr-2 hidden sm:block" />
                                     Admin
