@@ -66,8 +66,9 @@ const sections = [
 // ─── Laser Animations ────────────────────────────────────────────────────────
 
 // Starts at top-middle (24, 0), splits down left/right sides, meets at bottom-middle (24, 48)
-const PILL_LEFT_PATH = "M 24 0 L 16 0 Q 0 0 0 16 L 0 32 Q 0 48 16 48 L 24 48";
-const PILL_RIGHT_PATH = "M 24 0 L 32 0 Q 48 0 48 16 L 48 32 Q 48 48 32 48 L 24 48";
+// Uses exact circular arcs (A 16 16) to flawlessly match Tailwind's rounded-2xl (16px border-radius)
+const PILL_LEFT_PATH = "M 24 0 L 16 0 A 16 16 0 0 0 0 16 L 0 32 A 16 16 0 0 0 16 48 L 24 48";
+const PILL_RIGHT_PATH = "M 24 0 L 32 0 A 16 16 0 0 1 48 16 L 48 32 A 16 16 0 0 1 32 48 L 24 48";
 
 function PillCircuit({ active }: { active: boolean }) {
   if (!active) return null;
@@ -104,12 +105,10 @@ function ScrollLine({ scrollYProgress, idx, total }: { scrollYProgress: MotionVa
   const height = useTransform(scrollYProgress, [start, end], ["0%", "100%"]);
   
   return (
-    <div className="w-[2px] flex-grow bg-slate-700/60 my-2 relative overflow-hidden rounded-full">
-      <motion.div 
-        className="absolute top-0 left-0 w-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)] origin-top"
-        style={{ height }}
-      />
-    </div>
+    <motion.div 
+      className="absolute top-0 left-0 w-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.9)] origin-top"
+      style={{ height }}
+    />
   );
 }
 
@@ -349,9 +348,14 @@ export function StickyShowcase() {
                         <PillCircuit active={isActive} />
                       </motion.div>
 
-                      {/* Line Segment to Next Icon */}
+                      {/* Line Segment behind the Icons */}
                       {idx < sections.length - 1 && (
-                        <ScrollLine scrollYProgress={scrollYProgress} idx={idx} total={sections.length} />
+                        <div 
+                          className="absolute w-[2px] bg-slate-800/80 z-0 overflow-hidden"
+                          style={{ top: '24px', bottom: '-24px', left: '50%', transform: 'translateX(-50%)' }}
+                        >
+                          <ScrollLine scrollYProgress={scrollYProgress} idx={idx} total={sections.length} />
+                        </div>
                       )}
                     </div>
 
