@@ -330,7 +330,7 @@ export function StickyShowcase() {
                 return (
                   <div
                     key={sec.id}
-                    className={`flex gap-6 lg:gap-8 items-stretch relative z-10 ${idx < sections.length - 1 ? 'pb-12' : ''}`}
+                    className="flex gap-6 lg:gap-8 items-stretch relative z-10"
                   >
                     {/* Step pill and connecting segment */}
                     <div className="w-12 flex flex-col items-center flex-shrink-0 hidden lg:flex relative z-20">
@@ -348,18 +348,15 @@ export function StickyShowcase() {
 
                       {/* Line Segment behind the Icons */}
                       {idx < sections.length - 1 && (
-                        <div 
-                          className="absolute w-[2px] bg-slate-800/80 z-0 overflow-hidden"
-                          style={{ top: '24px', bottom: '-24px', left: '50%', transform: 'translateX(-50%)' }}
-                        >
+                        <div className="w-[2px] flex-grow bg-slate-800/80 z-0 overflow-hidden -mt-6 -mb-6 relative">
                           <ScrollLine scrollYProgress={scrollYProgress} idx={idx} total={sections.length} />
                         </div>
                       )}
                     </div>
 
-                    {/* Text */}
+                    {/* Content */}
                     <motion.div 
-                      className="pb-4"
+                      className={`flex-1 min-w-0 pt-2 ${idx < sections.length - 1 ? 'pb-14' : 'pb-2'}`}
                       animate={{ opacity: isActive ? 1 : 0.4 }}
                       transition={{ duration: 0.4 }}
                     >
