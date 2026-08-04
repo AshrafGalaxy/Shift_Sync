@@ -13,6 +13,9 @@ import {
   Play,
   Upload,
   Download,
+  UserRound,
+  UserPlus,
+  GraduationCap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -123,65 +126,122 @@ function LiveStats() {
 // ─── Comparison Table ─────────────────────────────────────────────────────────
 function ComparisonTable() {
   const rows = [
-    { feature: "Conflict detection",          shiftsync: true,   sheets: false,  manual: false },
-    { feature: "Room assignment",             shiftsync: true,   sheets: false,  manual: false },
-    { feature: "Faculty shift compliance",    shiftsync: true,   sheets: false,  manual: false },
-    { feature: "Lab continuity (2hr blocks)", shiftsync: true,   sheets: false,  manual: false },
-    { feature: "Export to Google Calendar",   shiftsync: true,   sheets: false,  manual: false },
-    { feature: "Generation time",             shiftsync: "42s",  sheets: "Days", manual: "Weeks" },
-    { feature: "Free to use",                 shiftsync: true,   sheets: true,   manual: true },
+    { 
+      title: "Algorithmic Solver", 
+      desc: "Uses CP-SAT AI constraints vs manual guesswork.",
+      shiftsync: true, sheets: false, manual: false 
+    },
+    { 
+      title: "Conflict Detection", 
+      desc: "Instantly flags overlapping rooms and professors.",
+      shiftsync: true, sheets: false, manual: false 
+    },
+    { 
+      title: "Smart Room Assignment", 
+      desc: "Auto-routes based on capacity and lab equipment.",
+      shiftsync: true, sheets: false, manual: false 
+    },
+    { 
+      title: "Continuous Lab Blocks", 
+      desc: "Guarantees 2-3 hour practicals stay contiguous.",
+      shiftsync: true, sheets: false, manual: false 
+    },
+    { 
+      title: "Instant Distribution", 
+      desc: "Direct push to student and faculty Google Calendars.",
+      shiftsync: true, sheets: false, manual: false 
+    },
+    { 
+      title: "Generation Time", 
+      desc: "Time taken from data import to final schedule.",
+      shiftsync: "42 Secs", sheets: "Days", manual: "Weeks" 
+    },
+    { 
+      title: "Cost", 
+      desc: "Required budget to operate.",
+      shiftsync: "Free", sheets: "Free", manual: "Free" 
+    },
   ];
 
   return (
-    <div className="mt-20">
-      <div className="text-center mb-12">
+    <div id="comparison" className="mt-32 scroll-mt-24">
+      <div className="text-center mb-16">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-4xl font-bold mb-4"
+          className="text-4xl md:text-5xl font-black mb-6 tracking-tight"
         >
           Why not just use a spreadsheet?
         </motion.h2>
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 }}
+          className="text-slate-400 text-lg max-w-2xl mx-auto"
+        >
+          Because human brains aren't built to solve 10,000-variable math problems.
+        </motion.p>
       </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="overflow-x-auto rounded-2xl border border-slate-800/70"
+        className="max-w-5xl mx-auto relative"
       >
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-800">
-              <th className="text-left py-4 px-4 font-semibold text-slate-400">Feature</th>
-              <th className="text-center py-4 px-4 font-semibold text-teal-400 border-l border-slate-800">ShiftSync ✓</th>
-              <th className="text-center py-4 px-4 font-semibold text-slate-400 border-l border-slate-800">Spreadsheets</th>
-              <th className="text-center py-4 px-4 font-semibold text-slate-400 border-l border-slate-800">Manual</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, idx) => (
-              <tr key={idx} className="border-b border-slate-800/70 hover:bg-slate-900/40 transition-colors">
-                <td className="py-4 px-4 text-slate-300">{row.feature}</td>
-                <td className="text-center py-4 px-4 border-l border-slate-800">
-                  {typeof row.shiftsync === "boolean"
-                    ? row.shiftsync ? <CheckCircle2 className="w-5 h-5 text-teal-400 mx-auto" /> : <span className="text-red-400/60">✕</span>
-                    : <span className="text-teal-400 font-medium">{row.shiftsync}</span>}
-                </td>
-                <td className="text-center py-4 px-4 border-l border-slate-800">
-                  {typeof row.sheets === "boolean"
-                    ? row.sheets ? <CheckCircle2 className="w-5 h-5 text-teal-400 mx-auto" /> : <span className="text-red-400/60">✕</span>
-                    : <span className="text-amber-400 font-medium">{row.sheets}</span>}
-                </td>
-                <td className="text-center py-4 px-4 border-l border-slate-800">
-                  {typeof row.manual === "boolean"
-                    ? row.manual ? <CheckCircle2 className="w-5 h-5 text-teal-400 mx-auto" /> : <span className="text-red-400/60">✕</span>
-                    : <span className="text-amber-400 font-medium">{row.manual}</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Glow behind ShiftSync column */}
+        <div className="absolute top-0 bottom-0 left-[40%] md:left-[50%] w-[30%] md:w-[25%] bg-sky-500/5 blur-3xl rounded-full pointer-events-none" />
+
+        <div className="grid grid-cols-4 md:grid-cols-5 text-sm md:text-base mb-4 px-4">
+          <div className="col-span-2 md:col-span-2 text-slate-500 font-semibold uppercase tracking-widest text-xs">Features</div>
+          <div className="text-center font-bold text-sky-400">ShiftSync</div>
+          <div className="text-center font-semibold text-slate-500">Spreadsheets</div>
+          <div className="hidden md:block text-center font-semibold text-slate-500">Manual</div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {rows.map((row, idx) => (
+            <motion.div 
+              key={idx}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.05 }}
+              className="grid grid-cols-4 md:grid-cols-5 items-center p-4 md:p-5 rounded-2xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-800/40 transition-colors group relative overflow-hidden"
+            >
+              {/* Highlight bar for ShiftSync cell */}
+              <div className="absolute top-0 bottom-0 left-[40%] md:left-[50%] w-[30%] md:w-[25%] bg-slate-800/30 border-x border-slate-700/30 group-hover:bg-slate-700/20 transition-colors -z-10" />
+
+              <div className="col-span-2 md:col-span-2 pr-4">
+                <p className="font-semibold text-slate-200 mb-1">{row.title}</p>
+                <p className="text-xs text-slate-500 hidden md:block">{row.desc}</p>
+              </div>
+
+              <div className="text-center flex justify-center">
+                {typeof row.shiftsync === "boolean" 
+                  ? <CheckCircle2 className="w-6 h-6 text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
+                  : <span className="font-black text-sky-400">{row.shiftsync}</span>
+                }
+              </div>
+
+              <div className="text-center flex justify-center opacity-40">
+                {typeof row.sheets === "boolean" 
+                  ? <X className="w-5 h-5 text-slate-500" />
+                  : <span className="font-semibold text-slate-500">{row.sheets}</span>
+                }
+              </div>
+
+              <div className="hidden md:flex text-center justify-center opacity-40">
+                {typeof row.manual === "boolean" 
+                  ? <X className="w-5 h-5 text-slate-500" />
+                  : <span className="font-semibold text-slate-500">{row.manual}</span>
+                }
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </motion.div>
     </div>
   );
@@ -195,23 +255,26 @@ function Testimonials() {
       author: "Dr. Priya Sharma",
       role: "HOD Computer Engineering, SATIS College Nashik",
       avatarGradient: "from-sky-400 to-blue-500",
+      icon: UserRound
     },
     {
       quote: "The ghost room feature is a lifesaver. Generation never crashes — it just flags what needs manual attention.",
       author: "Prof. Rakesh Joshi",
       role: "Senior Faculty, VIT-style Institution",
       avatarGradient: "from-teal-400 to-emerald-500",
+      icon: UserPlus
     },
     {
       quote: "The Google Calendar sync means every faculty member has their schedule on their phone the same day we generate.",
       author: "Ms. Anjali Mehta",
       role: "Academic Coordinator, NIT-style Institution",
       avatarGradient: "from-violet-400 to-purple-500",
+      icon: GraduationCap
     },
   ];
 
   return (
-    <div className="mt-20">
+    <div id="testimonials" className="mt-20 scroll-mt-24">
       <div className="text-center mb-12">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
@@ -247,9 +310,9 @@ function Testimonials() {
               <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
             </svg>
             <p className="text-slate-300 mb-6 leading-relaxed">{t.quote}</p>
-            <div className="flex items-center gap-3 pt-5 border-t border-slate-800">
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.avatarGradient} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                {t.author.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+            <div className="flex items-center gap-4 pt-5 border-t border-slate-800">
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.avatarGradient} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                <t.icon className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="font-semibold text-sm text-slate-200">{t.author}</p>
@@ -271,13 +334,16 @@ function Testimonials() {
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 function Pricing() {
   return (
-    <div id="pricing" className="mt-20">
-      <div className="text-center mb-12">
+    <div id="pricing" className="mt-32 scroll-mt-24 relative">
+      {/* Background radial glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-sky-500/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+
+      <div className="text-center mb-16">
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-4xl font-bold mb-4"
+          className="text-4xl md:text-5xl font-black mb-6 tracking-tight"
         >
           Simple, transparent pricing
         </motion.h2>
@@ -286,71 +352,92 @@ function Pricing() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="text-slate-400"
+          className="text-slate-400 text-lg max-w-2xl mx-auto"
         >
           Start free. Scale when you&apos;re ready.
         </motion.p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10 max-w-5xl mx-auto px-4">
+        {/* FREE TIER - GLOWING BENTO */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-slate-900/50 border border-sky-500/40 rounded-2xl p-8"
+          className="group relative bg-slate-900/60 backdrop-blur-xl border border-sky-500/40 rounded-[2rem] p-8 lg:p-10 shadow-[0_0_40px_rgba(14,165,233,0.15)] hover:shadow-[0_0_60px_rgba(14,165,233,0.25)] hover:border-sky-400/60 transition-all duration-500 overflow-hidden flex flex-col"
         >
-          <Badge className="mb-4 bg-sky-500/20 text-sky-300 border-sky-500/50">🎉 Free During Beta</Badge>
-          <h3 className="text-2xl font-bold mb-2">Free</h3>
-          <p className="text-4xl font-black mb-2">₹0</p>
-          <p className="text-slate-400 text-sm mb-6">Forever, during beta</p>
-          <ul className="space-y-3 mb-8 text-sm">
+          <div className="absolute top-0 right-0 p-8">
+            <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/50 backdrop-blur-md px-3 py-1 font-semibold uppercase tracking-wider text-xs">
+              🎉 Free During Beta
+            </Badge>
+          </div>
+          
+          <h3 className="text-3xl font-black mb-2 tracking-tight">Free</h3>
+          <div className="flex items-baseline gap-2 mb-2">
+            <p className="text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400">₹0</p>
+          </div>
+          <p className="text-slate-400 text-sm mb-8 font-medium">Forever, during beta phase</p>
+          
+          <ul className="space-y-4 mb-10 text-slate-300 flex-grow">
             {[
-              "1 institution, unlimited departments",
-              "Unlimited timetable generations",
-              "CSV import & full export suite",
-              "Google Calendar sync",
-              "Conflict refiner & substitution system",
-            ].map((f) => (
-              <li key={f} className="flex gap-2 items-start">
-                <CheckCircle2 className="w-5 h-5 text-teal-400 flex-shrink-0 mt-0.5" />
-                <span>{f}</span>
+              { title: "1 Institution, unlimited departments", desc: "No caps on your organizational structure." },
+              { title: "Unlimited timetable generations", desc: "Run the AI solver as many times as you need." },
+              { title: "CSV import & full export suite", desc: "Export to Excel, PDF, and iCal instantly." },
+              { title: "Google Calendar sync", desc: "Direct integration for faculty and students." },
+              { title: "Conflict refiner & substitution system", desc: "Resolve absences and ghost rooms easily." },
+            ].map((f, i) => (
+              <li key={i} className="flex gap-3 items-start">
+                <CheckCircle2 className="w-6 h-6 text-sky-400 flex-shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
+                <div>
+                  <span className="font-semibold text-slate-200 block">{f.title}</span>
+                  <span className="text-sm text-slate-500 block mt-0.5">{f.desc}</span>
+                </div>
               </li>
             ))}
           </ul>
-          <Link href="/register">
-            <PremiumButton icon={<ArrowRight className="w-4 h-4" />} className="w-full">
+          
+          <Link href="/register" className="mt-auto">
+            <PremiumButton icon={<ArrowRight className="w-5 h-5" />} className="w-full py-6 text-lg shadow-[0_0_20px_rgba(14,165,233,0.3)]">
               Get Started Free
             </PremiumButton>
           </Link>
         </motion.div>
 
+        {/* PRO TIER - BLURRED / MYSTERY */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
-          className="bg-slate-900/50 border border-slate-700/60 rounded-2xl p-8"
+          transition={{ delay: 0.15 }}
+          className="relative bg-slate-900/30 border border-slate-700/50 rounded-[2rem] p-8 lg:p-10 overflow-hidden flex flex-col items-center text-center justify-center min-h-[500px]"
         >
-          <Badge className="mb-4 bg-slate-700/60 text-slate-300 border-slate-600">Coming Soon</Badge>
-          <h3 className="text-2xl font-bold mb-2">Pro</h3>
-          <p className="text-4xl font-black mb-2">TBA</p>
-          <p className="text-slate-400 text-sm mb-6">Per institution / year</p>
-          <ul className="space-y-3 mb-8 text-sm">
-            {[
-              "Everything in Free",
-              "Multiple institution management",
-              "Priority solver queue",
-              "Multi-department support",
-              "Dedicated onboarding & SLA support",
-            ].map((f) => (
-              <li key={f} className="flex gap-2 items-start">
-                <CheckCircle2 className="w-5 h-5 text-teal-400 flex-shrink-0 mt-0.5" />
-                <span>{f}</span>
-              </li>
-            ))}
-          </ul>
-          <PremiumButton variant="secondary" className="w-full opacity-50 cursor-not-allowed">
-            Join Waitlist
-          </PremiumButton>
+          {/* Heavy blur overlay */}
+          <div className="absolute inset-0 backdrop-blur-[4px] bg-slate-950/40 z-10 flex flex-col items-center justify-center p-8">
+             <Badge className="mb-4 bg-slate-800/80 text-slate-300 border-slate-600 px-4 py-1.5 font-bold tracking-widest uppercase text-xs shadow-xl">
+               Coming Soon
+             </Badge>
+             <h3 className="text-3xl font-black mb-3 bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-500">Pro Tier</h3>
+             <p className="text-slate-400 max-w-sm mx-auto mb-8 leading-relaxed">
+               For university conglomerates requiring multi-campus synchronization, priority solver queues, and dedicated SLA support.
+             </p>
+             <PremiumButton variant="secondary" className="px-8 border-slate-600 hover:bg-slate-800 text-slate-300">
+               Join Waitlist
+             </PremiumButton>
+          </div>
+
+          {/* Faint background skeleton structure to look like content is behind the blur */}
+          <div className="opacity-20 blur-[2px] w-full text-left pointer-events-none select-none" aria-hidden="true">
+            <h3 className="text-3xl font-black mb-2">Pro</h3>
+            <p className="text-6xl font-black tracking-tighter mb-8">₹X,XXX</p>
+            <ul className="space-y-4">
+              {[1,2,3,4,5].map(i => (
+                <li key={i} className="flex gap-3 items-center">
+                  <div className="w-6 h-6 rounded-full bg-slate-600" />
+                  <div className="h-4 bg-slate-700 rounded w-3/4" />
+                </li>
+              ))}
+            </ul>
+          </div>
         </motion.div>
       </div>
     </div>
@@ -467,12 +554,15 @@ export default function LandingPage() {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-5 lg:gap-8">
             {[
-              { name: "Features",    href: "#features" },
+              { name: "Features",     href: "#features" },
+              { name: "Engine",       href: "#intelligence-engine" },
               { name: "How It Works", href: "#how-it-works" },
-              { name: "Pricing",     href: "#pricing" },
-              { name: "FAQ",         href: "#faq" },
+              { name: "Comparison",   href: "#comparison" },
+              { name: "Feedback",     href: "#testimonials" },
+              { name: "Pricing",      href: "#pricing" },
+              { name: "FAQ",          href: "#faq" },
             ].map((link) => (
               <PremiumLink key={link.name} href={link.href} className="text-sm">
                 {link.name}
@@ -506,10 +596,13 @@ export default function LandingPage() {
             >
               <div className="px-4 py-4 space-y-2">
                 {[
-                  { name: "Features",    href: "#features" },
+                  { name: "Features",     href: "#features" },
+                  { name: "Engine",       href: "#intelligence-engine" },
                   { name: "How It Works", href: "#how-it-works" },
-                  { name: "Pricing",     href: "#pricing" },
-                  { name: "FAQ",         href: "#faq" },
+                  { name: "Comparison",   href: "#comparison" },
+                  { name: "Feedback",     href: "#testimonials" },
+                  { name: "Pricing",      href: "#pricing" },
+                  { name: "FAQ",          href: "#faq" },
                 ].map((link) => (
                   <a key={link.name} href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
