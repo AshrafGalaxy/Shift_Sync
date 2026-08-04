@@ -14,10 +14,10 @@ export function PremiumLink({ href, children, className = "" }: PremiumLinkProps
   return (
     <Link
       href={href}
-      className={`group relative overflow-hidden inline-flex transition-colors ${className}`}
+      className={`group relative overflow-hidden inline-flex whitespace-nowrap transition-colors ${className}`}
     >
       <motion.div
-        className="flex flex-col"
+        className="flex flex-col relative"
         initial="initial"
         whileHover="hover"
       >
