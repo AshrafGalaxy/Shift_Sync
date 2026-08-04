@@ -702,13 +702,12 @@ export default function LandingPage() {
                 </PremiumButton>
               </Link>
 
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-14 px-8 text-base font-semibold rounded-full border border-slate-700 bg-transparent text-slate-300 hover:text-white hover:border-slate-500 hover:bg-slate-800/60 transition-all duration-200 tracking-tight"
+              <PremiumButton
+                variant="secondary"
+                icon={<Play className="w-4 h-4 fill-current" />}
               >
-                <Play className="mr-2 w-4 h-4 fill-slate-400" /> Watch Demo
-              </Button>
+                Watch Demo
+              </PremiumButton>
             </motion.div>
           </div>
 

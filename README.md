@@ -1,7 +1,7 @@
 # ShiftSync — AI-Driven College Timetable Generator
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
   <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/Google_OR--Tools-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google OR-Tools" />
@@ -10,13 +10,13 @@
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
 </p>
 
-> Intelligent, constraint-aware timetable generation powered by Google OR-Tools CP-SAT, FastAPI, and Next.js 14.
+> Intelligent, constraint-aware timetable generation powered by Google OR-Tools CP-SAT, FastAPI, and Next.js 16.
 
 ---
 
 ## <img src="https://api.iconify.design/lucide:layers.svg?color=%2338bdf8" width="24" height="24" style="vertical-align: middle;" /> System Overview
 
-**ShiftSync** is an enterprise-grade SaaS platform designed for educational institutions to automate weekly timetable generation. The system orchestrates a **Next.js 14** web application, a **FastAPI** constraint solver engine utilizing **Google OR-Tools CP-SAT**, and a **Supabase (PostgreSQL)** database enforcing multi-tenant Row Level Security (RLS).
+**ShiftSync** is an enterprise-grade SaaS platform designed for educational institutions to automate weekly timetable generation. The system orchestrates a **Next.js 16** web application, a **FastAPI** constraint solver engine utilizing **Google OR-Tools CP-SAT**, and a **Supabase (PostgreSQL)** database enforcing multi-tenant Row Level Security (RLS).
 
 ---
 
@@ -28,7 +28,7 @@ flowchart TD
     classDef engine fill:#0f766e,stroke:#2dd4bf,stroke-width:2px,color:#fff
     classDef database fill:#14532d,stroke:#4ade80,stroke-width:2px,color:#fff
 
-    subgraph Client ["Browser Client — Next.js 14 App Router"]
+    subgraph Client ["Browser Client — Next.js 16 App Router"]
         UI["Dashboard UI & Timetable Grid"]:::client
         Builder["Constraint & Time-Grid Builder"]:::client
     end
@@ -88,7 +88,7 @@ flowchart TD
   <tr>
     <td align="center" width="160">
       <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nextjs/nextjs-original.svg" width="48" height="48" alt="Next.js" /><br />
-      <b>Next.js 14</b>
+      <b>Next.js 16</b>
     </td>
     <td align="center" width="160">
       <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/typescript/typescript-original.svg" width="48" height="48" alt="TypeScript" /><br />
