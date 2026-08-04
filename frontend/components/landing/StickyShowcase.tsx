@@ -1,0 +1,364 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
+import {
+  Upload,
+  Cpu,
+  BarChart3,
+  Download,
+  CheckCircle2,
+  FileSpreadsheet,
+  CalendarRange,
+  FileText,
+  ChevronRight,
+} from "lucide-react";
+
+// ─── Section definitions ──────────────────────────────────────────────────────
+
+const sections = [
+  {
+    id: "configure",
+    step: "01",
+    title: "Configure",
+    headline: "Upload in seconds",
+    description:
+      "Import your faculty list, room inventory, and workload assignments via CSV or the interactive web form. Set constraints — no clashes, min/max lectures, lab continuity — in plain language.",
+    icon: Upload,
+    accent: "from-sky-500 to-blue-600",
+    accentColor: "text-sky-400",
+  },
+  {
+    id: "generate",
+    step: "02",
+    title: "Generate",
+    headline: "42 seconds flat",
+    description:
+      "Click Generate. The CP-SAT engine evaluates thousands of constraint combinations and produces a provably optimal, conflict-free timetable — or tells you exactly which constraint is impossible.",
+    icon: Cpu,
+    accent: "from-blue-500 to-violet-600",
+    accentColor: "text-blue-400",
+  },
+  {
+    id: "analyze",
+    step: "03",
+    title: "Analyze",
+    headline: "Real-time insights",
+    description:
+      "View your resource heatmap — see which faculty are overloaded, which rooms sit empty all week, and which time-slots are bottlenecks. Drill into any constraint conflict.",
+    icon: BarChart3,
+    accent: "from-violet-500 to-purple-600",
+    accentColor: "text-violet-400",
+  },
+  {
+    id: "export",
+    step: "04",
+    title: "Export & Share",
+    headline: "Every format",
+    description:
+      "Export to Excel, PDF, or iCal — or push directly to Google Calendar. Every faculty member has their personal schedule on their phone the same day you generate.",
+    icon: Download,
+    accent: "from-teal-500 to-emerald-600",
+    accentColor: "text-teal-400",
+  },
+] as const;
+
+// ─── Right-panel visuals ─────────────────────────────────────────────────────
+
+function ConfigureVisual({ active }: { active: boolean }) {
+  const fields = [
+    { label: "Faculty Name",    value: "Dr. Priya Sharma",     width: "w-4/5" },
+    { label: "Subject Code",    value: "CS-301",               width: "w-2/5" },
+    { label: "Weekly Lectures", value: "4",                    width: "w-1/4" },
+    { label: "Lab Continuity",  value: "Yes — 2-slot blocks",  width: "w-3/4" },
+  ];
+  return (
+    <div className="space-y-3">
+      {fields.map((f, i) => (
+        <motion.div
+          key={f.label}
+          initial={{ opacity: 0, x: 20 }}
+          animate={active ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
+          transition={{ delay: i * 0.08, duration: 0.4 }}
+          className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3"
+        >
+          <p className="text-[11px] text-slate-500 mb-1">{f.label}</p>
+          <div className={`h-2 rounded-full bg-gradient-to-r from-sky-500/60 to-blue-600/60 ${f.width}`} />
+          <p className="text-xs text-slate-300 mt-1.5 font-mono">{f.value}</p>
+        </motion.div>
+      ))}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+        transition={{ delay: 0.4 }}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/30"
+      >
+        <CheckCircle2 className="w-4 h-4 text-sky-400 flex-shrink-0" />
+        <span className="text-xs text-sky-300">CSV validated — 42 faculty, 18 rooms, 156 workloads</span>
+      </motion.div>
+    </div>
+  );
+}
+
+function GenerateVisual({ active }: { active: boolean }) {
+  const rows = [
+    ["from-sky-500 to-blue-600",     null,                          "from-violet-500 to-purple-600"],
+    [null,                            "from-teal-500 to-cyan-600",   "from-teal-500 to-cyan-600"  ],
+    ["from-sky-500 to-blue-600",     "from-amber-500 to-orange-500", null                         ],
+    ["from-violet-500 to-purple-600", null,                          "from-sky-500 to-blue-600"   ],
+    [null,                            "from-rose-500 to-pink-600",   "from-amber-500 to-orange-500"],
+  ] as (string | null)[][];
+
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        {rows.flatMap((row, ri) =>
+          row.map((color, ci) =>
+            color ? (
+              <motion.div
+                key={`${ri}-${ci}`}
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={active ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.6 }}
+                transition={{ delay: (ri * 3 + ci) * 0.04, type: "spring", stiffness: 280 }}
+                className={`h-9 rounded-lg bg-gradient-to-br ${color} border border-white/10`}
+              />
+            ) : (
+              <div key={`${ri}-${ci}`} className="h-9 rounded-lg bg-slate-800/50 border border-slate-700/40" />
+            )
+          )
+        )}
+      </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={active ? { opacity: 1 } : { opacity: 0 }}
+        transition={{ delay: 0.8 }}
+        className="text-center"
+      >
+        <span className="inline-flex items-center gap-2 text-sm text-teal-400 font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+          Generated in 42s — 0 conflicts
+        </span>
+      </motion.div>
+    </div>
+  );
+}
+
+function AnalyzeVisual({ active }: { active: boolean }) {
+  const labels = ["Dr. Sharma", "Prof. Mehta", "Ms. Joshi", "Dr. Rao"];
+  const intensities = [
+    [0.9, 0.2, 0.8, 0.5, 0.4],
+    [0.1, 0.7, 0.6, 0.3, 0.9],
+    [0.6, 0.5, 0.1, 0.8, 0.2],
+    [0.4, 0.9, 0.3, 0.7, 0.5],
+  ];
+
+  const getColor = (v: number) =>
+    v > 0.7
+      ? "bg-rose-500/70"
+      : v > 0.4
+      ? "bg-amber-500/60"
+      : "bg-teal-500/50";
+
+  return (
+    <div className="space-y-2">
+      {labels.map((label, ri) => (
+        <motion.div
+          key={label}
+          initial={{ opacity: 0, x: -10 }}
+          animate={active ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
+          transition={{ delay: ri * 0.08 }}
+          className="flex items-center gap-2"
+        >
+          <span className="text-[11px] text-slate-500 w-20 flex-shrink-0 text-right">{label}</span>
+          <div className="flex gap-1 flex-1">
+            {intensities[ri].map((v, ci) => (
+              <motion.div
+                key={ci}
+                initial={{ scaleY: 0 }}
+                animate={active ? { scaleY: 1 } : { scaleY: 0 }}
+                transition={{ delay: ri * 0.08 + ci * 0.03, type: "spring" }}
+                style={{ transformOrigin: "bottom" }}
+                className={`flex-1 h-7 rounded-md ${getColor(v)}`}
+              />
+            ))}
+          </div>
+        </motion.div>
+      ))}
+      <div className="flex justify-end gap-3 mt-1">
+        {[["rose", "High"], ["amber", "Medium"], ["teal", "Low"]].map(([c, l]) => (
+          <span key={l} className="flex items-center gap-1 text-[10px] text-slate-500">
+            <span className={`w-2 h-2 rounded-sm bg-${c}-500/60`} />
+            {l}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ExportVisual({ active }: { active: boolean }) {
+  const formats = [
+    { icon: FileSpreadsheet, label: "Excel (.xlsx)", color: "text-teal-400",  bg: "bg-teal-500/10  border-teal-500/30" },
+    { icon: FileText,        label: "PDF",           color: "text-red-400",   bg: "bg-red-500/10   border-red-500/30"  },
+    { icon: CalendarRange,   label: "iCal (.ics)",   color: "text-sky-400",   bg: "bg-sky-500/10   border-sky-500/30"  },
+    { icon: CalendarRange,   label: "Google Cal",    color: "text-green-400", bg: "bg-green-500/10 border-green-500/30"},
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {formats.map(({ icon: Icon, label, color, bg }, i) => (
+        <motion.div
+          key={label}
+          initial={{ opacity: 0, y: 12 }}
+          animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+          transition={{ delay: i * 0.1 }}
+          whileHover={{ y: -4, transition: { type: "spring", stiffness: 300 } }}
+          className={`flex items-center gap-2.5 p-3 rounded-xl border ${bg} cursor-default`}
+        >
+          <Icon className={`w-5 h-5 flex-shrink-0 ${color}`} />
+          <span className={`text-xs font-medium ${color}`}>{label}</span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+/**
+ * §2 — Sticky Scroll Storytelling
+ * Container is 4 × 100vh tall. The inner panel sticks at top: 0 / h-screen.
+ * Left: section nav (active highlight + gradient indicator).
+ * Right: swaps animated visual per active section.
+ */
+export function StickyShowcase() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"],
+  });
+
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    const idx = Math.min(
+      Math.floor(v * sections.length),
+      sections.length - 1
+    );
+    setActiveIdx(idx);
+  });
+
+  const activeSection = sections[activeIdx];
+  const Icon = activeSection.icon;
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ height: `${sections.length * 100}vh` }}
+      className="relative mt-32"
+    >
+      {/* Sticky viewport */}
+      <div className="sticky top-0 h-screen flex items-center overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          {/* Section label */}
+          <motion.p
+            key={activeIdx + "label"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-xs uppercase tracking-widest text-slate-600 font-semibold mb-6 text-center lg:text-left"
+          >
+            How ShiftSync works
+          </motion.p>
+
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            {/* ── Left: navigation ── */}
+            <div className="space-y-6 order-2 lg:order-1">
+              {sections.map((sec, idx) => {
+                const SIcon = sec.icon;
+                const isActive = idx === activeIdx;
+                return (
+                  <motion.div
+                    key={sec.id}
+                    animate={{ opacity: isActive ? 1 : 0.35 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex gap-4 items-start"
+                  >
+                    {/* Step pill / line */}
+                    <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-1">
+                      <motion.div
+                        animate={{
+                          background: isActive
+                            ? `linear-gradient(135deg, var(--tw-gradient-stops))`
+                            : undefined,
+                          scale: isActive ? 1.1 : 1,
+                        }}
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                          isActive
+                            ? `bg-gradient-to-br ${sec.accent} shadow-[0_0_16px_rgba(14,165,233,0.35)]`
+                            : "bg-slate-800 border border-slate-700"
+                        }`}
+                      >
+                        <SIcon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
+                      </motion.div>
+                      {idx < sections.length - 1 && (
+                        <div className="w-[1px] h-8 bg-slate-800" />
+                      )}
+                    </div>
+
+                    {/* Text */}
+                    <div className="pb-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[11px] font-mono font-bold ${isActive ? sec.accentColor : "text-slate-600"}`}>
+                          {sec.step}
+                        </span>
+                        <span className={`font-bold text-base ${isActive ? "text-slate-100" : "text-slate-500"}`}>
+                          {sec.title}
+                        </span>
+                      </div>
+                      {isActive && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4 }}
+                        >
+                          <p className={`text-xl font-black mb-2 gradient-sky-text`}>{sec.headline}</p>
+                          <p className="text-slate-400 text-sm leading-relaxed max-w-sm">{sec.description}</p>
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* ── Right: animated visual ── */}
+            <div className="order-1 lg:order-2">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeIdx}
+                  initial={{ opacity: 0, x: 30, filter: "blur(8px)" }}
+                  animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, x: -30, filter: "blur(8px)" }}
+                  transition={{ duration: 0.45, ease: "easeInOut" }}
+                  className="bg-slate-900/70 border border-slate-700/60 rounded-2xl p-6 shadow-[0_0_60px_rgba(14,165,233,0.05)]"
+                >
+                  {/* Visual header */}
+                  <div className={`inline-flex items-center gap-2 mb-5 px-3 py-1.5 rounded-full bg-gradient-to-r ${activeSection.accent} bg-opacity-10 border border-white/10`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
+                    <span className="text-xs text-white font-semibold">{activeSection.title}</span>
+                  </div>
+
+                  {/* Content visual */}
+                  {activeIdx === 0 && <ConfigureVisual active />}
+                  {activeIdx === 1 && <GenerateVisual active />}
+                  {activeIdx === 2 && <AnalyzeVisual active />}
+                  {activeIdx === 3 && <ExportVisual active />}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
