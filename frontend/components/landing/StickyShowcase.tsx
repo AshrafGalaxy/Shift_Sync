@@ -352,7 +352,7 @@ export function StickyShowcase() {
                       {idx < sections.length - 1 && (
                         <div 
                           className="absolute w-[2px] bg-slate-800/80 z-0 overflow-hidden"
-                          style={{ top: '24px', bottom: '-24px', left: '50%', transform: 'translateX(-50%)' }}
+                          style={{ top: '48px', bottom: '0px', left: '50%', transform: 'translateX(-50%)' }}
                         >
                           <ScrollLine scrollYProgress={scrollYProgress} idx={idx} total={sections.length} />
                         </div>
